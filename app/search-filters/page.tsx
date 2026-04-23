@@ -21,7 +21,7 @@ type Meeting = {
   title: string;
   time: string;
   duration: string;
-  thumb: "audio1" | "audio2" | "audio3" | "property1" | "property2" | "legacy" | "new" | "default" | "empty";
+  thumb: "audio1" | "audio2" | "audio3" | "error" | "legacy" | "new" | "default" | "empty";
   author: string;
   status: string;
 };
@@ -54,14 +54,30 @@ const groups: Group[] = [
       { title: "Совещание по маркетингу", time: "15:00", duration: "124 min", thumb: "empty", author: "fedos@mymeet.ai", status: "Загружено" },
       { title: "Совещание по продажам", time: "15:00", duration: "124 min", thumb: "audio3", author: "fedos@mymeet.ai", status: "Загружено" },
       { title: "Совещание по развитию продукта", time: "15:00", duration: "124 min", thumb: "audio2", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Совещание по пользовательскому опыту", time: "15:00", duration: "124 min", thumb: "property1", author: "fedos@mymeet.ai", status: "Загружено" },
+      { title: "Совещание по пользовательскому опыту", time: "15:00", duration: "124 min", thumb: "error", author: "fedos@mymeet.ai", status: "Загружено" },
     ],
   },
 ];
 
 function Thumb({ kind }: { kind: Meeting["thumb"] }) {
-  // empty = legacy grey placeholder with download icon
-  if (kind === "empty") {
+  // error: grey box with red "ERROR" text (Figma's "аудио 1" variant)
+  if (kind === "error") {
+    return (
+      <div
+        className="flex h-[48px] w-[80px] shrink-0 items-center justify-center overflow-clip rounded-[4px] border border-solid p-[8px]"
+        style={{ backgroundColor: tokens.grey20, borderColor: tokens.grey40 }}
+      >
+        <span
+          className="text-[12px] font-medium"
+          style={{ color: tokens.red, letterSpacing: "-0.24px" }}
+        >
+          ERROR
+        </span>
+      </div>
+    );
+  }
+  // legacy: grey box with download-tray icon (image442)
+  if (kind === "legacy") {
     return (
       <div
         className="flex h-[48px] w-[80px] shrink-0 items-center justify-center overflow-clip rounded-[4px] border border-solid p-[8px]"
@@ -72,7 +88,8 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       </div>
     );
   }
-  if (kind === "legacy") {
+  // empty: grey box with play icon (Figma "Variant11" = frame-audio2.svg)
+  if (kind === "empty") {
     return (
       <div
         className="flex h-[48px] w-[80px] shrink-0 items-center justify-center overflow-clip rounded-[4px] border border-solid p-[8px]"
@@ -105,14 +122,6 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       <div className="relative h-[48px] w-[80px] shrink-0 overflow-clip rounded-[4px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={asset("property2.png")} alt="" className="absolute inset-0 h-full w-full rounded-[4px] object-cover" />
-      </div>
-    );
-  }
-  if (kind === "property1") {
-    return (
-      <div className="relative h-[48px] w-[80px] shrink-0 overflow-clip rounded-[4px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset("property1.png")} alt="" className="absolute inset-0 h-full w-full rounded-[4px] object-cover" />
       </div>
     );
   }
