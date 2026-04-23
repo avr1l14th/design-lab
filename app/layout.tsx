@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Design Lab",
-  description: "Interactive prototypes playground",
+  title: "mymeet.ai design lab",
+  description: "Interactive prototypes for mymeet.ai",
 };
 
 export default function RootLayout({
