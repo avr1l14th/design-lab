@@ -61,7 +61,7 @@ export default function Home() {
             <Link
               key={p.slug}
               href={`/${p.slug}`}
-              className="flex w-full flex-col items-start gap-[2px]"
+              className="-m-[12px] flex w-[246px] flex-col items-start gap-[2px] rounded-[4px] p-[12px] transition-[background-color,gap] duration-150 hover:gap-[6px] hover:bg-[#fafafa]"
             >
               <span
                 className="text-[16px] font-medium leading-normal"
