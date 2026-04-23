@@ -5,7 +5,7 @@ const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
 
 const tokens = {
   black: "#212833",
-  grey: "#818aa3",
+  grey: "#c7c8ca",
   grey50: "#dddedf",
 } as const;
 
@@ -45,15 +45,15 @@ export default function Home() {
           style={{ color: tokens.black, letterSpacing: "-0.32px" }}
         >
           {"Дизайн лаборатория "}
-          <span
-            className="underline decoration-solid"
-            style={{
-              textDecorationColor: tokens.grey50,
-              textDecorationSkipInk: "none",
-            }}
+          <a
+            href="https://mymeet.ai/ru/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-solid decoration-[#dddedf] transition-[text-decoration-color] duration-150 hover:decoration-[#c7c8ca]"
+            style={{ textDecorationSkipInk: "none" }}
           >
             mymeet.ai
-          </span>
+          </a>
         </p>
 
         <div className="flex w-full flex-col items-start gap-[30px]">
@@ -61,7 +61,7 @@ export default function Home() {
             <Link
               key={p.slug}
               href={`/${p.slug}`}
-              className="flex w-full flex-col items-start gap-[6px]"
+              className="flex w-full flex-col items-start gap-[2px]"
             >
               <span
                 className="text-[16px] font-medium leading-normal"
