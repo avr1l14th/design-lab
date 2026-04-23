@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { prototypes } from "@/prototypes-registry";
-
-const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
+import { LabLogo } from "@/components/LabLogo";
 
 const tokens = {
   black: "#212833",
@@ -33,12 +32,7 @@ export default function Home() {
   return (
     <main className="flex min-h-screen w-full items-start justify-center bg-white p-[80px]">
       <div className="flex w-[600px] shrink-0 flex-col items-start gap-[39px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`${BASE}/lab/logo.svg`}
-          alt="mymeet.ai"
-          className="block h-[32px] w-[32px] max-w-none shrink-0"
-        />
+        <LabLogo />
 
         <p
           className="text-[16px] font-medium leading-normal"
@@ -61,7 +55,7 @@ export default function Home() {
             <Link
               key={p.slug}
               href={`/${p.slug}`}
-              className="-m-[12px] flex w-[400px] flex-col items-start gap-[2px] rounded-[4px] p-[12px] transition-colors duration-300 ease-out hover:bg-[#fafafa]"
+              className="-mx-[16px] -my-[12px] flex w-fit flex-col items-start gap-[2px] rounded-[4px] px-[16px] py-[12px] transition-colors duration-300 ease-out hover:bg-[#fafafa]"
             >
               <span
                 className="text-[16px] font-medium leading-normal"
