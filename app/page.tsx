@@ -49,8 +49,8 @@ export default function Home() {
             href="https://mymeet.ai/ru/"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-solid decoration-[#dddedf] transition-[text-decoration-color] duration-150 hover:decoration-[#c7c8ca]"
-            style={{ textDecorationSkipInk: "none" }}
+            className="underline decoration-solid decoration-[#dddedf] decoration-[2px] underline-offset-[3px] transition-[text-decoration-color] duration-150 hover:decoration-[#c7c8ca]"
+            style={{ textDecorationSkipInk: "auto" }}
           >
             mymeet.ai
           </a>
