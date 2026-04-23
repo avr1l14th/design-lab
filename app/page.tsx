@@ -1,161 +1,63 @@
 import Link from "next/link";
-import { prototypes, type Prototype } from "@/prototypes-registry";
-
-const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
-
-const tokens = {
-  black: "#212833",
-  grey: "#818aa3",
-  grey10: "#fafafa",
-  grey40: "#efefef",
-} as const;
-
-function SearchFiltersThumb() {
-  return (
-    <div
-      className="relative h-[48px] w-[80px] shrink-0 overflow-hidden rounded-[4px]"
-      style={{ backgroundColor: tokens.grey10 }}
-    >
-      {/* Left chip — blue, rotated -15deg */}
-      <div
-        className="absolute flex items-center justify-center"
-        style={{
-          left: "17px",
-          top: "8px",
-          width: "24.495px",
-          height: "24.495px",
-        }}
-      >
-        <div style={{ transform: "rotate(-15deg)" }}>
-          <div
-            className="flex items-center rounded-[2px] p-[4px]"
-            style={{ backgroundColor: "#d6dff6" }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${BASE}/lab/icon-a.svg`}
-              alt=""
-              className="block h-[12px] w-[12px] max-w-none shrink-0"
-            />
-          </div>
-        </div>
-      </div>
-      {/* Right chip — green, rotated 12.54deg */}
-      <div
-        className="absolute flex items-center justify-center"
-        style={{
-          left: "36px",
-          top: "15px",
-          width: "23.866px",
-          height: "23.866px",
-        }}
-      >
-        <div style={{ transform: "rotate(12.54deg)" }}>
-          <div
-            className="flex items-center rounded-[2px] p-[4px]"
-            style={{ backgroundColor: "#d8eee4" }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${BASE}/lab/icon-b.svg`}
-              alt=""
-              className="block h-[12px] w-[12px] max-w-none shrink-0"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyThumb() {
-  return (
-    <div
-      className="h-[48px] w-[80px] shrink-0 rounded-[4px]"
-      style={{ backgroundColor: tokens.grey10 }}
-    />
-  );
-}
-
-function Thumb({ slug }: { slug: string }) {
-  if (slug === "search-filters") return <SearchFiltersThumb />;
-  return <EmptyThumb />;
-}
-
-function formatDate(iso: string) {
-  // iso: YYYY-MM-DD → "23 апреля 2026"
-  const months = [
-    "января",
-    "февраля",
-    "марта",
-    "апреля",
-    "мая",
-    "июня",
-    "июля",
-    "августа",
-    "сентября",
-    "октября",
-    "ноября",
-    "декабря",
-  ];
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  return `${d} ${months[m - 1]} ${y}`;
-}
-
-function Row({ p }: { p: Prototype }) {
-  return (
-    <Link
-      href={`/${p.slug}`}
-      className="-mx-3 flex items-center gap-[12px] rounded-[6px] px-3 py-[16px] transition-colors hover:bg-zinc-50"
-    >
-      <Thumb slug={p.slug} />
-      <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-        <span
-          className="truncate text-[14px] font-medium leading-[1.35]"
-          style={{ color: tokens.black, letterSpacing: "-0.28px" }}
-        >
-          {p.title}
-        </span>
-        <span
-          className="truncate text-[13px] font-normal"
-          style={{ color: tokens.grey, letterSpacing: "-0.13px" }}
-        >
-          {formatDate(p.updatedAt)}
-        </span>
-      </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`${BASE}/lab/chevron.svg`}
-        alt=""
-        className="block h-[20px] w-[20px] max-w-none shrink-0"
-      />
-    </Link>
-  );
-}
+import { prototypes } from "@/prototypes-registry";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen w-full flex-col items-center bg-white px-[32px] pt-[50px] pb-[80px]">
-      <div className="flex flex-col items-center gap-[24px]">
-        <h1
-          className="text-center text-[14px] font-medium leading-[1.35]"
-          style={{ color: tokens.black, letterSpacing: "-0.28px" }}
-        >
-          mymeet.ai design lab
-        </h1>
+    <main className="min-h-full w-full bg-white px-6 py-24">
+      <div className="mx-auto w-full max-w-xl">
+        <header className="mb-16">
+          <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
+            mymeet.ai design lab
+          </h1>
+          <p className="mt-1 text-lg text-zinc-500">
+            Interactive prototypes
+          </p>
+        </header>
 
-        <div className="flex w-[700px] flex-col items-start">
-          {prototypes.map((p) => (
-            <div key={p.slug} className="w-full">
-              <Row p={p} />
-            </div>
-          ))}
-          <div
-            className="h-px w-full"
-            style={{ backgroundColor: tokens.grey40 }}
-          />
-        </div>
+        <ul className="divide-y divide-zinc-100">
+          {prototypes.length === 0
+            ? Array.from({ length: 2 }).map((_, i) => (
+                <li key={i} className="flex items-center gap-4 py-4">
+                  <div className="h-12 w-12 shrink-0 rounded-md bg-zinc-100" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-zinc-400">
+                      Название прототипа
+                    </p>
+                    <p className="mt-0.5 text-sm text-zinc-300">
+                      Дата последнего изменения
+                    </p>
+                  </div>
+                </li>
+              ))
+            : prototypes.map((p) => (
+                <li key={p.slug}>
+                  <Link
+                    href={`/${p.slug}`}
+                    className="group flex items-center gap-4 py-4 transition-colors hover:bg-zinc-50 -mx-3 px-3 rounded-lg"
+                  >
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+                      {p.previewImage && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.previewImage}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-950 truncate">
+                        {p.title}
+                      </p>
+                      <p className="mt-0.5 text-sm text-zinc-500 truncate">
+                        {p.updatedAt}
+                        {p.description ? ` · ${p.description}` : ""}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+        </ul>
       </div>
     </main>
   );
