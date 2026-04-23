@@ -163,7 +163,7 @@ function MeetingRow({ m }: { m: Meeting }) {
             <div className="flex items-center gap-[4px]">
               <span
                 className="text-[12px]"
-                style={{ color: tokens.grey, letterSpacing: "-0.24px", fontFeatureSettings: "'lnum' 1, 'tnum' 1" }}
+                style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
               >
                 {m.time}
               </span>
@@ -171,7 +171,7 @@ function MeetingRow({ m }: { m: Meeting }) {
               <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px]" />
               <span
                 className="text-[12px]"
-                style={{ color: tokens.grey, letterSpacing: "-0.24px", fontFeatureSettings: "'lnum' 1, 'tnum' 1" }}
+                style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
               >
                 {m.duration}
               </span>
@@ -248,12 +248,10 @@ function SidebarMenuItem({
 export default function SearchFiltersPage() {
   return (
     <main className={`${inter.className} flex min-h-screen w-full bg-white`} style={{ color: tokens.black }}>
-      <div
-        className="relative flex min-h-screen flex-1 items-stretch overflow-clip bg-white"
-      >
-        {/* Sidebar */}
+      <div className="relative flex min-h-screen flex-1 items-start bg-white">
+        {/* Sidebar — sticky, fills viewport height */}
         <aside
-          className="flex w-[280px] shrink-0 flex-col justify-between self-stretch border-r border-solid pt-[16px] pb-[4px]"
+          className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col justify-between border-r border-solid pt-[16px] pb-[4px]"
           style={{ borderColor: tokens.grey40 }}
         >
           <div className="flex w-[280px] flex-col gap-[12px]">
