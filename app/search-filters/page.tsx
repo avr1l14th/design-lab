@@ -105,7 +105,10 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       <div className="relative h-[48px] w-[80px] shrink-0 overflow-clip rounded-[4px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={asset("property2.png")} alt="" className="absolute inset-0 h-full w-full rounded-[4px] object-cover" />
-        <div className="absolute inset-0 rounded-[4px] bg-[rgba(0,0,0,0.5)]" />
+        {/* Backdrop blur layer */}
+        <div className="absolute inset-0 rounded-[4px] backdrop-blur-[3px] bg-[rgba(0,0,0,0.01)]" />
+        {/* Semi-transparent white overlay */}
+        <div className="absolute inset-0 rounded-[4px] bg-[rgba(255,255,255,0.24)]" />
         <div className="absolute inset-0 flex items-center justify-center">
           <span
             className="text-[12px] font-medium text-white"
@@ -166,7 +169,10 @@ function MeetingRow({ m }: { m: Meeting }) {
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px]" />
-              <span className="text-[12px]" style={{ color: tokens.grey, letterSpacing: "-0.24px" }}>
+              <span
+                className="text-[12px]"
+                style={{ color: tokens.grey, letterSpacing: "-0.24px", fontFeatureSettings: "'lnum' 1, 'tnum' 1" }}
+              >
                 {m.duration}
               </span>
             </div>
@@ -198,7 +204,7 @@ function MeetingRow({ m }: { m: Meeting }) {
 
 function DateHeader({ date, weekday }: { date: string; weekday: string }) {
   return (
-    <div className="flex h-[36px] w-full flex-col items-start pt-[12px]">
+    <div className="flex w-full shrink-0 flex-col items-start pt-[12px]">
       <div className="flex w-full flex-col items-start gap-[8px]">
         <div className="flex items-center gap-[6px] px-[24px] text-[13px]" style={{ letterSpacing: "-0.13px" }}>
           <span className="font-medium" style={{ color: tokens.black }}>
@@ -208,7 +214,7 @@ function DateHeader({ date, weekday }: { date: string; weekday: string }) {
             {weekday}
           </span>
         </div>
-        <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
+        <div className="h-px w-full shrink-0" style={{ backgroundColor: tokens.grey40 }} />
       </div>
     </div>
   );
@@ -241,14 +247,13 @@ function SidebarMenuItem({
 
 export default function SearchFiltersPage() {
   return (
-    <main className={`${inter.className} min-h-screen w-full bg-white`} style={{ color: tokens.black }}>
+    <main className={`${inter.className} flex min-h-screen w-full bg-white`} style={{ color: tokens.black }}>
       <div
-        className="relative flex items-start overflow-clip rounded-[4px] border border-solid bg-white"
-        style={{ borderColor: tokens.grey40 }}
+        className="relative flex min-h-screen flex-1 items-stretch overflow-clip bg-white"
       >
         {/* Sidebar */}
         <aside
-          className="flex h-[990px] w-[280px] shrink-0 flex-col justify-between border-r border-solid pt-[16px] pb-[4px]"
+          className="flex w-[280px] shrink-0 flex-col justify-between self-stretch border-r border-solid pt-[16px] pb-[4px]"
           style={{ borderColor: tokens.grey40 }}
         >
           <div className="flex w-[280px] flex-col gap-[12px]">
@@ -354,18 +359,18 @@ export default function SearchFiltersPage() {
             <div className="flex w-[1112px] items-center gap-[12px]">
               <div className="flex items-center gap-[8px]">
                 <button
-                  className="flex h-[36px] w-[36px] items-center justify-center rounded-[4px] border border-solid px-[10px] py-[8px]"
+                  className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid"
                   style={{ borderColor: tokens.grey40 }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset("icon-search.svg")} alt="" className="h-[16px] w-[16px]" />
+                  <img src={asset("icon-search.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
                 </button>
                 <button
-                  className="flex h-[36px] items-center justify-center rounded-[4px] border border-solid px-[10px] py-[8px]"
+                  className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid"
                   style={{ borderColor: tokens.grey40 }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset("icon-filter.svg")} alt="" className="h-[16px] w-[16px]" />
+                  <img src={asset("icon-filter.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
                 </button>
               </div>
               {/* vertical divider */}
