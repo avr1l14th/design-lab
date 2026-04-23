@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "mymeet.ai design lab",
-  description: "Interactive prototypes for mymeet.ai",
+  title: "Дизайн лаборатория mymeet.ai",
+  description: "Интерактивные прототипы mymeet.ai",
 };
 
 export default function RootLayout({
