@@ -1,4 +1,21 @@
+"use client";
+
 import { Inter } from "next/font/google";
+import { useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  MEETINGS,
+  SOURCE_META,
+  getAuthor,
+  type Meeting,
+  type ThumbKind,
+} from "./mock-data";
+import {
+  EMPTY_FILTERS,
+  filterMeetings,
+  groupByDate,
+  type FilterState,
+} from "./use-filtered-meetings";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], weight: ["400", "500"] });
 
@@ -13,54 +30,12 @@ const tokens = {
   grey20: "#f7f7f8",
   grey40: "#efefef",
   grey50: "#dddedf",
+  grey60: "#c7c8ca",
   blueSea: "#e4ecfa",
   red: "#c33",
 };
 
-type Meeting = {
-  title: string;
-  time: string;
-  duration: string;
-  thumb: "audio1" | "audio2" | "audio3" | "error" | "legacy" | "new" | "default" | "empty";
-  author: string;
-  status: string;
-};
-
-type Group = { date: string; weekday: string; meetings: Meeting[] };
-
-const groups: Group[] = [
-  {
-    date: "Вчера",
-    weekday: "Среда",
-    meetings: [
-      { title: "Дизайн синк", time: "15:00", duration: "124 min", thumb: "audio1", author: "fedos@mymeet.ai", status: "Загружено" },
-    ],
-  },
-  {
-    date: "29 сентября",
-    weekday: "Понедельник",
-    meetings: [
-      { title: "Синка с командой mymeet.ai и обсуждение Framer", time: "15:00", duration: "124 min", thumb: "audio2", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Результаты спринта, синк", time: "15:00", duration: "124 min", thumb: "legacy", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Девсинк", time: "15:00", duration: "124 min", thumb: "new", author: "fedos@mymeet.ai", status: "Загружено" },
-    ],
-  },
-  {
-    date: "2 июня",
-    weekday: "Пятница",
-    meetings: [
-      { title: "Совещание по стратегии", time: "15:00", duration: "124 min", thumb: "new", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Совещание по анализу рынка", time: "15:00", duration: "124 min", thumb: "default", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Совещание по маркетингу", time: "15:00", duration: "124 min", thumb: "empty", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Совещание по продажам", time: "15:00", duration: "124 min", thumb: "audio3", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Совещание по развитию продукта", time: "15:00", duration: "124 min", thumb: "audio2", author: "fedos@mymeet.ai", status: "Загружено" },
-      { title: "Совещание по пользовательскому опыту", time: "15:00", duration: "124 min", thumb: "error", author: "fedos@mymeet.ai", status: "Загружено" },
-    ],
-  },
-];
-
-function Thumb({ kind }: { kind: Meeting["thumb"] }) {
-  // error: grey box with red "ERROR" text (Figma's "аудио 1" variant)
+function Thumb({ kind }: { kind: ThumbKind }) {
   if (kind === "error") {
     return (
       <div
@@ -76,7 +51,6 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       </div>
     );
   }
-  // legacy: grey box with download-tray icon (image442)
   if (kind === "legacy") {
     return (
       <div
@@ -88,7 +62,6 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       </div>
     );
   }
-  // empty: grey box with play icon (Figma "Variant11" = frame-audio2.svg)
   if (kind === "empty") {
     return (
       <div
@@ -105,9 +78,7 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       <div className="relative h-[48px] w-[80px] shrink-0 overflow-clip rounded-[4px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={asset("property2.png")} alt="" className="absolute inset-0 h-full w-full rounded-[4px] object-cover" />
-        {/* Backdrop blur layer */}
         <div className="absolute inset-0 rounded-[4px] backdrop-blur-[3px] bg-[rgba(0,0,0,0.01)]" />
-        {/* Semi-transparent white overlay */}
         <div className="absolute inset-0 rounded-[4px] bg-[rgba(255,255,255,0.24)]" />
         <div className="absolute inset-0 flex items-center justify-center">
           <span
@@ -128,7 +99,6 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
       </div>
     );
   }
-  // audio variants: image + dark overlay + play icon
   const imgMap: Record<string, string> = {
     audio1: "audio1.png",
     audio2: "audio2.png",
@@ -148,6 +118,8 @@ function Thumb({ kind }: { kind: Meeting["thumb"] }) {
 }
 
 function MeetingRow({ m }: { m: Meeting }) {
+  const author = getAuthor(m.authorId);
+  const source = SOURCE_META[m.source];
   return (
     <div className="flex h-[72px] w-full items-center justify-between bg-white px-[24px] py-[12px]">
       <div className="flex items-center gap-[24px]">
@@ -165,7 +137,7 @@ function MeetingRow({ m }: { m: Meeting }) {
                 className="text-[12px]"
                 style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
               >
-                {m.time}
+                {m.startTime}
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px]" />
@@ -173,26 +145,31 @@ function MeetingRow({ m }: { m: Meeting }) {
                 className="text-[12px]"
                 style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
               >
-                {m.duration}
+                {m.durationMin} min
               </span>
             </div>
           </div>
         </div>
         <div className="flex w-[180px] flex-col items-start">
           <div className="flex w-[156px] items-center gap-[8px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={asset("ellipse.png")} alt="" className="h-[16px] w-[16px] shrink-0 rounded-full" />
+            <div
+              className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full text-[9px] font-medium text-white"
+              style={{ backgroundColor: author.avatarColor, letterSpacing: "-0.18px" }}
+              title={author.name}
+            >
+              {author.name.charAt(0)}
+            </div>
             <p className="min-w-0 flex-1 truncate text-[12px]" style={{ color: tokens.black, letterSpacing: "-0.24px" }}>
-              {m.author}
+              {author.email}
             </p>
           </div>
         </div>
         <div className="flex w-[180px] flex-col items-start overflow-clip">
           <div className="flex w-full items-center gap-[8px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={asset("arrow-down.svg")} alt="" className="h-[12px] w-[12px] shrink-0" />
+            <img src={asset(source.icon)} alt="" className="h-[14px] w-[14px] shrink-0 object-contain" />
             <span className="truncate text-[12px]" style={{ color: tokens.black, letterSpacing: "-0.24px" }}>
-              {m.status}
+              {source.label}
             </span>
           </div>
         </div>
@@ -202,16 +179,16 @@ function MeetingRow({ m }: { m: Meeting }) {
   );
 }
 
-function DateHeader({ date, weekday }: { date: string; weekday: string }) {
+function DateHeader({ label, subLabel }: { label: string; subLabel: string }) {
   return (
     <div className="flex w-full shrink-0 flex-col items-start pt-[12px]">
       <div className="flex w-full flex-col items-start gap-[8px]">
         <div className="flex items-center gap-[6px] px-[24px] text-[13px]" style={{ letterSpacing: "-0.13px" }}>
           <span className="font-medium" style={{ color: tokens.black }}>
-            {date}
+            {label}
           </span>
           <span className="font-normal" style={{ color: tokens.grey }}>
-            {weekday}
+            {subLabel}
           </span>
         </div>
         <div className="h-px w-full shrink-0" style={{ backgroundColor: tokens.grey40 }} />
@@ -246,6 +223,26 @@ function SidebarMenuItem({
 }
 
 export default function SearchFiltersPage() {
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setFilters((f) => ({ ...f, query: "" }));
+  };
+
+  const groups = useMemo(
+    () => groupByDate(filterMeetings(MEETINGS, filters)),
+    [filters]
+  );
+
+  const showEmptyState = searchOpen && filters.query.trim() === "";
+
   return (
     <main className={`${inter.className} flex min-h-screen w-full bg-white`} style={{ color: tokens.black }}>
       <div className="relative flex min-h-screen flex-1 items-start bg-white">
@@ -256,7 +253,6 @@ export default function SearchFiltersPage() {
         >
           <div className="flex w-[280px] flex-col gap-[12px]">
             <div className="flex w-full flex-col gap-[24px] px-[12px]">
-              {/* Logo */}
               <div className="flex items-center">
                 <div className="flex w-[128.941px] items-center justify-center gap-[9.412px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -265,9 +261,7 @@ export default function SearchFiltersPage() {
                   <img src={asset("mymeet-text.svg")} alt="mymeet.ai" className="h-[18.353px] w-[87.53px]" />
                 </div>
               </div>
-              {/* Menu */}
               <div className="flex w-full flex-col gap-[16px]">
-                {/* Add meeting CTA */}
                 <div
                   className="flex h-[36px] w-full items-center justify-between rounded-[4px] px-[12px] py-[10px]"
                   style={{ backgroundColor: tokens.blue }}
@@ -290,7 +284,6 @@ export default function SearchFiltersPage() {
               </div>
             </div>
             <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
-            {/* Footer items */}
             <div className="flex w-full flex-col items-start gap-[4px] px-[12px]">
               <SidebarMenuItem icon="icon-support.svg" label="Поддержка" />
               <SidebarMenuItem icon="icon-kb.svg" label="База знаний" />
@@ -299,7 +292,6 @@ export default function SearchFiltersPage() {
               <SidebarMenuItem icon="icon-power.svg" label="Выйти" />
             </div>
           </div>
-          {/* User Info */}
           <div className="flex w-[280px] flex-col items-start rounded-[4px]">
             <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
             <div className="flex w-full flex-col items-start rounded-t-[4px] pl-[8px] pr-[4px] py-[4px]">
@@ -342,72 +334,200 @@ export default function SearchFiltersPage() {
 
         {/* Main content */}
         <section className="flex min-w-0 flex-1 flex-col items-start justify-center">
-          {/* Header */}
           <div
             className="flex h-[54px] w-full items-center border-b border-solid bg-white p-[16px]"
             style={{ borderColor: tokens.grey40 }}
           >
-            <h1 className="text-[13px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
-              Мои встречи
+            <h1 className="relative grid text-[13px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
+              <span
+                className="col-start-1 row-start-1 whitespace-nowrap"
+                style={{
+                  opacity: searchOpen ? 0 : 1,
+                  transition: "opacity 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                Мои встречи
+              </span>
+              <span
+                className="col-start-1 row-start-1 whitespace-nowrap"
+                style={{
+                  opacity: searchOpen ? 1 : 0,
+                  transition: "opacity 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                Поиск
+              </span>
             </h1>
           </div>
 
-          {/* Toolbar */}
-          <div className="flex w-full items-center bg-white pl-[16px] pr-[24px] py-[16px]">
-            <div className="flex w-[1112px] items-center gap-[12px]">
-              <div className="flex items-center gap-[8px]">
-                <button
-                  className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid"
-                  style={{ borderColor: tokens.grey40 }}
+          <div className="flex w-full items-center overflow-hidden bg-white pl-[16px] pr-[24px] py-[16px]">
+            <div className="flex w-full items-center gap-[12px]">
+              <div
+                className="flex min-w-0 flex-1 items-center gap-[8px]"
+                style={{
+                  maxWidth: searchOpen ? "100%" : "80px",
+                  transition: "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div
+                  style={{
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    borderColor: tokens.grey40,
+                  }}
+                  onClick={searchOpen ? undefined : openSearch}
+                  role={searchOpen ? undefined : "button"}
+                  tabIndex={searchOpen ? undefined : 0}
+                  onKeyDown={
+                    searchOpen
+                      ? undefined
+                      : (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openSearch();
+                          }
+                        }
+                  }
+                  className={`flex h-[36px] min-w-0 items-center gap-[10px] overflow-hidden rounded-[4px] border border-solid bg-white px-[10px] ${
+                    searchOpen ? "" : "cursor-pointer"
+                  }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset("icon-search.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
-                </button>
+                  <img
+                    src={asset("icon-search.svg")}
+                    alt=""
+                    className="h-[16px] w-[16px] max-w-none shrink-0"
+                  />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={filters.query}
+                    onChange={(e) =>
+                      setFilters((f) => ({ ...f, query: e.target.value }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") closeSearch();
+                    }}
+                    placeholder="Поиск по названию или содержанию встречи"
+                    tabIndex={searchOpen ? 0 : -1}
+                    aria-hidden={!searchOpen}
+                    className={`min-w-0 bg-transparent text-[13px] outline-none placeholder:text-[color:var(--_p)] ${
+                      searchOpen ? "flex-1" : "w-0 flex-none"
+                    }`}
+                    style={
+                      {
+                        color: tokens.black,
+                        letterSpacing: "-0.13px",
+                        opacity: searchOpen ? 1 : 0,
+                        pointerEvents: searchOpen ? "auto" : "none",
+                        transition: searchOpen
+                          ? "opacity 240ms cubic-bezier(0.22, 1, 0.36, 1) 220ms"
+                          : "opacity 120ms linear",
+                        ["--_p" as string]: tokens.grey60,
+                      } as React.CSSProperties
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={closeSearch}
+                    tabIndex={searchOpen ? 0 : -1}
+                    aria-hidden={!searchOpen}
+                    className={`flex h-[16px] shrink-0 items-center justify-center ${
+                      searchOpen ? "w-[16px]" : "w-0"
+                    }`}
+                    style={{
+                      opacity: searchOpen ? 1 : 0,
+                      pointerEvents: searchOpen ? "auto" : "none",
+                      transition: searchOpen
+                        ? "opacity 240ms cubic-bezier(0.22, 1, 0.36, 1) 220ms"
+                        : "opacity 120ms linear",
+                    }}
+                    aria-label="Закрыть поиск"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={asset("icon-close.svg")} alt="" className="h-[16px] w-[16px] max-w-none" />
+                  </button>
+                </div>
                 <button
-                  className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid"
+                  type="button"
+                  className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid bg-white"
                   style={{ borderColor: tokens.grey40 }}
+                  aria-label="Фильтры"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={asset("icon-filter.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
                 </button>
               </div>
-              {/* vertical divider */}
-              <div className="h-[24px] w-px" style={{ backgroundColor: tokens.grey40 }} />
-              {/* tabs */}
-              <div className="flex h-[36px] items-center">
-                <div
-                  className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]"
-                  style={{ backgroundColor: tokens.grey20 }}
-                >
-                  <span className="text-[13px]" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
-                    Все встречи
-                  </span>
-                </div>
-                <div className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]">
-                  <span className="text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
-                    Мои встречи
-                  </span>
-                </div>
-                <div className="flex h-full flex-col items-center justify-center px-[10px] py-[8px]">
-                  <span className="text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
-                    Доступные мне
-                  </span>
-                </div>
-              </div>
+              <AnimatePresence mode="popLayout" initial={false}>
+                {!searchOpen && (
+                  <motion.div
+                    key="tabs-group"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1], delay: 0.42 } }}
+                    exit={{ opacity: 0, transition: { duration: 0.08, ease: "linear" } }}
+                    style={{ willChange: "opacity" }}
+                    className="flex items-center gap-[12px] overflow-hidden whitespace-nowrap"
+                  >
+                    <div className="h-[24px] w-px shrink-0" style={{ backgroundColor: tokens.grey40 }} />
+                    <div className="flex h-[36px] items-center">
+                      <div
+                        className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]"
+                        style={{ backgroundColor: tokens.grey20 }}
+                      >
+                        <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
+                          Все встречи
+                        </span>
+                      </div>
+                      <div className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]">
+                        <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
+                          Мои встречи
+                        </span>
+                      </div>
+                      <div className="flex h-full flex-col items-center justify-center px-[10px] py-[8px]">
+                        <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
+                          Доступные мне
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
-          {/* Meetings list */}
-          <div className="flex w-[1160px] flex-col items-start">
-            {groups.map((g) => (
-              <div key={g.date + g.weekday + g.meetings[0].title} className="flex w-full flex-col">
-                <DateHeader date={g.date} weekday={g.weekday} />
-                {g.meetings.map((m) => (
-                  <MeetingRow key={m.title} m={m} />
-                ))}
+          {showEmptyState ? (
+            <div className="flex w-full flex-1 items-center justify-center py-[120px]">
+              <div className="flex flex-col items-center gap-[16px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={asset("empty-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
+                <div className="flex flex-col items-center gap-[12px] text-center">
+                  <p className="text-[24px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.48px" }}>
+                    Поиск по встречам
+                  </p>
+                  <p className="w-[288px] text-[14px]" style={{ color: tokens.black, letterSpacing: "-0.28px", lineHeight: 1.35 }}>
+                    Введите ключевые слова — найдем все совпадения в этом рабочем пространстве
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="flex w-[1160px] flex-col items-start">
+              {groups.length === 0 ? (
+                <div className="w-full px-[24px] py-[48px] text-center text-[13px]" style={{ color: tokens.grey }}>
+                  Ничего не найдено
+                </div>
+              ) : (
+                groups.map((g) => (
+                  <div key={g.key} className="flex w-full flex-col">
+                    <DateHeader label={g.label} subLabel={g.subLabel} />
+                    {g.meetings.map((m) => (
+                      <MeetingRow key={m.id} m={m} />
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </section>
       </div>
     </main>
