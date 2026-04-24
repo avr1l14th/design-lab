@@ -2,7 +2,6 @@
 
 import { Inter } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   MEETINGS,
   SOURCE_META,
@@ -525,40 +524,41 @@ export default function SearchFiltersPage() {
                   <img src={asset("icon-filter.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
                 </button>
               </div>
-              <AnimatePresence mode="popLayout" initial={false}>
-                {!searchOpen && (
-                  <motion.div
-                    key="tabs-group"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1], delay: 0.42 } }}
-                    exit={{ opacity: 0, transition: { duration: 0.08, ease: "linear" } }}
-                    style={{ willChange: "opacity" }}
-                    className="flex items-center gap-[12px] overflow-hidden whitespace-nowrap"
+              <div
+                aria-hidden={searchOpen}
+                className="flex items-center gap-[12px] overflow-hidden whitespace-nowrap"
+                style={{
+                  maxWidth: searchOpen ? 0 : 280,
+                  opacity: searchOpen ? 0 : 1,
+                  transform: searchOpen ? "translateX(16px)" : "translateX(0)",
+                  pointerEvents: searchOpen ? "none" : "auto",
+                  transition: searchOpen
+                    ? "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)"
+                    : "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1) 160ms, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div className="h-[24px] w-px shrink-0" style={{ backgroundColor: tokens.grey40 }} />
+                <div className="flex h-[36px] items-center">
+                  <div
+                    className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]"
+                    style={{ backgroundColor: tokens.grey20 }}
                   >
-                    <div className="h-[24px] w-px shrink-0" style={{ backgroundColor: tokens.grey40 }} />
-                    <div className="flex h-[36px] items-center">
-                      <div
-                        className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]"
-                        style={{ backgroundColor: tokens.grey20 }}
-                      >
-                        <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
-                          Все встречи
-                        </span>
-                      </div>
-                      <div className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]">
-                        <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
-                          Мои встречи
-                        </span>
-                      </div>
-                      <div className="flex h-full flex-col items-center justify-center px-[10px] py-[8px]">
-                        <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
-                          Доступные мне
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
+                      Все встречи
+                    </span>
+                  </div>
+                  <div className="flex h-full flex-col items-center justify-center rounded-[4px] px-[10px] py-[8px]">
+                    <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
+                      Мои встречи
+                    </span>
+                  </div>
+                  <div className="flex h-full flex-col items-center justify-center px-[10px] py-[8px]">
+                    <span className="whitespace-nowrap text-[13px]" style={{ color: tokens.grey, letterSpacing: "-0.13px" }}>
+                      Доступные мне
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
