@@ -16,3 +16,27 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
 }
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background-color: #f7f7f8;
+  background-image: linear-gradient(
+    90deg,
+    #f7f7f8 0%,
+    #f7f7f8 30%,
+    #eaeaec 50%,
+    #f7f7f8 70%,
+    #f7f7f8 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.4s ease-in-out infinite;
+}

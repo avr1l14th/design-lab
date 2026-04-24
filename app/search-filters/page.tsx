@@ -1,7 +1,7 @@
 "use client";
 
 import { Inter } from "next/font/google";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   MEETINGS,
@@ -222,10 +222,77 @@ function SidebarMenuItem({
   );
 }
 
+function SkeletonBar({ width, height = 16, radius = 2 }: { width: number; height?: number; radius?: number }) {
+  return (
+    <div
+      className="skeleton-shimmer shrink-0"
+      style={{ width, height, borderRadius: radius }}
+    />
+  );
+}
+
+function SkeletonDateHeader() {
+  return (
+    <div className="flex h-[60px] w-full flex-col items-start justify-center px-[24px] py-[12px]">
+      <div className="flex h-[36px] items-center">
+        <div className="flex h-full items-center justify-center px-[10px] py-[8px]">
+          <SkeletonBar width={78} height={16} />
+        </div>
+        <div className="flex h-full items-center justify-center px-[10px] py-[8px]">
+          <SkeletonBar width={78} height={16} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonRow({ titleWidth = 280 }: { titleWidth?: number }) {
+  return (
+    <div className="flex h-[72px] w-full items-center justify-between bg-white px-[24px] py-[12px]">
+      <div className="flex items-center gap-[24px]">
+        <div className="flex w-[446px] items-center gap-[12px]">
+          <SkeletonBar width={80} height={48} radius={4} />
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-[4px]">
+            <SkeletonBar width={titleWidth} height={16} />
+            <SkeletonBar width={88} height={15} />
+          </div>
+        </div>
+        <div className="flex w-[180px] flex-col items-start">
+          <SkeletonBar width={111} height={16} />
+        </div>
+        <SkeletonBar width={87} height={15} />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonGroup({ titleWidths }: { titleWidths: number[] }) {
+  return (
+    <div className="flex w-full flex-col">
+      <SkeletonDateHeader />
+      {titleWidths.map((w, i) => (
+        <SkeletonRow key={i} titleWidth={w} />
+      ))}
+    </div>
+  );
+}
+
 export default function SearchFiltersPage() {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Debounced fake "loading" on query change — show shimmer skeletons briefly
+  useEffect(() => {
+    if (filters.query.trim() === "") {
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    const t = setTimeout(() => setIsSearching(false), 700);
+    return () => clearTimeout(t);
+  }, [filters.query]);
 
   const openSearch = () => {
     setSearchOpen(true);
@@ -245,7 +312,7 @@ export default function SearchFiltersPage() {
 
   return (
     <main className={`${inter.className} flex min-h-screen w-full bg-white`} style={{ color: tokens.black }}>
-      <div className="relative flex min-h-screen flex-1 items-start bg-white">
+      <div className="relative flex min-h-screen flex-1 items-stretch bg-white">
         {/* Sidebar — sticky, fills viewport height */}
         <aside
           className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col justify-between border-r border-solid pt-[16px] pb-[4px]"
@@ -509,6 +576,12 @@ export default function SearchFiltersPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          ) : isSearching ? (
+            <div className="flex w-[1160px] flex-col items-start">
+              <SkeletonGroup titleWidths={[280, 280, 185]} />
+              <SkeletonGroup titleWidths={[280, 280, 185]} />
+              <SkeletonGroup titleWidths={[280, 280, 185]} />
             </div>
           ) : (
             <div className="flex w-[1160px] flex-col items-start">
