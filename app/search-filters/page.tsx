@@ -584,22 +584,33 @@ export default function SearchFiltersPage() {
               <SkeletonGroup titleWidths={[280, 280, 185]} />
             </div>
           ) : (
-            <div className="flex w-[1160px] flex-col items-start">
-              {groups.length === 0 ? (
-                <div className="w-full px-[24px] py-[48px] text-center text-[13px]" style={{ color: tokens.grey }}>
-                  Ничего не найдено
+            groups.length === 0 ? (
+              <div className="flex w-full flex-1 items-center justify-center py-[120px]">
+                <div className="flex flex-col items-center gap-[16px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={asset("no-results-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
+                  <div className="flex flex-col items-center gap-[12px] text-center">
+                    <p className="text-[24px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.48px" }}>
+                      Не удалось ничего найти
+                    </p>
+                    <p className="w-[288px] text-[14px]" style={{ color: tokens.black, letterSpacing: "-0.28px", lineHeight: 1.35 }}>
+                      Попробуйте другой запрос или смените рабочее пространство
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                groups.map((g) => (
+              </div>
+            ) : (
+              <div className="flex w-[1160px] flex-col items-start">
+                {groups.map((g) => (
                   <div key={g.key} className="flex w-full flex-col">
                     <DateHeader label={g.label} subLabel={g.subLabel} />
                     {g.meetings.map((m) => (
                       <MeetingRow key={m.id} m={m} />
                     ))}
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )
           )}
         </section>
       </div>
