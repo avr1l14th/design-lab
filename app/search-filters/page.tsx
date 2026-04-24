@@ -528,7 +528,7 @@ export default function SearchFiltersPage() {
                 aria-hidden={searchOpen}
                 className="flex items-center gap-[12px] overflow-hidden whitespace-nowrap"
                 style={{
-                  maxWidth: searchOpen ? 0 : 280,
+                  maxWidth: searchOpen ? 0 : 340,
                   opacity: searchOpen ? 0 : 1,
                   transform: searchOpen ? "translateX(16px)" : "translateX(0)",
                   pointerEvents: searchOpen ? "none" : "auto",
