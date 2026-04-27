@@ -16,6 +16,49 @@ export const EMPTY_FILTERS: FilterState = {
   dateTo: null,
 };
 
+export function hasActiveFilters(f: FilterState): boolean {
+  return f.sources.length > 0 || f.authorIds.length > 0 || f.dateFrom !== null || f.dateTo !== null;
+}
+
+const MONTHS_GENITIVE_FULL = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+];
+
+export function todayISOPinned(): string {
+  return "2026-04-24";
+}
+
+function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function formatDateRange(from: string | null, to: string | null): string {
+  if (!from) return "";
+  const a = isoToDate(from);
+  if (!to || from === to) {
+    return `${a.getDate()} ${MONTHS_GENITIVE_FULL[a.getMonth()]}, ${a.getFullYear()}`;
+  }
+  const b = isoToDate(to);
+  if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) {
+    return `${a.getDate()}–${b.getDate()} ${MONTHS_GENITIVE_FULL[a.getMonth()]}, ${a.getFullYear()}`;
+  }
+  if (a.getFullYear() === b.getFullYear()) {
+    return `${a.getDate()} ${MONTHS_GENITIVE_FULL[a.getMonth()]} – ${b.getDate()} ${MONTHS_GENITIVE_FULL[b.getMonth()]}, ${a.getFullYear()}`;
+  }
+  return `${a.getDate()} ${MONTHS_GENITIVE_FULL[a.getMonth()]} ${a.getFullYear()} – ${b.getDate()} ${MONTHS_GENITIVE_FULL[b.getMonth()]} ${b.getFullYear()}`;
+}
+
+const MONTHS_NOMINATIVE = [
+  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+];
+
+export function monthYearLabel(year: number, month: number): string {
+  return `${MONTHS_NOMINATIVE[month]} ${year}`;
+}
+
 export function filterMeetings(all: Meeting[], f: FilterState): Meeting[] {
   const q = f.query.trim().toLowerCase();
   return all.filter((m) => {
