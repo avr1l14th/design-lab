@@ -22,6 +22,8 @@ npm run dev     # запустит http://localhost:3000
 
 ## Как добавить новый прототип
 
+> Подключаешься к репо впервые? Сначала пройди [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 1. Создай папку `app/my-feature/page.tsx` — это и есть прототип, URL будет `/my-feature`.
 2. Добавь запись в `prototypes-registry.ts`, чтобы он появился на главной:
 
