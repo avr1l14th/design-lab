@@ -14,4 +14,11 @@ export const prototypes: Prototype[] = [
     description: "Мои встречи — список с группировкой по датам",
     updatedAt: "2026-04-24",
   },
+  {
+    slug: "onboarding-mymeet",
+    title: "Онбординг mymeet.ai",
+    description: "5-шаговый флоу: источник → роль → цели → формат → тариф/команда",
+    tags: ["motion", "forms"],
+    updatedAt: "2026-04-27",
+  },
 ];
