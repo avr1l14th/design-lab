@@ -21,4 +21,11 @@ export const prototypes: Prototype[] = [
     tags: ["motion", "forms"],
     updatedAt: "2026-04-27",
   },
+  {
+    slug: "search-expand",
+    title: "Search expand",
+    description: "Кнопка поиска ↔ длинный инпут — изолированный переход",
+    tags: ["motion"],
+    updatedAt: "2026-04-28",
+  },
 ];
