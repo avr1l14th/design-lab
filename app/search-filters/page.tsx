@@ -1188,14 +1188,14 @@ export default function SearchFiltersPage() {
                 </div>
               </div>
               <div
-                aria-hidden={searchOpen}
+                aria-hidden={searchOpen || filtersHaveActive}
                 className="flex items-center gap-[12px] overflow-hidden whitespace-nowrap"
                 style={{
-                  maxWidth: searchOpen ? 0 : 340,
-                  opacity: searchOpen ? 0 : 1,
-                  transform: searchOpen ? "translateX(16px)" : "translateX(0)",
-                  pointerEvents: searchOpen ? "none" : "auto",
-                  transition: searchOpen
+                  maxWidth: searchOpen || filtersHaveActive ? 0 : 340,
+                  opacity: searchOpen || filtersHaveActive ? 0 : 1,
+                  transform: searchOpen || filtersHaveActive ? "translateX(16px)" : "translateX(0)",
+                  pointerEvents: searchOpen || filtersHaveActive ? "none" : "auto",
+                  transition: searchOpen || filtersHaveActive
                     ? "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)"
                     : "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1) 160ms, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
