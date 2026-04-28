@@ -39,8 +39,8 @@ export default function IconCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: 250,
-        height: 152,
+        width: 224,
+        height: 144,
         padding: 48,
         display: "flex",
         flexDirection: "column",
