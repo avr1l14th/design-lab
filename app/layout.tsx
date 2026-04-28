@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AgentationDev from "../components/AgentationDev";
+import LabFAB from "../components/LabFAB";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,6 +26,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <LabFAB />
         {process.env.NODE_ENV !== "production" && <AgentationDev />}
       </body>
     </html>
