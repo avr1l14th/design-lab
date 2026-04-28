@@ -15,7 +15,7 @@ export interface IconCardProps {
 
 export default function IconCard({
   icon,
-  iconSize = 24,
+  iconSize = 20,
   label,
   labelWidth,
   labelNoWrap,
@@ -39,7 +39,7 @@ export default function IconCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: 210,
+        width: 250,
         height: 152,
         padding: 48,
         display: "flex",
