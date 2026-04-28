@@ -3,6 +3,7 @@
 import React from "react";
 import { useReducedMotion } from "./useReducedMotion";
 import { useTheme } from "./ThemeContext";
+import { useIsMobile } from "./useIsMobile";
 
 export interface IconCardProps {
   icon: string;
@@ -51,6 +52,7 @@ export default function IconCard({
   const [hovered, setHovered] = React.useState(false);
   const reducedMotion = useReducedMotion();
   const t = TOKENS[useTheme()];
+  const isMobile = useIsMobile();
 
   const borderColor = selected ? t.borderSelected : t.borderDefault;
   const background = selected ? t.bgSelected : hovered ? t.bgHover : t.bgDefault;
@@ -63,14 +65,14 @@ export default function IconCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: 224,
-        height: 144,
-        padding: 48,
+        width: isMobile ? "100%" : 224,
+        height: isMobile ? 112 : 144,
+        padding: isMobile ? 16 : 48,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 16,
+        gap: isMobile ? 12 : 16,
         border: `1px solid ${borderColor}`,
         borderRadius: 4,
         background,
@@ -80,6 +82,7 @@ export default function IconCard({
         transition,
         flexShrink: 0,
         touchAction: "manipulation",
+        boxSizing: "border-box",
       }}
     >
       {/* Mask-based fill — exact icon color in both default and selected. */}

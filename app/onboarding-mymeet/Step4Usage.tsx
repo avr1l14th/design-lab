@@ -1,6 +1,7 @@
 import React from "react";
 import { STEP4_IMAGES } from "./assets";
 import { useReducedMotion } from "./useReducedMotion";
+import { useIsMobile } from "./useIsMobile";
 
 export type Step4Value = "self" | "team" | null;
 
@@ -12,13 +13,16 @@ export default function Step4Usage({
   value: Step4Value;
   onChange: (v: Step4Value) => void;
 }) {
+  const isMobile = useIsMobile();
   return (
     <div
       style={{
         display: "flex",
+        flexDirection: isMobile ? "column" : "row",
         gap: 16,
-        alignItems: "center",
-        width: 720,
+        alignItems: isMobile ? "stretch" : "center",
+        width: isMobile ? "100%" : 720,
+        maxWidth: "100%",
       }}
     >
       <UsageCard
@@ -54,6 +58,7 @@ function UsageCard({
 }) {
   const [hovered, setHovered] = React.useState(false);
   const reducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
   const borderColor = active || hovered ? "#0138c7" : "#efefef";
   const textBg = active ? "#f2f5fc" : "#fff";
   const borderTransition = reducedMotion ? "none" : "border-color 0.12s ease";
@@ -85,7 +90,7 @@ function UsageCard({
       {/* Hero image */}
       <div
         style={{
-          height: 200,
+          height: isMobile ? 140 : 200,
           width: "100%",
           borderTopLeftRadius: 4,
           borderTopRightRadius: 4,
@@ -111,7 +116,7 @@ function UsageCard({
           gap: 8,
           alignItems: "center",
           width: "100%",
-          padding: "24px 32px 32px",
+          padding: isMobile ? "16px 16px 20px" : "24px 32px 32px",
           borderBottom: `1px solid ${borderColor}`,
           borderLeft: `1px solid ${borderColor}`,
           borderRight: `1px solid ${borderColor}`,
@@ -130,7 +135,6 @@ function UsageCard({
             letterSpacing: -0.2,
             color: "#212833",
             lineHeight: "normal",
-            whiteSpace: "nowrap",
           }}
         >
           {title}
@@ -143,7 +147,6 @@ function UsageCard({
             letterSpacing: -0.13,
             color: "#818aa3",
             lineHeight: "normal",
-            whiteSpace: "nowrap",
           }}
         >
           {description}

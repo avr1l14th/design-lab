@@ -4,6 +4,7 @@ import { LOGO_ICON, LOGO_TEXT, LOGO_ICON_DARK, LOGO_TEXT_DARK } from "./assets";
 import { useReducedMotion } from "./useReducedMotion";
 import { useTheme, type Theme } from "./ThemeContext";
 import ThemeToggle from "./ThemeToggle";
+import { useIsMobile } from "./useIsMobile";
 
 export interface OnboardingShellProps {
   title: string;
@@ -38,6 +39,7 @@ export default function OnboardingShell({
 }: OnboardingShellProps) {
   const reducedMotion = useReducedMotion();
   const theme = useTheme();
+  const isMobile = useIsMobile();
   const isDark = theme === "dark";
   const pageBg = isDark ? "#151515" : "#fff";
   const textColor = isDark ? "#fff" : "#212833";
@@ -59,12 +61,14 @@ export default function OnboardingShell({
       {onThemeChange && <ThemeToggle theme={theme} onChange={onThemeChange} />}
       <div
         style={{
-          width: frameWidth,
+          width: isMobile ? "100%" : frameWidth,
           maxWidth: "100%",
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          padding: isMobile ? "0 16px" : 0,
+          boxSizing: "border-box",
         }}
       >
         {/* Top: logo — pinned to the top of the viewport */}
@@ -92,8 +96,9 @@ export default function OnboardingShell({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 38.032,
-            width: contentWidth,
+            gap: isMobile ? 24 : 38.032,
+            width: isMobile ? "100%" : contentWidth,
+            maxWidth: "100%",
             padding: "24px 0",
           }}
         >
@@ -113,9 +118,9 @@ export default function OnboardingShell({
               style={{
                 margin: 0,
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 32,
+                fontSize: isMobile ? 24 : 32,
                 fontWeight: 500,
-                letterSpacing: -0.96,
+                letterSpacing: isMobile ? -0.72 : -0.96,
                 lineHeight: "normal",
               }}
             >
@@ -125,10 +130,10 @@ export default function OnboardingShell({
               style={{
                 margin: 0,
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 fontWeight: 400,
                 letterSpacing: -0.32,
-                lineHeight: "normal",
+                lineHeight: 1.35,
               }}
             >
               {subtitle}
@@ -140,8 +145,9 @@ export default function OnboardingShell({
             style={{
               display: "flex",
               flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 32,
+              alignItems: isMobile ? "stretch" : "flex-start",
+              gap: isMobile ? 24 : 32,
+              width: isMobile ? "100%" : "auto",
             }}
           >
             {children}

@@ -1,6 +1,7 @@
 import React from "react";
 import IconCard from "./IconCard";
 import { STEP1_ICONS } from "./assets";
+import { useIsMobile } from "./useIsMobile";
 
 /* 6 options in a 3×2 grid, multi-select (matches screens 2-3). */
 export const STEP1_OPTIONS = [
@@ -41,37 +42,29 @@ export function OptionGrid<T extends { id: string; label: string; icon: string; 
   isSelected,
   onPick,
 }: OptionGridProps<T>) {
-  /* Figma lays this out as two rows of 3, with gap 12px horizontally and vertically. */
+  const isMobile = useIsMobile();
+  /* Desktop: 3 columns × 2 rows (Figma). Mobile: 2 columns × 3 rows. */
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 12 }}>
-        {options.slice(0, 3).map((opt) => (
-          <IconCard
-            key={opt.id}
-            icon={opt.icon}
-            iconSize={opt.iconSize}
-            label={opt.label}
-            labelWidth={opt.labelWidth}
-            labelNoWrap={opt.labelNoWrap}
-            selected={isSelected(opt.id)}
-            onClick={() => onPick(opt.id)}
-          />
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 12 }}>
-        {options.slice(3, 6).map((opt) => (
-          <IconCard
-            key={opt.id}
-            icon={opt.icon}
-            iconSize={opt.iconSize}
-            label={opt.label}
-            labelWidth={opt.labelWidth}
-            labelNoWrap={opt.labelNoWrap}
-            selected={isSelected(opt.id)}
-            onClick={() => onPick(opt.id)}
-          />
-        ))}
-      </div>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, auto)",
+        gap: 12,
+        width: isMobile ? "100%" : "auto",
+      }}
+    >
+      {options.map((opt) => (
+        <IconCard
+          key={opt.id}
+          icon={opt.icon}
+          iconSize={opt.iconSize}
+          label={opt.label}
+          labelWidth={isMobile ? undefined : opt.labelWidth}
+          labelNoWrap={isMobile ? false : opt.labelNoWrap}
+          selected={isSelected(opt.id)}
+          onClick={() => onPick(opt.id)}
+        />
+      ))}
     </div>
   );
 }

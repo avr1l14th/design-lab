@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { STEP5_SOLO } from "./assets";
+import { useIsMobile } from "./useIsMobile";
 
 type PlanId = "free" | "lite" | "pro" | "business";
 
@@ -97,23 +98,42 @@ const PLANS: Plan[] = [
 
 export default function Step5Solo({ onFinish }: { onFinish: (plan: PlanId) => void }) {
   const [hoveredId, setHoveredId] = useState<PlanId | null>(null);
+  const isMobile = useIsMobile();
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 40, width: 1236 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: isMobile ? 24 : 40,
+        width: isMobile ? "100%" : 1236,
+        maxWidth: "100%",
+        padding: isMobile ? "0 16px" : 0,
+        boxSizing: "border-box",
+      }}
+    >
       <h1
         style={{
           margin: 0,
-          fontSize: 32,
+          fontSize: isMobile ? 24 : 32,
           fontWeight: 500,
-          letterSpacing: -0.96,
+          letterSpacing: isMobile ? -0.72 : -0.96,
           color: "#212833",
           lineHeight: "normal",
-          whiteSpace: "nowrap",
         }}
       >
         Выберите тариф
       </h1>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? 12 : 8,
+          alignItems: "stretch",
+          width: "100%",
+        }}
+      >
         {PLANS.map((plan) => (
           <PlanCard
             key={plan.id}
@@ -142,16 +162,18 @@ function PlanCard({
   onMouseLeave: () => void;
   onClick: () => void;
 }) {
+  const isMobile = useIsMobile();
   return (
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        width: 262,
+        width: isMobile ? "100%" : 262,
         background: "#fff",
         borderRadius: 4,
         display: "flex",
         flexDirection: "column",
+        boxSizing: "border-box",
         border: hovered ? "1px solid #0138c7" : "1px solid transparent",
         transition: "border-color 0.12s ease",
       }}

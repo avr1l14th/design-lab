@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ProgressDots from "./ProgressDots";
 import { LOGO_ICON, LOGO_TEXT, STEP5_TEAM } from "./assets";
 import { useReducedMotion } from "./useReducedMotion";
+import { useIsMobile } from "./useIsMobile";
 
 /* Figma frame 30806:1377 — single-column layout:
  *   logo top → title → 2 cards (form 440 + dark benefits 468) → progress dots */
@@ -21,6 +22,7 @@ export default function Step5Team({
   const [size, setSize] = useState("");
   const [focused, setFocused] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const canSubmit = company.trim().length > 0 && contact.trim().length > 0 && size.length > 0;
 
@@ -43,7 +45,7 @@ export default function Step5Team({
     >
       <div
         style={{
-          width: 1300,
+          width: isMobile ? "100%" : 1300,
           maxWidth: "100%",
           minHeight: "100vh",
           display: "flex",
@@ -78,16 +80,17 @@ export default function Step5Team({
           }}
         >
           {/* Title + subtitle */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: isMobile ? "0 16px" : 0 }}>
             <h1
               style={{
                 margin: 0,
-                fontSize: 32,
+                fontSize: isMobile ? 24 : 32,
                 fontWeight: 500,
-                letterSpacing: -0.96,
+                letterSpacing: isMobile ? -0.72 : -0.96,
                 color: "#212833",
                 lineHeight: "normal",
-                width: 369,
+                width: isMobile ? "100%" : 369,
+                maxWidth: "100%",
                 textAlign: "center",
               }}
             >
@@ -96,7 +99,7 @@ export default function Step5Team({
             <p
               style={{
                 margin: 0,
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 fontWeight: 400,
                 letterSpacing: -0.32,
                 color: "#212833",
@@ -114,15 +117,19 @@ export default function Step5Team({
           <div
             style={{
               display: "flex",
-              gap: 20,
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 16 : 20,
               alignItems: "stretch",
               justifyContent: "center",
+              width: isMobile ? "100%" : "auto",
+              padding: isMobile ? "0 16px" : 0,
+              boxSizing: "border-box",
             }}
           >
-            {/* Form card (440px) */}
+            {/* Form card (440px on desktop, full-width on mobile) */}
             <div
               style={{
-                width: 440,
+                width: isMobile ? "100%" : 440,
                 background: "#fff",
                 border: "1px solid #efefef",
                 borderRadius: 4,
@@ -246,10 +253,10 @@ export default function Step5Team({
               </button>
             </div>
 
-            {/* Dark benefits card (468px) — bg image + #212833 mix-blend-color overlay */}
+            {/* Dark benefits card (468px on desktop, full-width on mobile) */}
             <div
               style={{
-                width: 468,
+                width: isMobile ? "100%" : 468,
                 borderRadius: 4,
                 padding: 24,
                 position: "relative",
@@ -294,7 +301,7 @@ export default function Step5Team({
               <div
                 style={{
                   position: "relative",
-                  height: 361,
+                  minHeight: isMobile ? "auto" : 361,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "center",
