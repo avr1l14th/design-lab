@@ -1146,7 +1146,7 @@ export default function SearchFiltersPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Escape") closeSearch();
                     }}
-                    placeholder="Поиск по названию или содержанию встречи"
+                    placeholder="Поиск по названию встречи"
                     tabIndex={searchOpen ? 0 : -1}
                     aria-hidden={!searchOpen}
                     className={`min-w-0 bg-transparent text-[13px] outline-none placeholder:text-[color:var(--_p)] ${
@@ -1230,8 +1230,14 @@ export default function SearchFiltersPage() {
             {showEmptyState ? (
               <div className="flex w-full flex-1 items-center justify-center py-[120px]">
                 <div className="flex flex-col items-center gap-[16px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset("empty-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
+                  <video
+                    src={asset("empty-cat.mp4")}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="h-[124px] w-[124px] rounded-[4px] object-cover"
+                  />
                   <div className="flex flex-col items-center gap-[12px] text-center">
                     <p className="text-[24px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.48px" }}>
                       Поиск по встречам
