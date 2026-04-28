@@ -1241,7 +1241,7 @@ export default function SearchFiltersPage() {
               </div>
             </div>
           ) : isSearching || isFiltering ? (
-            <div className="flex w-[1160px] flex-col items-start">
+            <div className="flex w-full flex-col items-start">
               <SkeletonGroup titleWidths={[280, 280, 185]} />
               <SkeletonGroup titleWidths={[280, 280, 185]} />
               <SkeletonGroup titleWidths={[280, 280, 185]} />
@@ -1265,7 +1265,7 @@ export default function SearchFiltersPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex w-[1160px] flex-col items-start">
+              <div className="flex w-full flex-col items-start">
                 {groups.map((g) => (
                   <div key={g.key} className="flex w-full flex-col">
                     <DateHeader label={g.label} subLabel={g.subLabel} />
