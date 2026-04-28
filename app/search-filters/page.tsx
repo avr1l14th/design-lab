@@ -1059,7 +1059,7 @@ export default function SearchFiltersPage() {
           </div>
 
           <div className="flex w-full items-center bg-white px-[16px] py-[16px]">
-            <div className="flex w-full items-center gap-[12px]">
+            <div className="flex w-full items-center">
               <div
                 className="flex min-w-0 flex-1 items-center gap-[8px]"
                 style={{
@@ -1192,12 +1192,13 @@ export default function SearchFiltersPage() {
                 className="flex items-center gap-[12px] overflow-hidden whitespace-nowrap"
                 style={{
                   maxWidth: searchOpen || filtersHaveActive ? 0 : 340,
+                  marginLeft: searchOpen || filtersHaveActive ? 0 : 12,
                   opacity: searchOpen || filtersHaveActive ? 0 : 1,
                   transform: searchOpen || filtersHaveActive ? "translateX(16px)" : "translateX(0)",
                   pointerEvents: searchOpen || filtersHaveActive ? "none" : "auto",
                   transition: searchOpen || filtersHaveActive
-                    ? "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)"
-                    : "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1) 160ms, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    ? "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), margin-left 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 500ms cubic-bezier(0.22, 1, 0.36, 1)"
+                    : "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1), margin-left 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1) 160ms, transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
                 <div className="h-[24px] w-px shrink-0" style={{ backgroundColor: tokens.grey40 }} />
