@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { useReducedMotion } from "./useReducedMotion";
+import { useTheme } from "./ThemeContext";
 
 export interface IconCardProps {
   icon: string;
@@ -13,6 +16,29 @@ export interface IconCardProps {
   onClick: () => void;
 }
 
+const TOKENS = {
+  light: {
+    borderDefault: "#efefef",
+    borderSelected: "#0138c7",
+    bgDefault: "#fff",
+    bgHover: "#fafafa",
+    bgSelected: "#f2f5fc",
+    iconDefault: "#818aa3",
+    iconSelected: "#0138C7",
+    label: "#212833",
+  },
+  dark: {
+    borderDefault: "#242424",
+    borderSelected: "#2554cd",
+    bgDefault: "transparent",
+    bgHover: "#1c1c1c",
+    bgSelected: "#181f33",
+    iconDefault: "#818aa3",
+    iconSelected: "#2554cd",
+    label: "#fff",
+  },
+} as const;
+
 export default function IconCard({
   icon,
   iconSize = 20,
@@ -24,12 +50,10 @@ export default function IconCard({
 }: IconCardProps) {
   const [hovered, setHovered] = React.useState(false);
   const reducedMotion = useReducedMotion();
-  /* Figma states (node 30809:1642 for hover):
-   * - default:  border #efefef, bg #fff,     icon default
-   * - hover:    border #efefef, bg #fafafa,  icon default
-   * - selected: border #0138c7, bg #f2f5fc,  icon blue */
-  const borderColor = selected ? "#0138c7" : "#efefef";
-  const background = selected ? "#f2f5fc" : hovered ? "#fafafa" : "#fff";
+  const t = TOKENS[useTheme()];
+
+  const borderColor = selected ? t.borderSelected : t.borderDefault;
+  const background = selected ? t.bgSelected : hovered ? t.bgHover : t.bgDefault;
   const transition = reducedMotion ? "none" : "border-color 0.12s ease, background 0.12s ease";
 
   return (
@@ -58,15 +82,14 @@ export default function IconCard({
         touchAction: "manipulation",
       }}
     >
-      {/* Always mask-based so default reads as flat gray (Figma 30317:7529)
-       * and selected gets exact #0138C7 — no PNG color bleed-through. */}
+      {/* Mask-based fill — exact icon color in both default and selected. */}
       <div
         aria-hidden="true"
         style={{
           width: iconSize,
           height: iconSize,
           flexShrink: 0,
-          background: selected ? "#0138C7" : "#818aa3",
+          background: selected ? t.iconSelected : t.iconDefault,
           WebkitMaskImage: `url(${icon})`,
           maskImage: `url(${icon})`,
           WebkitMaskSize: "contain",
@@ -84,7 +107,7 @@ export default function IconCard({
           fontSize: 13,
           fontWeight: 400,
           letterSpacing: -0.13,
-          color: "#212833",
+          color: t.label,
           textAlign: "center",
           lineHeight: "normal",
           width: labelWidth ?? "auto",

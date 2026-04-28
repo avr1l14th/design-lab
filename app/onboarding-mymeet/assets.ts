@@ -4,6 +4,10 @@
 export const LOGO_ICON = "https://www.figma.com/api/mcp/asset/defba6a8-9f06-4c3b-be87-efee2e5f30c9";
 export const LOGO_TEXT = "https://www.figma.com/api/mcp/asset/eb9f4f69-646b-4570-828d-3a823bafd40f";
 
+/* Dark-mode variants of the logo (Figma node 30964:6183). */
+export const LOGO_ICON_DARK = "https://www.figma.com/api/mcp/asset/c123957a-c0d0-440b-b96a-4d56827659f4";
+export const LOGO_TEXT_DARK = "https://www.figma.com/api/mcp/asset/cc347b03-f702-4813-bb6a-4dca1f92e2fb";
+
 export const CHECKMARK_DOT = "https://www.figma.com/api/mcp/asset/8077899a-8a90-4bc5-9d22-afd81e5c479e";
 
 export const STEP1_ICONS = {

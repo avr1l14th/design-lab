@@ -1,7 +1,9 @@
 import React from "react";
 import ProgressDots from "./ProgressDots";
-import { LOGO_ICON, LOGO_TEXT } from "./assets";
+import { LOGO_ICON, LOGO_TEXT, LOGO_ICON_DARK, LOGO_TEXT_DARK } from "./assets";
 import { useReducedMotion } from "./useReducedMotion";
+import { useTheme, type Theme } from "./ThemeContext";
+import ThemeToggle from "./ThemeToggle";
 
 export interface OnboardingShellProps {
   title: string;
@@ -17,6 +19,8 @@ export interface OnboardingShellProps {
   contentWidth?: number;
   /** Skip rendering the built-in Continue button (for screens where selecting a card auto-advances). */
   hideCta?: boolean;
+  /** When provided, renders a light/dark toggle in the top-right corner. */
+  onThemeChange?: (next: Theme) => void;
 }
 
 export default function OnboardingShell({
@@ -30,19 +34,29 @@ export default function OnboardingShell({
   frameWidth = 1300,
   contentWidth = 700,
   hideCta = false,
+  onThemeChange,
 }: OnboardingShellProps) {
   const reducedMotion = useReducedMotion();
+  const theme = useTheme();
+  const isDark = theme === "dark";
+  const pageBg = isDark ? "#151515" : "#fff";
+  const textColor = isDark ? "#fff" : "#212833";
+  const logoIcon = isDark ? LOGO_ICON_DARK : LOGO_ICON;
+  const logoText = isDark ? LOGO_TEXT_DARK : LOGO_TEXT;
+
   return (
     <div
       style={{
-        background: "#fff",
+        background: pageBg,
         minHeight: "100vh",
         width: "100%",
         fontFamily: "'Inter', sans-serif",
         display: "flex",
         justifyContent: "center",
+        transition: reducedMotion ? "none" : "background 0.2s ease",
       }}
     >
+      {onThemeChange && <ThemeToggle theme={theme} onChange={onThemeChange} />}
       <div
         style={{
           width: frameWidth,
@@ -65,8 +79,8 @@ export default function OnboardingShell({
           }}
         >
           <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 1 }}>
-            <img src={LOGO_ICON} alt="" style={{ width: 32, height: 32, flexShrink: 0 }} />
-            <img src={LOGO_TEXT} alt="MyMeet.ai" style={{ width: 93, height: 19.5, flexShrink: 0 }} />
+            <img src={logoIcon} alt="" style={{ width: 32, height: 32, flexShrink: 0 }} />
+            <img src={logoText} alt="MyMeet.ai" style={{ width: 93, height: 19.5, flexShrink: 0 }} />
           </div>
         </div>
 
@@ -91,7 +105,7 @@ export default function OnboardingShell({
               alignItems: "center",
               justifyContent: "center",
               gap: 15.213,
-              color: "#212833",
+              color: textColor,
               textAlign: "center",
             }}
           >

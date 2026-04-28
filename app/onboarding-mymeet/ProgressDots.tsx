@@ -1,6 +1,12 @@
 import React from "react";
 import { CHECKMARK_DOT } from "./assets";
 import { useReducedMotion } from "./useReducedMotion";
+import { useTheme } from "./ThemeContext";
+
+const DOT_TOKENS = {
+  light: { active: "#8a8b8d", inactive: "#d9d9d9" },
+  dark: { active: "#929292", inactive: "#2c2c2c" },
+} as const;
 
 /* Figma 30317:7529 — 16×16 container with 12×12 inner dot (left:2,top:2).
  * Completed state swaps in CHECKMARK_DOT image.
@@ -15,6 +21,7 @@ export default function ProgressDots({
   current: number;
 }) {
   const reducedMotion = useReducedMotion();
+  const colors = DOT_TOKENS[useTheme()];
   return (
     <div
       style={{
@@ -33,6 +40,8 @@ export default function ProgressDots({
           completed={i < current}
           active={i === current}
           reducedMotion={reducedMotion}
+          activeColor={colors.active}
+          inactiveColor={colors.inactive}
         />
       ))}
     </div>
@@ -43,10 +52,14 @@ function Dot({
   completed,
   active,
   reducedMotion,
+  activeColor,
+  inactiveColor,
 }: {
   completed: boolean;
   active: boolean;
   reducedMotion: boolean;
+  activeColor: string;
+  inactiveColor: string;
 }) {
   const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
   return (
@@ -68,7 +81,7 @@ function Dot({
           width: 12,
           height: 12,
           borderRadius: 32,
-          background: active ? "#8a8b8d" : "#d9d9d9",
+          background: active ? activeColor : inactiveColor,
           opacity: completed ? 0 : 1,
           transition: reducedMotion
             ? "none"

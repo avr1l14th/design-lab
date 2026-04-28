@@ -10,6 +10,7 @@ import Step4Usage, { Step4Value } from "./Step4Usage";
 import Step5Team from "./Step5Team";
 import Step5Solo from "./Step5Solo";
 import { LOGO_ICON, LOGO_TEXT } from "./assets";
+import { ThemeContext, type Theme } from "./ThemeContext";
 
 interface OnboardingState {
   sources: Step1Id[];
@@ -51,6 +52,7 @@ export default function OnboardingFlow() {
     plan: null,
   });
   const [finished, setFinished] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
 
   const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
@@ -67,43 +69,52 @@ export default function OnboardingFlow() {
   switch (step) {
     case 0:
       return (
-        <OnboardingShell
-          title="Откуда вы о нас узнали?"
-          subtitle="Мы персонализируем продукт под ваши задачи и опыт"
-          step={step}
-          totalSteps={TOTAL_STEPS}
-          canProceed={state.sources.length > 0}
-          onContinue={goNext}
-          frameWidth={1236}
-        >
-          <Step1Source value={state.sources} onToggle={toggleSource} />
-        </OnboardingShell>
+        <ThemeContext.Provider value={theme}>
+          <OnboardingShell
+            title="Откуда вы о нас узнали?"
+            subtitle="Мы персонализируем продукт под ваши задачи и опыт"
+            step={step}
+            totalSteps={TOTAL_STEPS}
+            canProceed={state.sources.length > 0}
+            onContinue={goNext}
+            frameWidth={1236}
+            onThemeChange={setTheme}
+          >
+            <Step1Source value={state.sources} onToggle={toggleSource} />
+          </OnboardingShell>
+        </ThemeContext.Provider>
       );
     case 1:
       return (
-        <OnboardingShell
-          title="Кто вы?"
-          subtitle="Мы персонализируем продукт под ваши задачи и опыт"
-          step={step}
-          totalSteps={TOTAL_STEPS}
-          canProceed={state.roles.length > 0}
-          onContinue={goNext}
-        >
-          <Step2Role value={state.roles} onToggle={toggleRole} />
-        </OnboardingShell>
+        <ThemeContext.Provider value={theme}>
+          <OnboardingShell
+            title="Кто вы?"
+            subtitle="Мы персонализируем продукт под ваши задачи и опыт"
+            step={step}
+            totalSteps={TOTAL_STEPS}
+            canProceed={state.roles.length > 0}
+            onContinue={goNext}
+            onThemeChange={setTheme}
+          >
+            <Step2Role value={state.roles} onToggle={toggleRole} />
+          </OnboardingShell>
+        </ThemeContext.Provider>
       );
     case 2:
       return (
-        <OnboardingShell
-          title="Для чего вам сервис?"
-          subtitle="Мы персонализируем продукт под ваши задачи и опыт"
-          step={step}
-          totalSteps={TOTAL_STEPS}
-          canProceed={state.purposes.length > 0}
-          onContinue={goNext}
-        >
-          <Step3Purpose value={state.purposes} onToggle={togglePurpose} />
-        </OnboardingShell>
+        <ThemeContext.Provider value={theme}>
+          <OnboardingShell
+            title="Для чего вам сервис?"
+            subtitle="Мы персонализируем продукт под ваши задачи и опыт"
+            step={step}
+            totalSteps={TOTAL_STEPS}
+            canProceed={state.purposes.length > 0}
+            onContinue={goNext}
+            onThemeChange={setTheme}
+          >
+            <Step3Purpose value={state.purposes} onToggle={togglePurpose} />
+          </OnboardingShell>
+        </ThemeContext.Provider>
       );
     case 3:
       return (
