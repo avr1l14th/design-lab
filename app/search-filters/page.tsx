@@ -942,8 +942,8 @@ export default function SearchFiltersPage() {
   const showEmptyState = searchOpen && filters.query.trim() === "";
 
   return (
-    <main className={`${inter.className} flex min-h-screen w-full bg-white`} style={{ color: tokens.black }}>
-      <div className="relative flex min-h-screen flex-1 items-stretch bg-white">
+    <main className={`${inter.className} flex h-screen w-full overflow-hidden bg-white`} style={{ color: tokens.black }}>
+      <div className="relative flex h-full flex-1 items-stretch bg-white">
         {/* Sidebar — sticky, fills viewport height */}
         <aside
           className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col justify-between border-r border-solid pt-[16px] pb-[4px]"
@@ -1031,7 +1031,7 @@ export default function SearchFiltersPage() {
         </aside>
 
         {/* Main content */}
-        <section className="flex min-w-0 flex-1 flex-col items-start justify-start">
+        <section className="flex h-full min-w-0 min-h-0 flex-1 flex-col items-start justify-start">
           <div
             className="flex h-[54px] w-full items-center border-b border-solid bg-white p-[16px]"
             style={{ borderColor: tokens.grey40 }}
@@ -1225,58 +1225,60 @@ export default function SearchFiltersPage() {
             </div>
           </div>
 
-          {showEmptyState ? (
-            <div className="flex w-full flex-1 items-center justify-center py-[120px]">
-              <div className="flex flex-col items-center gap-[16px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={asset("empty-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
-                <div className="flex flex-col items-center gap-[12px] text-center">
-                  <p className="text-[24px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.48px" }}>
-                    Поиск по встречам
-                  </p>
-                  <p className="w-[288px] text-[14px]" style={{ color: tokens.black, letterSpacing: "-0.28px", lineHeight: 1.35 }}>
-                    Введите ключевые слова — найдем все совпадения в этом рабочем пространстве
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : isSearching || isFiltering ? (
-            <div className="flex w-full flex-col items-start">
-              <SkeletonGroup titleWidths={[280, 280, 185]} />
-              <SkeletonGroup titleWidths={[280, 280, 185]} />
-              <SkeletonGroup titleWidths={[280, 280, 185]} />
-            </div>
-          ) : (
-            groups.length === 0 ? (
+          <div className="flex w-full min-h-0 flex-1 flex-col items-start overflow-y-auto">
+            {showEmptyState ? (
               <div className="flex w-full flex-1 items-center justify-center py-[120px]">
                 <div className="flex flex-col items-center gap-[16px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset("no-results-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
+                  <img src={asset("empty-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
                   <div className="flex flex-col items-center gap-[12px] text-center">
                     <p className="text-[24px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.48px" }}>
-                      Не удалось ничего найти
+                      Поиск по встречам
                     </p>
                     <p className="w-[288px] text-[14px]" style={{ color: tokens.black, letterSpacing: "-0.28px", lineHeight: 1.35 }}>
-                      {filtersHaveActive
-                        ? "По выбранным фильтрам встречи не найдены, измените или очистите фильтры"
-                        : "Попробуйте другой запрос или смените рабочее пространство"}
+                      Введите ключевые слова — найдем все совпадения в этом рабочем пространстве
                     </p>
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : isSearching || isFiltering ? (
               <div className="flex w-full flex-col items-start">
-                {groups.map((g) => (
-                  <div key={g.key} className="flex w-full flex-col">
-                    <DateHeader label={g.label} subLabel={g.subLabel} />
-                    {g.meetings.map((m) => (
-                      <MeetingRow key={m.id} m={m} />
-                    ))}
-                  </div>
-                ))}
+                <SkeletonGroup titleWidths={[280, 280, 185]} />
+                <SkeletonGroup titleWidths={[280, 280, 185]} />
+                <SkeletonGroup titleWidths={[280, 280, 185]} />
               </div>
-            )
-          )}
+            ) : (
+              groups.length === 0 ? (
+                <div className="flex w-full flex-1 items-center justify-center py-[120px]">
+                  <div className="flex flex-col items-center gap-[16px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={asset("no-results-monkey.gif")} alt="" className="h-[124px] w-[124px] rounded-[4px] object-cover" />
+                    <div className="flex flex-col items-center gap-[12px] text-center">
+                      <p className="text-[24px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.48px" }}>
+                        Не удалось ничего найти
+                      </p>
+                      <p className="w-[288px] text-[14px]" style={{ color: tokens.black, letterSpacing: "-0.28px", lineHeight: 1.35 }}>
+                        {filtersHaveActive
+                          ? "По выбранным фильтрам встречи не найдены, измените или очистите фильтры"
+                          : "Попробуйте другой запрос или смените рабочее пространство"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex w-full flex-col items-start">
+                  {groups.map((g) => (
+                    <div key={g.key} className="flex w-full flex-col">
+                      <DateHeader label={g.label} subLabel={g.subLabel} />
+                      {g.meetings.map((m) => (
+                        <MeetingRow key={m.id} m={m} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
         </section>
       </div>
     </main>
