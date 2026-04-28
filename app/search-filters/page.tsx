@@ -1067,6 +1067,46 @@ export default function SearchFiltersPage() {
                   transition: "max-width 500ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
+                <div className="relative shrink-0">
+                  <button
+                    ref={filterTriggerRef}
+                    type="button"
+                    onClick={() => {
+                      if (filterPanelOpen) setActiveFilterTab(null);
+                      setFilterPanelOpen((v) => !v);
+                    }}
+                    className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid transition-colors hover:bg-[#F7F7F8] ${filterPanelOpen ? "bg-[#F7F7F8]" : "bg-white"}`}
+                    style={{ borderColor: tokens.grey40 }}
+                    aria-label="Фильтры"
+                    aria-expanded={filterPanelOpen}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={asset(filtersHaveActive ? "icon-filter-active.svg" : "icon-filter.svg")}
+                      alt=""
+                      className="h-[16px] w-[16px] max-w-none shrink-0"
+                    />
+                  </button>
+                  {filterPanelOpen && (
+                    <FilterPopover
+                      containerRef={filterPanelRef}
+                      filters={filters}
+                      activeTab={activeFilterTab}
+                      anchor="left"
+                      onPickTab={(t) => setActiveFilterTab(t)}
+                      onLeaveTabs={() => setActiveFilterTab(null)}
+                      onChange={applyFilterChange}
+                      onClear={() => {
+                        applyFilterChange({ ...filters, sources: [], authorIds: [], dateFrom: null, dateTo: null });
+                        setActiveFilterTab(null);
+                      }}
+                      onClose={() => {
+                        setFilterPanelOpen(false);
+                        setActiveFilterTab(null);
+                      }}
+                    />
+                  )}
+                </div>
                 <div
                   style={{
                     flex: "1 1 auto",
@@ -1145,46 +1185,6 @@ export default function SearchFiltersPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={asset("icon-close.svg")} alt="" className="h-[16px] w-[16px] max-w-none" />
                   </button>
-                </div>
-                <div className="relative shrink-0">
-                  <button
-                    ref={filterTriggerRef}
-                    type="button"
-                    onClick={() => {
-                      if (filterPanelOpen) setActiveFilterTab(null);
-                      setFilterPanelOpen((v) => !v);
-                    }}
-                    className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid transition-colors hover:bg-[#F7F7F8] ${filterPanelOpen ? "bg-[#F7F7F8]" : "bg-white"}`}
-                    style={{ borderColor: tokens.grey40 }}
-                    aria-label="Фильтры"
-                    aria-expanded={filterPanelOpen}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={asset(filtersHaveActive ? "icon-filter-active.svg" : "icon-filter.svg")}
-                      alt=""
-                      className="h-[16px] w-[16px] max-w-none shrink-0"
-                    />
-                  </button>
-                  {filterPanelOpen && (
-                    <FilterPopover
-                      containerRef={filterPanelRef}
-                      filters={filters}
-                      activeTab={activeFilterTab}
-                      anchor={searchOpen ? "right" : "left"}
-                      onPickTab={(t) => setActiveFilterTab(t)}
-                      onLeaveTabs={() => setActiveFilterTab(null)}
-                      onChange={applyFilterChange}
-                      onClear={() => {
-                        applyFilterChange({ ...filters, sources: [], authorIds: [], dateFrom: null, dateTo: null });
-                        setActiveFilterTab(null);
-                      }}
-                      onClose={() => {
-                        setFilterPanelOpen(false);
-                        setActiveFilterTab(null);
-                      }}
-                    />
-                  )}
                 </div>
               </div>
               <div
