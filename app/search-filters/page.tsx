@@ -41,6 +41,29 @@ const tokens = {
   red: "#c33",
 };
 
+function SourceIcon({ src }: { src: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={asset(src)}
+      alt=""
+      className="h-[14px] w-[14px] max-w-none shrink-0 object-contain"
+    />
+  );
+}
+
+function AuthorAvatar({ color, letter, title }: { color: string; letter: string; title?: string }) {
+  return (
+    <span
+      className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full text-[9px] font-medium text-white"
+      style={{ backgroundColor: color, letterSpacing: "-0.18px" }}
+      title={title}
+    >
+      {letter}
+    </span>
+  );
+}
+
 function Thumb({ kind }: { kind: ThumbKind }) {
   if (kind === "error") {
     return (
@@ -158,13 +181,7 @@ function MeetingRow({ m }: { m: Meeting }) {
         </div>
         <div className="flex w-[180px] flex-col items-start">
           <div className="flex w-[156px] items-center gap-[8px]">
-            <div
-              className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full text-[9px] font-medium text-white"
-              style={{ backgroundColor: author.avatarColor, letterSpacing: "-0.18px" }}
-              title={author.name}
-            >
-              {author.name.charAt(0)}
-            </div>
+            <AuthorAvatar color={author.avatarColor} letter={author.name.charAt(0)} title={author.name} />
             <p className="min-w-0 flex-1 truncate text-[12px]" style={{ color: tokens.black, letterSpacing: "-0.24px" }}>
               {author.email}
             </p>
@@ -172,8 +189,7 @@ function MeetingRow({ m }: { m: Meeting }) {
         </div>
         <div className="flex w-[180px] flex-col items-start overflow-clip">
           <div className="flex w-full items-center gap-[8px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={asset(source.icon)} alt="" className="h-[14px] w-[14px] shrink-0 object-contain" />
+            <SourceIcon src={source.icon} />
             <span className="truncate text-[12px]" style={{ color: tokens.black, letterSpacing: "-0.24px" }}>
               {source.label}
             </span>
@@ -448,18 +464,8 @@ function CheckboxRow({
             style={{ borderColor: tokens.grey50 }}
           />
         )}
-        {iconSrc && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={asset(iconSrc)} alt="" className="h-[14px] w-[14px] max-w-none shrink-0 object-cover" />
-        )}
-        {avatar && (
-          <span
-            className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full text-[8px] font-medium text-white"
-            style={{ backgroundColor: avatar.color, letterSpacing: "-0.16px" }}
-          >
-            {avatar.letter}
-          </span>
-        )}
+        {iconSrc && <SourceIcon src={iconSrc} />}
+        {avatar && <AuthorAvatar color={avatar.color} letter={avatar.letter} />}
         <span
           className="text-[13px] font-normal whitespace-nowrap"
           style={{ color: tokens.black, letterSpacing: "-0.13px" }}
@@ -967,7 +973,7 @@ export default function SearchFiltersPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={asset("icon-add.svg")} alt="" className="h-[16px] w-[16px]" />
                 </div>
-                <div className="flex w-[256px] flex-col items-start gap-[4px]">
+                <div className="flex w-[256px] flex-col items-start gap-[2px]">
                   <SidebarMenuItem icon="icon-meetings.svg" label="Встречи" active />
                   <SidebarMenuItem icon="icon-ai.svg" label="AI Отчеты" />
                   <SidebarMenuItem icon="icon-integrations.svg" label="Интеграции" />
@@ -976,7 +982,7 @@ export default function SearchFiltersPage() {
               </div>
             </div>
             <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
-            <div className="flex w-full flex-col items-start gap-[4px] px-[12px]">
+            <div className="flex w-full flex-col items-start gap-[2px] px-[12px]">
               <SidebarMenuItem icon="icon-support.svg" label="Поддержка" />
               <SidebarMenuItem icon="icon-kb.svg" label="База знаний" />
               <SidebarMenuItem icon="icon-free.svg" label="Бесплатные минуты" />
@@ -1012,7 +1018,7 @@ export default function SearchFiltersPage() {
                   <span className="text-[13px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
                     Pro plan
                   </span>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.1px" }}>
+                  <span className="text-[12px] font-medium" style={{ color: tokens.black, letterSpacing: "-0.24px" }}>
                     Доступно 1850 из 2500
                   </span>
                 </div>
@@ -1038,7 +1044,7 @@ export default function SearchFiltersPage() {
                   transition: "opacity 280ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
-                Мои встречи
+                Встречи
               </span>
               <span
                 className="col-start-1 row-start-1 whitespace-nowrap"
@@ -1148,8 +1154,8 @@ export default function SearchFiltersPage() {
                       if (filterPanelOpen) setActiveFilterTab(null);
                       setFilterPanelOpen((v) => !v);
                     }}
-                    className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid transition-colors hover:bg-[#F7F7F8]"
-                    style={{ borderColor: tokens.grey40, backgroundColor: filterPanelOpen ? "#F7F7F8" : "#FFFFFF" }}
+                    className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border border-solid transition-colors hover:bg-[#F7F7F8] ${filterPanelOpen ? "bg-[#F7F7F8]" : "bg-white"}`}
+                    style={{ borderColor: tokens.grey40 }}
                     aria-label="Фильтры"
                     aria-expanded={filterPanelOpen}
                   >
