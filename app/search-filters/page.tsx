@@ -1058,7 +1058,7 @@ export default function SearchFiltersPage() {
             </h1>
           </div>
 
-          <div className="flex w-full items-center bg-white pl-[16px] pr-[24px] py-[16px]">
+          <div className="flex w-full items-center bg-white px-[16px] py-[16px]">
             <div className="flex w-full items-center gap-[12px]">
               <div
                 className="flex min-w-0 flex-1 items-center gap-[8px]"
