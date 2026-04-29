@@ -59,6 +59,29 @@ export default function LabFAB() {
     origBottom: number;
     moved: boolean;
   } | null>(null);
+  const lottieHostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) return;
+    const host = lottieHostRef.current;
+    if (!host) return;
+    let cancelled = false;
+    let anim: { destroy: () => void } | null = null;
+    import("lottie-web").then((mod) => {
+      if (cancelled || !host) return;
+      anim = mod.default.loadAnimation({
+        container: host,
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        path: asset("icon-info.json"),
+      });
+    });
+    return () => {
+      cancelled = true;
+      anim?.destroy();
+    };
+  }, [open]);
 
   useEffect(() => {
     try {
@@ -273,13 +296,15 @@ export default function LabFAB() {
 
       <div
         ref={rowRef}
-        className="fixed z-[100001] flex items-center justify-end overflow-hidden rounded-[4px] bg-white"
+        className="fixed z-[100001] flex items-center justify-end overflow-hidden bg-white"
         style={{
           fontFamily: "var(--font-inter)",
           right: rightOffset,
           bottom: bottomOffset,
           width: open ? openWidth : 44,
-          transition: "width 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+          borderRadius: open ? 4 : 22,
+          transition:
+            "width 280ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 280ms cubic-bezier(0.22, 1, 0.36, 1)",
           boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)",
         }}
       >
@@ -292,8 +317,11 @@ export default function LabFAB() {
               href="/"
               onClick={() => setOpen(false)}
               tabIndex={open ? 0 : -1}
-              className="flex items-center gap-[6px] rounded-[3px] bg-white p-[10px] transition-colors hover:bg-[color:var(--_h)]"
-              style={{ ["--_h" as string]: tokens.grey20 }}
+              className="flex items-center gap-[6px] bg-white p-[10px] transition-colors hover:bg-[color:var(--_h)]"
+              style={{
+                ["--_h" as string]: tokens.grey20,
+                borderRadius: open ? 3 : 9999,
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={asset("icon-home.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
@@ -314,9 +342,10 @@ export default function LabFAB() {
             type="button"
             onClick={() => setFeedbackOpen((v) => !v)}
             tabIndex={open ? 0 : -1}
-            className="flex items-center gap-[6px] rounded-[3px] bg-white p-[10px] transition-colors hover:bg-[color:var(--_h)]"
+            className="flex items-center gap-[6px] bg-white p-[10px] transition-colors hover:bg-[color:var(--_h)]"
             style={{
               ["--_h" as string]: tokens.grey20,
+              borderRadius: open ? 3 : 9999,
               ...(feedbackOpen ? { backgroundColor: tokens.grey20 } : {}),
             }}
             aria-expanded={feedbackOpen}
@@ -397,18 +426,30 @@ export default function LabFAB() {
                     }
                   }
             }
-            className={`flex items-center rounded-[3px] bg-white p-[10px] transition-colors hover:bg-[color:var(--_h)] ${
+            className={`flex items-center bg-white p-[10px] transition-colors hover:bg-[color:var(--_h)] ${
               open ? "" : "cursor-grab active:cursor-grabbing select-none touch-none"
             }`}
-            style={{ ["--_h" as string]: tokens.grey20 }}
+            style={{
+              ["--_h" as string]: tokens.grey20,
+              borderRadius: open ? 3 : 9999,
+            }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={asset(open ? "icon-close.svg" : "icon-info.svg")}
-              alt=""
-              className="h-[16px] w-[16px] shrink-0"
-              draggable={false}
-            />
+            {open ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={asset("icon-close.svg")}
+                alt=""
+                className="h-[16px] w-[16px] shrink-0"
+                draggable={false}
+              />
+            ) : (
+              <div className="relative h-[16px] w-[16px] shrink-0 pointer-events-none">
+                <div
+                  ref={lottieHostRef}
+                  className="absolute left-1/2 top-1/2 h-[32px] w-[32px] -translate-x-1/2 -translate-y-1/2"
+                />
+              </div>
+            )}
           </button>
         </div>
       </div>
