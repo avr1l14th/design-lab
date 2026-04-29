@@ -214,7 +214,7 @@ export default function LabFAB() {
       {formPhase !== "closed" && (
         <div
           ref={formRef}
-          className="fixed z-[100001] flex w-[300px] flex-col gap-[10px] rounded-[4px] bg-white p-[12px]"
+          className="fixed z-[100001] flex w-[300px] flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
           style={{
             fontFamily: "var(--font-inter)",
             right: rightOffset,
@@ -290,7 +290,7 @@ export default function LabFAB() {
                     }
                   }}
                   rows={4}
-                  className="relative w-full resize-none rounded-[3px] border border-solid bg-transparent px-[10px] py-[8px] text-[13px] outline-none transition-colors focus:border-[color:var(--_f)]"
+                  className="relative block w-full resize-none rounded-[3px] border border-solid bg-transparent px-[10px] py-[8px] text-[13px] outline-none transition-colors focus:border-[color:var(--_f)]"
                   style={{
                     borderColor: tokens.grey40,
                     color: tokens.black,
