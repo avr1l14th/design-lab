@@ -60,9 +60,27 @@ export default function LabFAB() {
     moved: boolean;
   } | null>(null);
   const lottieHostRef = useRef<HTMLDivElement>(null);
+  const [formPhase, setFormPhase] = useState<
+    "closed" | "opening" | "open" | "closing"
+  >("closed");
+
+  const wantFormOpen = open && feedbackOpen;
+  const formPhaseRef = useRef(formPhase);
+  formPhaseRef.current = formPhase;
+  useEffect(() => {
+    if (wantFormOpen) {
+      if (formPhaseRef.current === "open") return;
+      setFormPhase("opening");
+      const t = setTimeout(() => setFormPhase("open"), 16);
+      return () => clearTimeout(t);
+    }
+    if (formPhaseRef.current === "closed") return;
+    setFormPhase("closing");
+    const t = setTimeout(() => setFormPhase("closed"), 150);
+    return () => clearTimeout(t);
+  }, [wantFormOpen]);
 
   useEffect(() => {
-    if (open) return;
     const host = lottieHostRef.current;
     if (!host) return;
     let cancelled = false;
@@ -81,7 +99,7 @@ export default function LabFAB() {
       cancelled = true;
       anim?.destroy();
     };
-  }, [open]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -193,7 +211,7 @@ export default function LabFAB() {
 
   return (
     <>
-      {open && feedbackOpen && (
+      {formPhase !== "closed" && (
         <div
           ref={formRef}
           className="fixed z-[100001] flex w-[300px] flex-col gap-[10px] rounded-[4px] bg-white p-[12px]"
@@ -202,6 +220,15 @@ export default function LabFAB() {
             right: rightOffset,
             bottom: bottomOffset + 44 + 8,
             boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)",
+            transformOrigin: "center",
+            transform: formPhase === "open" ? "scale(1)" : "scale(0.96)",
+            opacity: formPhase === "open" ? 1 : 0,
+            pointerEvents: formPhase === "open" ? "auto" : "none",
+            transition:
+              formPhase === "closing"
+                ? "transform 150ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms cubic-bezier(0.22, 1, 0.36, 1)"
+                : "transform 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 250ms cubic-bezier(0.22, 1, 0.36, 1)",
+            willChange: "transform, opacity",
           }}
         >
           {status === "success" ? (
@@ -434,22 +461,37 @@ export default function LabFAB() {
               borderRadius: open ? 3 : 9999,
             }}
           >
-            {open ? (
-              // eslint-disable-next-line @next/next/no-img-element
+            <div className="relative h-[16px] w-[16px] shrink-0 pointer-events-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={asset("icon-close.svg")}
                 alt=""
-                className="h-[16px] w-[16px] shrink-0"
+                className="absolute inset-0 h-[16px] w-[16px]"
                 draggable={false}
+                style={{
+                  opacity: open ? 1 : 0,
+                  filter: open ? "blur(0)" : "blur(2px)",
+                  transform: open ? "scale(1)" : "scale(0.25)",
+                  transformOrigin: "center",
+                  transition:
+                    "opacity 200ms ease-in-out, filter 200ms ease-in-out, transform 200ms ease-in-out",
+                  willChange: "opacity, filter, transform",
+                }}
               />
-            ) : (
-              <div className="relative h-[16px] w-[16px] shrink-0 pointer-events-none">
-                <div
-                  ref={lottieHostRef}
-                  className="absolute left-1/2 top-1/2 h-[32px] w-[32px] -translate-x-1/2 -translate-y-1/2"
-                />
-              </div>
-            )}
+              <div
+                ref={lottieHostRef}
+                className="absolute left-1/2 top-1/2 h-[32px] w-[32px]"
+                style={{
+                  opacity: open ? 0 : 1,
+                  filter: open ? "blur(2px)" : "blur(0)",
+                  transform: `translate(-50%, -50%) scale(${open ? 0.25 : 1})`,
+                  transformOrigin: "center",
+                  transition:
+                    "opacity 200ms ease-in-out, filter 200ms ease-in-out, transform 200ms ease-in-out",
+                  willChange: "opacity, filter, transform",
+                }}
+              />
+            </div>
           </button>
         </div>
       </div>
