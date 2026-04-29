@@ -253,7 +253,7 @@ export default function LabFAB() {
                     submit();
                   }
                 }}
-                placeholder="Твоё имя"
+                placeholder="Имя"
                 className="w-full rounded-[3px] border border-solid bg-white px-[10px] py-[8px] text-[13px] outline-none transition-colors focus:border-[color:var(--_f)] placeholder:text-[color:var(--_p)]"
                 style={{
                   borderColor: tokens.grey40,
