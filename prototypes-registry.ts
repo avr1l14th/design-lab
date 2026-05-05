@@ -21,4 +21,11 @@ export const prototypes: Prototype[] = [
     tags: ["motion", "forms"],
     updatedAt: "2026-04-27",
   },
+  {
+    slug: "multi-file-upload",
+    title: "Загрузка нескольких файлов",
+    description: "Модалка multi-upload: DnD, очередь, прогресс, ошибки, сабмит",
+    tags: ["modal", "upload"],
+    updatedAt: "2026-05-05",
+  },
 ];
