@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { QueueItem, QueueItemStatus } from "./types";
+import type { QueueItem } from "./types";
 
 const tokens = {
   black: "#212833",
@@ -15,55 +14,6 @@ const tokens = {
 
 const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
 const asset = (p: string) => `${BASE}/multi-file-upload/${p}`;
-
-const SWAP_DUR_MS = 140;
-
-/**
- * 3-phase text swap (per Transitions.dev recipe):
- *   1. is-exit  → old content slides up + blurs + fades
- *   2. swap content + is-enter-start (no transition, jumps below)
- *   3. force reflow, remove is-enter-start → animates back to 0
- */
-function TextSwap({
-  swapKey,
-  children,
-  className,
-}: {
-  swapKey: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  const [snapshotKey, setSnapshotKey] = useState(swapKey);
-  const [snapshotNode, setSnapshotNode] = useState<ReactNode>(children);
-  const [animClass, setAnimClass] = useState<"" | "is-exit" | "is-enter-start">("");
-  const childrenRef = useRef<ReactNode>(children);
-  childrenRef.current = children;
-
-  // Trigger swap on key change
-  useEffect(() => {
-    if (swapKey === snapshotKey) return;
-    setAnimClass("is-exit");
-    const t = window.setTimeout(() => {
-      setSnapshotKey(swapKey);
-      setSnapshotNode(childrenRef.current);
-      setAnimClass("is-enter-start");
-      // After paint with is-enter-start, drop it next tick so spring-back runs.
-      // setTimeout(0) is more reliable than nested rAF here — rAFs can be
-      // cancelled by cleanup when other state updates re-fire effects.
-      window.setTimeout(() => setAnimClass(""), 16);
-    }, SWAP_DUR_MS);
-    return () => clearTimeout(t);
-  }, [swapKey, snapshotKey]);
-
-  return (
-    <span
-      className={`t-text-swap ${animClass} ${className ?? ""}`.trim()}
-      style={{ display: "block", lineHeight: 1, fontSize: 12, height: 12 }}
-    >
-      {snapshotNode}
-    </span>
-  );
-}
 
 function MetaLineContent({ item }: { item: QueueItem }) {
   if (item.status === "error") {
@@ -122,8 +72,6 @@ function MetaLineContent({ item }: { item: QueueItem }) {
     </span>
   );
 }
-
-const statusKey = (s: QueueItemStatus) => s;
 
 export default function FileQueueItem({
   item,
@@ -184,7 +132,7 @@ export default function FileQueueItem({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={asset(isError ? "video-icon-red.svg" : "video-icon.svg")}
+        src={asset("video-icon.svg")}
         alt=""
         className="h-[20px] w-[20px]"
       />
@@ -205,9 +153,7 @@ export default function FileQueueItem({
         >
           {item.name}
         </p>
-        <TextSwap swapKey={statusKey(item.status)}>
-          <MetaLineContent item={item} />
-        </TextSwap>
+        <MetaLineContent item={item} />
       </div>
 
       {isError && onRetry && (

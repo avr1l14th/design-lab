@@ -18,6 +18,25 @@ const tokens = {
 const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
 const asset = (p: string) => `${BASE}/multi-file-upload/${p}`;
 
+function pluralFile(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return "файлов";
+  if (mod10 === 1) return "файл";
+  if (mod10 >= 2 && mod10 <= 4) return "файла";
+  return "файлов";
+}
+
+function pluralMinute(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return "минут";
+  if (mod10 === 1) return "минута";
+  if (mod10 >= 2 && mod10 <= 4) return "минуты";
+  return "минут";
+}
+
+
 function AiIconSquare() {
   return (
     <div
@@ -198,6 +217,9 @@ export default function UploadModal({
 
   // Кнопка активна только если есть файлы и все они done
   const submitEnabled = items.length > 0 && items.every((i) => i.status === "done");
+  const doneItems = items.filter((i) => i.status === "done");
+  const doneCount = doneItems.length;
+  const doneMinutes = doneItems.reduce((sum, it) => sum + it.durationMin, 0);
 
   const overlayTransition = reducedMotion ? "none" : "opacity 180ms ease-out";
   const modalTransition = reducedMotion
@@ -370,7 +392,7 @@ export default function UploadModal({
 
         {/* FOOTER */}
         <div
-          className="flex items-center justify-end border-t border-solid"
+          className="flex items-center justify-between border-t border-solid"
           style={{
             padding: 16,
             backgroundColor: tokens.grey20,
@@ -378,6 +400,16 @@ export default function UploadModal({
             borderRadius: "0 0 4px 4px",
           }}
         >
+          {doneCount > 0 ? (
+            <span
+              className="text-[13px]"
+              style={{ color: tokens.grey, letterSpacing: "-0.13px", lineHeight: 1 }}
+            >
+              {doneCount} {pluralFile(doneCount)} ({doneMinutes} {pluralMinute(doneMinutes)})
+            </span>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             disabled={!submitEnabled}
