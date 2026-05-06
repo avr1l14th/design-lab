@@ -400,7 +400,7 @@ export default function UploadModal({
             borderRadius: "0 0 4px 4px",
           }}
         >
-          {doneCount > 0 ? (
+          {doneCount >= 2 ? (
             <span
               className="text-[13px]"
               style={{ color: tokens.grey, letterSpacing: "-0.13px", lineHeight: 1 }}
