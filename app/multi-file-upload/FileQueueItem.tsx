@@ -56,7 +56,10 @@ function TextSwap({
   }, [swapKey, snapshotKey]);
 
   return (
-    <span className={`t-text-swap ${animClass} ${className ?? ""}`.trim()}>
+    <span
+      className={`t-text-swap ${animClass} ${className ?? ""}`.trim()}
+      style={{ display: "block", lineHeight: 1, fontSize: 12, height: 12 }}
+    >
       {snapshotNode}
     </span>
   );
@@ -65,11 +68,13 @@ function TextSwap({
 function MetaLineContent({ item }: { item: QueueItem }) {
   if (item.status === "error") {
     return (
-      <span
-        className="text-[12px] leading-none"
-        style={{ color: tokens.red, letterSpacing: "-0.24px" }}
-      >
-        {item.errorText ?? "Текст ошибки"}
+      <span className="flex items-center">
+        <span
+          className="text-[12px] leading-none"
+          style={{ color: tokens.red, letterSpacing: "-0.24px" }}
+        >
+          {item.errorText ?? "Текст ошибки"}
+        </span>
       </span>
     );
   }

@@ -353,39 +353,6 @@ export default function MeetingsBackdrop({
           50%      { opacity: 1; }
         }
 
-        /* Text-state swap (uploading ↔ done ↔ error) */
-        :root {
-          --text-swap-dur: 140ms;
-          --text-swap-translate-y: 8px;
-          --text-swap-blur: 2px;
-          --text-swap-ease: ease-out;
-        }
-        .t-text-swap {
-          display: inline-block;
-          transform: translateY(0);
-          filter: blur(0);
-          opacity: 1;
-          transition:
-            transform var(--text-swap-dur) var(--text-swap-ease),
-            filter    var(--text-swap-dur) var(--text-swap-ease),
-            opacity   var(--text-swap-dur) var(--text-swap-ease);
-          will-change: transform, filter, opacity;
-        }
-        .t-text-swap.is-exit {
-          transform: translateY(calc(var(--text-swap-translate-y) * -1));
-          filter: blur(var(--text-swap-blur));
-          opacity: 0;
-        }
-        .t-text-swap.is-enter-start {
-          transform: translateY(var(--text-swap-translate-y));
-          filter: blur(var(--text-swap-blur));
-          opacity: 0;
-          transition: none;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .t-text-swap { transition: none !important; }
-        }
-
         /* File queue scrollbar — thumb only, no track */
         .mfu-queue-scroll {
           scrollbar-width: thin;
