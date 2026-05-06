@@ -28,18 +28,38 @@ function MetaLineContent({ item }: { item: QueueItem }) {
       </span>
     );
   }
-  if (item.status === "done") {
-    return (
-      <span className="flex items-center gap-[4px]">
-        <span
-          className="text-[12px] leading-none"
-          style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
-        >
-          {item.durationMin} мин
+
+  // uploading | done — minutes + dot are static siblings of the swap container.
+  // Only the right-side label (Загрузка... ↔ ✓ Загружено) morphs via blur cross-fade.
+  const isDone = item.status === "done";
+
+  return (
+    <span className="flex items-center gap-[4px]">
+      {/* STATIC: minutes count — instant color flip, no transition */}
+      <span
+        className="text-[12px] leading-none"
+        style={{
+          color: isDone ? tokens.grey : tokens.grey60,
+          letterSpacing: "-0.24px",
+        }}
+      >
+        {item.durationMin} мин
+      </span>
+      {/* STATIC: separator dot */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px] shrink-0" />
+
+      {/* MORPHING: stacked labels share one grid cell, blur cross-fade between them */}
+      <span className="t-icon-swap">
+        <span className={`t-icon flex items-center${isDone ? "" : " is-active"}`}>
+          <span
+            className="text-[12px] leading-none"
+            style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}
+          >
+            Загрузка...
+          </span>
         </span>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px] shrink-0" />
-        <span className="flex items-center gap-[4px]">
+        <span className={`t-icon flex items-center gap-[4px]${isDone ? " is-active" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={asset("check-green.svg")} alt="" className="h-[12px] w-[12px]" />
           <span
@@ -49,25 +69,6 @@ function MetaLineContent({ item }: { item: QueueItem }) {
             Загружено
           </span>
         </span>
-      </span>
-    );
-  }
-  // uploading
-  return (
-    <span className="flex items-center gap-[4px]">
-      <span
-        className="text-[12px] leading-none"
-        style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}
-      >
-        {item.durationMin} мин
-      </span>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px] shrink-0" />
-      <span
-        className="text-[12px] leading-none"
-        style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}
-      >
-        Загрузка...
       </span>
     </span>
   );
