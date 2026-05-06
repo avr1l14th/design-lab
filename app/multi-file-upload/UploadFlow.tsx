@@ -107,6 +107,27 @@ export default function UploadFlow() {
     setItems((prev) => prev.filter((it) => it.id !== id));
   }, []);
 
+  const handleRetryItem = useCallback((id: string) => {
+    setItems((prev) => {
+      const item = prev.find((it) => it.id === id);
+      if (item) {
+        const reset: QueueItem = {
+          ...item,
+          status: "uploading",
+          progressPct: 0,
+          errorText: undefined,
+        };
+        // restart sim — never force error on retry
+        startSimFor(reset, false);
+      }
+      return prev.map((it) =>
+        it.id === id
+          ? { ...it, status: "uploading" as const, progressPct: 0, errorText: undefined }
+          : it,
+      );
+    });
+  }, [startSimFor]);
+
   const handleCloseModal = useCallback(() => {
     // отменяем все in-flight, чистим очередь
     cancelsRef.current.forEach((c) => c());
@@ -175,6 +196,7 @@ export default function UploadFlow() {
         items={items}
         onAddFiles={handleAddFiles}
         onRemoveItem={handleRemoveItem}
+        onRetryItem={handleRetryItem}
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
         reducedMotion={reducedMotion}

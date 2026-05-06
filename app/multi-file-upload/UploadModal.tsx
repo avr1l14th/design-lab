@@ -86,6 +86,7 @@ export default function UploadModal({
   items,
   onAddFiles,
   onRemoveItem,
+  onRetryItem,
   onClose,
   onSubmit,
   reducedMotion,
@@ -94,13 +95,16 @@ export default function UploadModal({
   items: QueueItem[];
   onAddFiles: (files: File[]) => void;
   onRemoveItem: (id: string) => void;
+  onRetryItem: (id: string) => void;
   onClose: () => void;
   onSubmit: () => void;
   reducedMotion: boolean;
 }) {
   const [autoDetect, setAutoDetect] = useState(true);
   const [shown, setShown] = useState(false);
+  const [isModalDragOver, setIsModalDragOver] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
+  const modalDragCounterRef = useRef(0);
 
   useEffect(() => {
     if (open) {
@@ -148,7 +152,49 @@ export default function UploadModal({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  // Reset modal-level dragover when closing
+  useEffect(() => {
+    if (!open) {
+      modalDragCounterRef.current = 0;
+      setIsModalDragOver(false);
+    }
+  }, [open]);
+
   if (!open) return null;
+
+  // Modal-level drop handlers — accept files dropped anywhere on modal surface
+  const handleModalDragEnter = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    modalDragCounterRef.current += 1;
+    setIsModalDragOver(true);
+  };
+  const handleModalDragOver = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+  };
+  const handleModalDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    modalDragCounterRef.current -= 1;
+    if (modalDragCounterRef.current <= 0) {
+      modalDragCounterRef.current = 0;
+      setIsModalDragOver(false);
+    }
+  };
+  const handleModalDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    modalDragCounterRef.current = 0;
+    setIsModalDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onAddFiles(Array.from(e.dataTransfer.files));
+      e.dataTransfer.clearData();
+    }
+  };
 
   // Кнопка активна только если есть файлы и все они done
   const submitEnabled = items.length > 0 && items.every((i) => i.status === "done");
@@ -180,6 +226,10 @@ export default function UploadModal({
 
       <div
         className="relative flex flex-col rounded-[4px] bg-white"
+        onDragEnter={handleModalDragEnter}
+        onDragOver={handleModalDragOver}
+        onDragLeave={handleModalDragLeave}
+        onDrop={handleModalDrop}
         style={{
           width: 500,
           maxWidth: "calc(100% - 32px)",
@@ -224,7 +274,11 @@ export default function UploadModal({
 
         {/* BODY */}
         <div className="flex flex-col" style={{ padding: 16, gap: 20, backgroundColor: tokens.white }}>
-          <DropZone onFiles={onAddFiles} reducedMotion={reducedMotion} />
+          <DropZone
+            onFiles={onAddFiles}
+            reducedMotion={reducedMotion}
+            modalDragOver={isModalDragOver}
+          />
 
           {items.length > 0 && (
             <div
@@ -232,14 +286,22 @@ export default function UploadModal({
               className="mfu-queue-scroll flex flex-col"
               style={{
                 gap: 16,
-                // 3 rows × 48 + 2 gaps × 16 = 176; lock height & enable scroll past that
-                maxHeight: items.length > 3 ? 176 : undefined,
-                overflowY: items.length > 3 ? "auto" : undefined,
+                // 3 rows × 48 + 2 gaps × 16 = 176; cap height; scrollbar may or may not appear
+                maxHeight: 176,
+                overflowY: "auto",
+                // Reserve 8px gutter at all times so the X column doesn't jump when
+                // the scrollbar toggles after an add/remove crosses the 3-item threshold.
+                scrollbarGutter: "stable",
                 overscrollBehavior: "contain",
               }}
             >
               {items.map((it) => (
-                <FileQueueItem key={it.id} item={it} onRemove={onRemoveItem} />
+                <FileQueueItem
+                  key={it.id}
+                  item={it}
+                  onRemove={onRemoveItem}
+                  onRetry={onRetryItem}
+                />
               ))}
             </div>
           )}

@@ -128,9 +128,11 @@ const statusKey = (s: QueueItemStatus) => s;
 export default function FileQueueItem({
   item,
   onRemove,
+  onRetry,
 }: {
   item: QueueItem;
   onRemove: (id: string) => void;
+  onRetry?: (id: string) => void;
 }) {
   const isUploading = item.status === "uploading";
   const isError = item.status === "error";
@@ -207,6 +209,18 @@ export default function FileQueueItem({
           <MetaLineContent item={item} />
         </TextSwap>
       </div>
+
+      {isError && onRetry && (
+        <button
+          type="button"
+          onClick={() => onRetry(item.id)}
+          aria-label="Повторить загрузку"
+          className="flex h-[16px] w-[16px] shrink-0 items-center justify-center"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={asset("retry.svg")} alt="" className="h-[16px] w-[16px]" />
+        </button>
+      )}
 
       <button
         type="button"

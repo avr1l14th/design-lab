@@ -16,16 +16,19 @@ const tokens = {
 export default function DropZone({
   onFiles,
   reducedMotion,
+  modalDragOver = false,
 }: {
   onFiles: (files: File[]) => void;
   reducedMotion: boolean;
+  modalDragOver?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isHover, setIsHover] = useState(false);
   const dragCounterRef = useRef(0);
 
-  const isActive = isDragOver || isHover;
+  // active = local DnD over the zone OR mouse hover OR modal-level dragover
+  const isActive = isDragOver || isHover || modalDragOver;
 
   const accept = (files: FileList | File[]) => {
     const arr: File[] = Array.from(files).filter(isValidUpload);
