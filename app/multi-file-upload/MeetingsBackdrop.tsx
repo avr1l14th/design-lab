@@ -356,22 +356,22 @@ export default function MeetingsBackdrop({
         /* File queue scrollbar — thumb only, no track */
         .mfu-queue-scroll {
           scrollbar-width: thin;
-          scrollbar-color: ${tokens.grey60} transparent;
+          scrollbar-color: #DDDEDF transparent;
         }
         .mfu-queue-scroll::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
+          width: 7px;
+          height: 7px;
           background: transparent;
         }
         .mfu-queue-scroll::-webkit-scrollbar-track {
           background: transparent;
         }
         .mfu-queue-scroll::-webkit-scrollbar-thumb {
-          background: ${tokens.grey60};
-          border-radius: 8px;
+          background: #DDDEDF;
+          border-radius: 7px;
         }
         .mfu-queue-scroll::-webkit-scrollbar-thumb:hover {
-          background: ${tokens.grey};
+          background: ${tokens.grey60};
         }
       `}</style>
 
