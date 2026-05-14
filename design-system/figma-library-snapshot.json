@@ -1,0 +1,340 @@
+{
+  "_comment": "Snapshot реестра mymeet.ai Figma library. Обновляется через `use_figma` запрос — см. design-system/HOW_TO_REFRESH_SNAPSHOT.md. Используется Claude при генерации экранов: ищет компоненты, стили, переменные по этому файлу вместо динамической разведки.",
+  "fileKey": "Ma7dtZb6eSHJ5YoaiVEUn2",
+  "libraryKey": "lk-b75b74abde4928fbe977e65ee9a7750188d46f83273822cd48ec71e06b47a48957be656c392783cbf775c7010f0bd874b8c2e5ebbaa33effc066ff1de3d717d0",
+  "capturedAt": "2026-05-14",
+  "components": [
+    { "name": "Avatar/Abstract", "key": "44a87d8ea7a4c3c4af3f9cfe621fc32e40ccfd70", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Avatar/Cat", "key": "24fd0c19a9d118bb64cb23de7ba79b5c8507de9a", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Avatar/Default", "key": "8594c367e74d13e04e405d3fd96567a22f06ede1", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Avatar/Face", "key": "fbe8bfffd02577a5adcf34b68e586a95be51db75", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Avatar/Initials", "key": "d62c0a1c0f36bc37123f0de3dbc462c92c4114d1", "type": "COMPONENT", "page": "Icons", "size": "16x16", "textLayers": ["IV"] },
+
+    { "name": "Badge", "key": "70e5b1efeffb5e08f7470caa04eacdc98f3102f6", "type": "COMPONENT_SET", "page": "Components", "size": "78x24",
+      "props": [
+        { "name": "with-icon", "type": "BOOLEAN", "default": true },
+        { "name": "with-secondary-text", "type": "BOOLEAN", "default": false },
+        { "name": "with-trailing", "type": "BOOLEAN", "default": true },
+        { "name": "Trailing", "type": "INSTANCE_SWAP" },
+        { "name": "Size", "type": "VARIANT", "default": "S", "options": ["S","M"] },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","disabled"] }
+      ],
+      "textLayers": ["Label","Secondary"] },
+
+    { "name": "Button", "key": "4480b3cafd24f47f0479b5bfc142a0e3ba6a453a", "type": "COMPONENT_SET", "page": "Components", "size": "65x36",
+      "props": [
+        { "name": "with-icon", "type": "BOOLEAN", "default": false },
+        { "name": "Color", "type": "VARIANT", "default": "Primary", "options": ["Primary","Secondary"] },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","pressed","disabled"] }
+      ],
+      "textLayers": ["Button"] },
+
+    { "name": "Checkbox", "key": "21bcd62899088dd970138eacf8fed59cd468e24c", "type": "COMPONENT_SET", "page": "Components", "size": "16x16",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "Unchecked", "options": ["Unchecked","Checked","Success"] }] },
+
+    { "name": "DateHeader", "key": "18d7890ee7f0752c4345d100a44a6193b1298d9e", "type": "COMPONENT", "page": "Components", "size": "91x16", "textLayers": ["Date","Weekday"] },
+
+    { "name": "Dropdown", "key": "6d1feae585242fde454a82f2f5fdb503f9cf99e2", "type": "COMPONENT_SET", "page": "Components", "size": "111x36",
+      "props": [
+        { "name": "with-icon", "type": "BOOLEAN", "default": false },
+        { "name": "Size", "type": "VARIANT", "default": "M", "options": ["M","S"] },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","pressed","disabled"] }
+      ],
+      "textLayers": ["Dropdown"] },
+
+    { "name": "FileChip", "key": "06402a678dd0b0996c4e25ff95afb71867f85fdb", "type": "COMPONENT_SET", "page": "Components", "size": "240x49",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }],
+      "textLayers": ["Title","Format","Size"] },
+
+    { "name": "IconBox", "key": "4d426b127b817947253bf9498ce829340f93e186", "type": "COMPONENT_SET", "page": "Components", "size": "36x36",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "Filled", "options": ["Filled","Outlined"] }] },
+
+    { "name": "IconButton", "key": "d2a1562a7ac8b4718f8b717971cd69a599d93824", "type": "COMPONENT_SET", "page": "Components", "size": "36x36",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","pressed","disabled"] }] },
+
+    { "name": "Icons/Bolt/24", "key": "7e44e43b36a7a5f43409fdffb1cb4ebeda454771", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
+    { "name": "Icons/Check/12", "key": "de5fcf8d03147e03f5f201c5ed9a8039b512a32d", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/ChevronDown/12", "key": "131d56a7662a5309ce6b6673ecc89f2b91c57d24", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/ChevronDown/16", "key": "ab451bc13611bfca684206f5e352f151538e0214", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/ChevronRight/16", "key": "5a9771b6bd1d73dcbdb9c2863f90505539b50dde", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/ChevronRight/20", "key": "162ef0f03fbc56f7f58cea2119a6e79384fb337d", "type": "COMPONENT", "page": "Icons", "size": "20x20" },
+    { "name": "Icons/ChevronUp/16", "key": "ad8d5f764dac106335c724dc2af2e207dbe6fa99", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Download/12", "key": "690fbb073ba02a94d9bbc33027386a07ffeeae27", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/Download/16", "key": "ba9dcd89b415cb68d3703b51db5c3bc56f857d84", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Filter/16", "key": "a5ac296623aae47da4e9c433d30bfe8690b2f6f1", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Fire/16", "key": "74263688daaa803a51dc77d4f4e01a9b08349d69", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Folder/24", "key": "a9310d3153a7b68031e18e9b5a059c289ec072d0", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
+    { "name": "Icons/Interpunct/16", "key": "e2353013e9441828ab7646613313d5f410bdf881", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/Link/16", "key": "7cc91072ae56d0e9ad4bd8e5fd96f0032757486e", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Lock/24", "key": "c7462035d1492fcc9faac040142868bfe3739ac3", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
+    { "name": "Icons/MicMuted/20", "key": "7bc952aed9776b0d45f8d0f315a695c5b0cd359c", "type": "COMPONENT", "page": "Icons", "size": "20x20" },
+    { "name": "Icons/MicMuted/24", "key": "8193107123c4dc4604c258d1a5251a27cd243332", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
+    { "name": "Icons/More/16", "key": "b081c9bf3f0e95a9b4880632dc3adb0011fd3f0c", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Note/20", "key": "ecce86825d127ea46b2ba2614de7ea68eb44b87e", "type": "COMPONENT", "page": "Icons", "size": "20x20" },
+    { "name": "Icons/Pause/12", "key": "d646c7c5ff281b11aa563a5dfd35e62cfac1abbd", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/Photo/24", "key": "fc9a299b7f6378997e7435469ccb2297469c53ab", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
+    { "name": "Icons/Play/12", "key": "e9f3b747e8439317c486a02e02fa52ec66137998", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/Plug/16", "key": "167b31abbc69255ca9fe36d85967b9ce18fe386b", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Plus/16", "key": "eae039547916382bb946a95f2a57c033ecebc009", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Search/16", "key": "69dc50d454882c90436a1408d0ae85093179e01b", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Settings/16", "key": "d3eddc570d165fa6653d36775ca5abb7b3143ae4", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/SkipBack/16", "key": "ad915601fe0bfa89098597ba8bddbbf923444dc8", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/SkipForward/16", "key": "afbb009ce4527fe09d60e6ef400d2bd997c5211c", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Squares2x2/16", "key": "6320e084c1210963751ce8bcbe690b61b33fcfb9", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Trash/16", "key": "b5c775a25d263cfda4a647b4d8dd77b72f20c835", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Upgrade/16", "key": "8eca98f5ba0ef088ee2b74b1223e5de9cdb687d8", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Users/16", "key": "95d62785422fdf90b687b81962151d643feb9a5d", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Volume/16", "key": "1d856e35be93c9eb7e6c67ca3483c2a9c13b2d1b", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/X/12", "key": "c8f57ffa1f4d42aed97e5a660ffa523fb52ff804", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/X/16", "key": "bce675c32e28b1562ddbcaee4ae623a7e0b1da24", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/XCircle/24", "key": "772110b47c804c6fc349291d9742c3a3fb0a3088", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
+
+    { "name": "Input", "key": "f69351f54dec3c26227d1a42a5361c5ae56df193", "type": "COMPONENT_SET", "page": "Components", "size": "160x36",
+      "props": [
+        { "name": "with-icon", "type": "BOOLEAN", "default": false },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","focus"] }
+      ],
+      "textLayers": ["Input"] },
+
+    { "name": "Integrations/Exchange/16", "key": "3008aadb40afe38d25ca916693a6776e277273a6", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Extension/16", "key": "c1283cc9d9126b0083cbf47b39c1ee248cceb491", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/GCalendar/16", "key": "cd1ccff48d0874499f4974bc0a95f668a1c766f8", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/GoogleMeet/16", "key": "2aec98c0cda86f2ef7681daa4d30151d8e35577b", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Jitsi/16", "key": "1c05280c229c4edb61809cea5e9b2f32870d50ed", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/KonturTalk/16", "key": "380473decb19f7e9bd45722a7fb6dbfb4e051182", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/MTSLink/16", "key": "850aed97fb08f35862ae9a3db89f268c579e93f9", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Outlook/16", "key": "a68885d17ae4f4b70b693097688ad2ad1eff2163", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/SaluteJazz/16", "key": "2e9bdc71b936485a982733d09c0414576c5e90f9", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Teams/16", "key": "bcea9e1de3a1436f46461d70f1ffd99d4be4549b", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Telegram/16", "key": "08745255d0f705998ae757bc9c599aa0567c673f", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Telemost/16", "key": "fcc110252679962d3541bd2e1eb14e2fafc0b447", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/TrueConf/16", "key": "e283a63bda8d321821b502e00bee9a6d9ae73f65", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/YCalendar/16", "key": "ae1c8fbb04c2a45b3cea776ddb1200f439d1c8f3", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/Zoom/16", "key": "55c480a42933f0b03d362c6e5f792b80150f3aa5", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Integrations/amoCRM/16", "key": "8aaf029a3843225fea935f390ea9f020e8317ec4", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+
+    { "name": "List Item", "key": "4483dbb2dc5f7f84e8d1026f25c94975323fa518", "type": "COMPONENT_SET", "page": "Components", "size": "580x68",
+      "props": [
+        { "name": "Trailing", "type": "INSTANCE_SWAP" },
+        { "name": "State", "type": "VARIANT", "default": "Default", "options": ["Default","hover","pressed","disabled"] }
+      ],
+      "textLayers": ["Title","Description"] },
+
+    { "name": "Logo", "key": "b574a4d0248c703a8cb22d47ca14bc9a073c5746", "type": "COMPONENT_SET", "page": "Components", "size": "32x32",
+      "props": [{ "name": "Type", "type": "VARIANT", "default": "Mark", "options": ["Mark","Full"] }] },
+
+    { "name": "MediaInput", "key": "6a2b9cd801b4c74d7b0f801001f27074bdd8ed1c", "type": "COMPONENT_SET", "page": "Components", "size": "480x200",
+      "props": [
+        { "name": "Upload type", "type": "INSTANCE_SWAP" },
+        { "name": "error", "type": "BOOLEAN", "default": false },
+        { "name": "with-button", "type": "BOOLEAN", "default": false },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }
+      ],
+      "textLayers": ["Title","Description","Error"] },
+
+    { "name": "MediaInput/Template/Empty", "key": "b13c1017b922c8e9bd825adb45b7b2c2aa20795b", "type": "COMPONENT", "page": "Components", "size": "670x260",
+      "props": [
+        { "name": "with-button", "type": "BOOLEAN", "default": false },
+        { "name": "Upload type", "type": "INSTANCE_SWAP" },
+        { "name": "error", "type": "BOOLEAN", "default": false }
+      ],
+      "textLayers": ["Title","Description","Button"] },
+
+    { "name": "MeetingListItem", "key": "3e289c00c00e217082c33fb3c8a8b4324b4bf4ce", "type": "COMPONENT_SET", "page": "Components", "size": "1160x72",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","disabled","pressed"] }],
+      "textLayers": ["Title","00:00","0 min","Label (email)","Label (source)"] },
+
+    { "name": "Modal/Announcement", "key": "dad043ff1a0693dab9a2312b25a3429b0e18f637", "type": "COMPONENT", "page": "Components", "size": "500x507",
+      "props": [{ "name": "Trailing", "type": "INSTANCE_SWAP" }],
+      "textLayers": ["Header","Title","Description","Button"] },
+
+    { "name": "Onboarding/IconCard", "key": "2b975f631f0e48dec1986d9ec6d8b1d8cc9f5bc2", "type": "COMPONENT_SET", "page": "Components", "size": "232x144",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","active"] }],
+      "textLayers": ["Title"] },
+
+    { "name": "Onboarding/ImageCard", "key": "ab0a1140f3d69baa0127ae0b1ce0fbc127b82004", "type": "COMPONENT_SET", "page": "Components", "size": "360x300",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","inactive"] }],
+      "textLayers": ["Title","Description"] },
+
+    { "name": "Player", "key": "94c19f741c35d169b4fbe84ad647989704e5956d", "type": "COMPONENT_SET", "page": "Components", "size": "976x54",
+      "props": [
+        { "name": "Mode", "type": "VARIANT", "default": "Full", "options": ["Full","Hidden"] },
+        { "name": "State", "type": "VARIANT", "default": "Default", "options": ["Default","Hover"] }
+      ],
+      "textLayers": ["Video Title","0:00","/","0:00:00"] },
+
+    { "name": "SidebarItem", "key": "ca5594c3c20e2c9601a2965259d6bb3f7311ca5b", "type": "COMPONENT_SET", "page": "Components", "size": "255x24",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "Inactive", "options": ["Inactive","Hover","Pressed","Active"] }],
+      "textLayers": ["Tab"] },
+
+    { "name": "Tab/Pill", "key": "66b35345214fae860125dffa3c2f0e950ca3f720", "type": "COMPONENT_SET", "page": "Components", "size": "53x36",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "Active", "options": ["Active","Inactive","Inactive-hover"] }],
+      "textLayers": ["Tab 1"] },
+
+    { "name": "Tab/Segmented", "key": "da7583ff641b6ddaabc331deb753b926fac5d827", "type": "COMPONENT", "page": "Components", "size": "162x36",
+      "props": [{ "name": "with-icon", "type": "BOOLEAN", "default": false }],
+      "textLayers": ["Tab 1 (active)","Tab 2","Tab 3"] },
+
+    { "name": "Tab/Underline", "key": "4c6c4865b0b95acb34bbaa0d317977ed0fe643cd", "type": "COMPONENT_SET", "page": "Components", "size": "63x36",
+      "props": [
+        { "name": "with-text", "type": "BOOLEAN", "default": true },
+        { "name": "Variant", "type": "VARIANT", "default": "Active", "options": ["Active","Inactive","Inactive-hover"] }
+      ],
+      "textLayers": ["Tab"] },
+
+    { "name": "Template/Section", "key": "fc85b663662dce39962002535073a84043797d0d", "type": "COMPONENT_SET", "page": "Components", "size": "670x75",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }],
+      "textLayers": ["Header","Content"] },
+
+    { "name": "Thumbnail", "key": "1a29c19ea9f862afc3fbf3e2c5cc914388f85a11", "type": "COMPONENT_SET", "page": "Components", "size": "80x48",
+      "props": [{ "name": "Type", "type": "VARIANT", "default": "Recording", "options": ["Recording","Audio-1","Audio-2","Audio-3","Audio-4","Audio-5","Audio-6","Audio-7","Audio-8","Audio-9","Audio-10","Audio-11","Audio-12","Video-1","Video-2","Video-3","Video-4","No Audio"] }],
+      "textLayers": ["REC"] },
+
+    { "name": "Tile", "key": "f1450785417dd87beab7500471af1e847eb00d24", "type": "COMPONENT_SET", "page": "Components", "size": "284x120",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","pressed"] }],
+      "textLayers": ["Title","Description"] },
+
+    { "name": "Toggle", "key": "a4df52155cb7b82c75e3c37fb7c08d18902af4e8", "type": "COMPONENT_SET", "page": "Components", "size": "24x16",
+      "props": [{ "name": "State", "type": "VARIANT", "default": "on", "options": ["on","off","off-disabled","on-disabled"] }] },
+
+    { "name": "Tooltip", "key": "622b58976fb5b0d6624c4a00fe019594df0b55b9", "type": "COMPONENT", "page": "Components", "size": "48x28", "textLayers": ["Button label"] },
+
+    { "name": "Transcript/Chapter", "key": "b401b99ba478cc38d88c7ebc434f2286ad6c304d", "type": "COMPONENT_SET", "page": "Components", "size": "670x34",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "Collapsed", "options": ["Collapsed","Expanded"] }],
+      "textLayers": ["1. Title"] },
+
+    { "name": "Transcript/Message", "key": "a870f8b63653b8a32da337eb58172281cf1df402", "type": "COMPONENT", "page": "Components", "size": "670x76",
+      "props": [{ "name": "with-icon", "type": "BOOLEAN", "default": false }],
+      "textLayers": ["Speaker","0:12","<text>"] },
+
+    { "name": "Transcript/Speaker", "key": "613bcd9ea533cc16187182da3a2018d3d9da8b3c", "type": "COMPONENT_SET", "page": "Components", "size": "55x20",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","active"] }],
+      "textLayers": ["Speaker"] },
+
+    { "name": "Transcript/Text", "key": "12208726ee3b15a5569712609321720b42cf3c93", "type": "COMPONENT_SET", "page": "Components", "size": "658x36",
+      "props": [{ "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","active"] }],
+      "textLayers": ["<text>"] }
+  ],
+
+  "textStyles": [
+    { "name": "Regular 10",  "key": "405f56b343004313f8c2ea6e7e5d39c63c140fef", "weight": "Regular",   "size": 10, "ls": "-1%",  "lh": "auto" },
+    { "name": "Medium 10",   "key": "72b4976b77cb80631daa0a0449c5868cff73868d", "weight": "Medium",    "size": 10, "ls": "-1%",  "lh": "auto" },
+    { "name": "Regular 12",  "key": "25b338cf6b7a37fb339c59d0f25ea034dc57d0f2", "weight": "Regular",   "size": 12, "ls": "-2%",  "lh": "auto" },
+    { "name": "Medium 12",   "key": "48186e1457eb0a6376591eade4f77526e24f8647", "weight": "Medium",    "size": 12, "ls": "-2%",  "lh": "auto" },
+    { "name": "Regular 13",  "key": "734306f0f9add4815827cfeceb666c20bc79f839", "weight": "Regular",   "size": 13, "ls": "-1%",  "lh": "auto" },
+    { "name": "Medium 13",   "key": "097b764057f6ea28e855c15bf044400673cea23e", "weight": "Medium",    "size": 13, "ls": "-1%",  "lh": "auto", "_note": "main UI body text" },
+    { "name": "Regular 14",  "key": "ddc7273d45e46f05992d85a0a42856bb4802d778", "weight": "Regular",   "size": 14, "ls": "-2%",  "lh": "135%" },
+    { "name": "Medium 14",   "key": "17ff0c9394477ca3214a51f6c6515e9713e3fc67", "weight": "Medium",    "size": 14, "ls": "-2%",  "lh": "135%" },
+    { "name": "Regular 16",  "key": "153c59eb359ffb686722a8d28635ec423044d0b5", "weight": "Regular",   "size": 16, "ls": "-2%",  "lh": "auto" },
+    { "name": "Medium 16",   "key": "4aa7df061c5ab57b08dbf10b1cc10681b5ebaa8a", "weight": "Medium",    "size": 16, "ls": "-2%",  "lh": "auto" },
+    { "name": "Medium 20",   "key": "130f3feac740a1673dbf27e2630a931eb3bd6355", "weight": "Medium",    "size": 20, "ls": "-2%",  "lh": "auto" },
+    { "name": "Medium 24",   "key": "015f39a54f1d937122e361b1cdc629f2af7c374a", "weight": "Medium",    "size": 24, "ls": "-2%",  "lh": "auto" },
+    { "name": "Semibold 32", "key": "16f6b2e8b4c8d715e3940200fc4a602bc30af8ff", "weight": "Semi Bold", "size": 32, "ls": "-3%",  "lh": "auto" }
+  ],
+
+  "variableCollections": [
+    { "name": "Primitives", "key": "e4ea05504bc1aa6e09b76f50dd99334a3d291ec5", "_note": "spacing/*, radius/*, raw color palette" },
+    { "name": "Semantic",   "key": "bbcd0390cad76463d32890145481df06ee04de4b", "_note": "text/*, surface/*, border/*, icon/*, action/*, state/* — PREFERRED для UI" },
+    { "name": "Light Theme","key": "315f5c7052308d7b89a736a72354ab8d4fad2884", "_note": "DEPRECATED — старая коллекция, не использовать" },
+    { "name": "Dark Theme", "key": "d8b5ec9cded84659b8d976e712559ae5a4ea8007", "_note": "DEPRECATED — dark mode выпилен, не использовать" }
+  ],
+
+  "variables": {
+    "spacing": [
+      { "name": "spacing/0",  "key": "e431b15938338f165942faf132c75803db66149d", "value": 0 },
+      { "name": "spacing/2",  "key": "dbf535ca74de0aff3cab2b75bc927904bd3be10d", "value": 2 },
+      { "name": "spacing/4",  "key": "b39f857125639fa1af9bc1ce2ba384af8c4cf5ee", "value": 4 },
+      { "name": "spacing/6",  "key": "7b9695649d48963992b32a0f4c5541f08d2ddfd0", "value": 6 },
+      { "name": "spacing/8",  "key": "bfaa3fa45cc5070d2562d2201a777234a4a1982a", "value": 8 },
+      { "name": "spacing/12", "key": "5163cafdee5857e34dee31a28a30e721df727fee", "value": 12 },
+      { "name": "spacing/16", "key": "4655551e8c59523f843c33d3aeb8a38fe5b3925d", "value": 16 },
+      { "name": "spacing/24", "key": "7075b3744261b3027c043b6c620842059a25646c", "value": 24 },
+      { "name": "spacing/32", "key": "1147eebbbd94bd3a2b36243b22afe8f28771d86c", "value": 32 },
+      { "name": "spacing/40", "key": "092f79acde9add528533e8f84566e21cc6393d3d", "value": 40 },
+      { "name": "spacing/64", "key": "d3c3418f15ff3e78c306500616612972dd17f691", "value": 64 },
+      { "name": "spacing/80", "key": "baf73f473346d594b4ee4ad4340b420a262a3452", "value": 80 }
+    ],
+    "radius": [
+      { "name": "radius/0",    "key": "0f6f45059482198fdb1d97762a67b911957a15c8", "value": 0 },
+      { "name": "radius/1",    "key": "10ccbb33285f6f57b923a7b04b725641d07af75e", "value": 1 },
+      { "name": "radius/2",    "key": "c522b4c0b975cd58633071d07669253b9cb74e25", "value": 2 },
+      { "name": "radius/3",    "key": "48c57768f3500b23a0c3168a63207b4895bd9933", "value": 3 },
+      { "name": "radius/4",    "key": "3e153a4853ce414c0bff54f4d25bcaa172508750", "value": 4 },
+      { "name": "radius/full", "key": "46ce41abad4d19e2a5a8ec4a9116882994fc004b", "value": 9999 }
+    ],
+    "colorSemantic": {
+      "text/primary":         { "key": "cd01acfe116cd5a8d1e6a728323eba3aa86b3df1", "_hex": "#212833" },
+      "text/secondary":       { "key": "af858cb0447e42a9cec3941df474015f08a7df61", "_hex": "#818AA3" },
+      "text/tertiary":        { "key": "2b056b8b59320064f3fe5d11929530f5779fa926" },
+      "text/secondary-hover": { "key": "66330289dcaac7ad56641d4df711729c5d89781b" },
+      "text/disabled":        { "key": "2ae21152a569414cd1d37ef14066f4eb9d139cfe", "_hex": "#C7C8CA" },
+      "text/placeholder":     { "key": "43f7d5d0b36c950718f3d6cc3407f59e46008ddd" },
+      "text/on-action":       { "key": "a2587bf4ee973ad1994834791e648acf444703fc", "_hex": "#FFFFFF" },
+      "text/link":            { "key": "797f0b06d18fa1b6252f63e94bc3a8d6418e318e", "_hex": "#0138C7" },
+      "text/danger":          { "key": "f31c83e38d2e795b6b7fb09e2a3c1651123e2b46", "_hex": "#CC3333" },
+      "text/success":         { "key": "e001f4b54eadeafb8f775cf09f8f67a750589242", "_hex": "#0D9655" },
+      "icon/primary":         { "key": "023683293a82f330ac1e992fed71d77c0188e87b" },
+      "icon/secondary":       { "key": "ea01f57ab5c917fda21960912ef0a41173defc8b" },
+      "icon/secondary-hover": { "key": "7fbbc424486a15e5294ea66a5a8989e0c29129f9" },
+      "icon/tertiary":        { "key": "a321ec4d165b959f3ca02a261bf5077296e86f62" },
+      "icon/subtle":          { "key": "1bf9b4c6c4fa55406608c91675026dc8253b97d2" },
+      "icon/disabled":        { "key": "6686e2173ac6c30d7e3d69fd1a414b85b66db277" },
+      "icon/on-action":       { "key": "b09bbae72a8b4146133b5379723e7b73124e5906" },
+      "icon/accent":          { "key": "1151cc3639152ef14764fbd979fdc52d42609941" },
+      "icon/success":         { "key": "fd72d1d5fc60e9d5e2fae05cf0ff298938362821" },
+      "surface/page":         { "key": "58843de89a8c5eea7204016dade12520d62f6df3", "_hex": "#FFFFFF" },
+      "surface/raised":       { "key": "10aec235f0e91baeb94b157ae7f121f31108429b" },
+      "surface/light":        { "key": "0314ce19d55f8ca4b9f2e4e4d38e1714bcdc2be5", "_hex": "#FAFAFA" },
+      "surface/subtle":       { "key": "b32e3f9e1f4b1271ff5ca5266ca624e29a39fd45", "_hex": "#F7F7F8" },
+      "surface/overlay":      { "key": "4d33cc02b0bb1e0f06c912f43603b81d3f308bb5" },
+      "surface/info":         { "key": "a1711136395883ec7cffeea2af7f416248430a87" },
+      "border/default":       { "key": "e895b668e6ce73334755b492ac775f4caa285cb8", "_hex": "#EFEFEF" },
+      "border/strong":        { "key": "c87e4e541a248536a3ed795294dcd9d02aa0dc77", "_hex": "#DDDEDF" },
+      "border/secondary":     { "key": "bc8330df09f4701d41b9a70fc0ffad15ed511506" },
+      "border/focus":         { "key": "694b4583a4360f28f1e225675a3106ae876ec461", "_hex": "#0138C7" },
+      "border/accent":        { "key": "f92818a1b5dd6f550ae26b50a68d8f4a47f1b16d" },
+      "action/primary":            { "key": "9dcab11a94e863f7a83a6b7ddc5a4115467684e3", "_hex": "#0138C7" },
+      "action/primary-hover":      { "key": "607b399641ce3c37343c2b3ca82a6fbb6fe18755" },
+      "action/primary-pressed":    { "key": "6c9fa9bb6001f4f5405c58a644ca77e5dcd29cca" },
+      "action/primary-disabled":   { "key": "04c082dec2075bbdcba2ba5ba8b3c41f81e638d2" },
+      "action/secondary":          { "key": "d76f0c5869a45ae06950074caac7c7a9cf5b4563" },
+      "action/secondary-hover":    { "key": "589b6d99a900b5cca7d8b9e536c29393e99ccbb5" },
+      "action/secondary-pressed":  { "key": "7e60d6efe297baecfbe2040fb8ea7dbee766cbb6" },
+      "action/secondary-disabled": { "key": "d4c4a300e445ae59f18481c65cdfa44f127c692e" },
+      "state/hover":   { "key": "3448ce3c214854ab1b131789b8f9fb6185507c24" },
+      "state/pressed": { "key": "7b0196e1426f862d319031625e934da8dcf42594" },
+      "overlay/primary": { "key": "c8f53b4118c0248266736333c1b9c166017b1a5f" },
+      "overlay/subtle":  { "key": "f0b4b28702eaaf11f131a405ff924898e0b0a9b3" }
+    },
+    "colorPrimitives": {
+      "color/blue/50":  { "key": "6918ee5610bf7a969295a6635e592d7c01e623c2" },
+      "color/blue/100": { "key": "f3adc788dd0b580918bde36d242723c081251869", "_hex": "#E4ECFA" },
+      "color/blue/300": { "key": "21bfd28a39502753bd08443eaae29b060f52baed" },
+      "color/blue/500": { "key": "28c7d5d2f36c675aa7faeeceeb8a8b68d3df1573", "_hex": "#0138C7" },
+      "color/blue/600": { "key": "e69340b5cf67a3c5499153ebf281c58ba2e4a017", "_hex": "#0032B1" },
+      "color/blue/700": { "key": "29264f6f26fea4987e6d06595425b4c60f5581af", "_hex": "#002C9C" },
+      "color/grey/50":  { "key": "91cba0c091ab0daf4d314b15bdcc318f81790735" },
+      "color/grey/100": { "key": "2612b27d846ed01ac640c9e9a4314a0d5c6d0b98" },
+      "color/grey/150": { "key": "631d41e74faf583d438dbcea49c25db057d5fbc2" },
+      "color/grey/200": { "key": "b58a488f11fc8fbd55146099e0d073d7b62aca19" },
+      "color/grey/300": { "key": "c3f5c2353743be1eb82bcb41451eb648489d85b6" },
+      "color/grey/400": { "key": "c4207e6688c5217235f23e761c532075660409dd" },
+      "color/grey/500": { "key": "e5711f4638e04adf109f8f773ffac4177ca56d21" },
+      "color/grey/600": { "key": "6ac5536d55b781fc0b962c3d9db282016b283b3d" },
+      "color/grey/700": { "key": "95ac53b6ed9f9d602123de94f8bffe46ed39f489" },
+      "color/slate/500":    { "key": "4812d8cfec3935545b2758dc52fbb950807eafa5" },
+      "color/slate/700":    { "key": "cfd74baa76c6c4824fd1a14b77ec1a3f0e1fb4fd" },
+      "color/slate/900":    { "key": "79901ce62806ebad80d9d66e214e6e372ded40d4" },
+      "color/slate/900-40": { "key": "3de447ad77aef7576dc1b35c74118069753d092c" },
+      "color/slate/900-8":  { "key": "88981813fd126b96efdbae679b462f35a9c19e7a" },
+      "color/red/500":    { "key": "b279c54224143616045072d350383359462febe9", "_hex": "#CC3333" },
+      "color/green/500":  { "key": "9f10419e655fee10e0ae9b8b5472e5ec8328dcc5", "_hex": "#0D9655" },
+      "color/orange/500": { "key": "cb9880b56e4ca8c8f9354efa6300fd98b23e452c", "_hex": "#FF9E2C" },
+      "color/yellow/500": { "key": "1b40dbdcb494c2d02234e186637ef2855a792479", "_hex": "#F2C300" },
+      "color/teal/500":   { "key": "82348f7b39712ae0d173212e10d651f6f7b934fe", "_hex": "#0DACAA" },
+      "color/purple/500": { "key": "68712318624094e5a20b214084743672b46b30f7", "_hex": "#8A38F5" },
+      "color/white": { "key": "d0f8410969bd536585cddcfe08c8273e7b383e83" },
+      "color/black": { "key": "ccc0960c5a0e7ed35b5cb5b3ab2bcbd3e31982bc" }
+    }
+  }
+}
