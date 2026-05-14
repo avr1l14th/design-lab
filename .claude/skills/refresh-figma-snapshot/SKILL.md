@@ -1,6 +1,6 @@
 ---
 name: refresh-figma-snapshot
-description: Refresh design-system/figma-library-snapshot.json from the live mymeet.ai Figma file. Use when the designer says "обновил либу", "добавил компоненты в фигму", "обнови snapshot", "library changed", or before generating a screen if the snapshot file is more than ~2 weeks old.
+description: Refresh design-system/figma-library-snapshot.json from the live mymeet.ai Figma file. Use when the designer says they updated the library or added components in Figma — phrases like обновил либу, добавил компоненты в фигму, обнови snapshot, library changed, refresh snapshot. Also use before generating a screen if the snapshot file is more than two weeks old.
 ---
 
 # Refresh Figma Library Snapshot

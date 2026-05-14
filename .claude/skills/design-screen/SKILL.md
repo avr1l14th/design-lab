@@ -1,6 +1,6 @@
 ---
 name: design-screen
-description: End-to-end generation of a UI screen in the mymeet.ai design system. Use this when the user says things like "сделай в нашем дизайне экран ...", "make me a screen of X in mymeet style", "сгенерируй экран ... в стиле mymeet", "сделай прототип ...", "make a dashboard for ...". The skill prototypes the screen on localhost (Next.js 16 / Tailwind 4), then optionally exports it back to Figma with library component instances and bound text styles + spacing/radius/color variables.
+description: End-to-end generation of a UI screen in the mymeet.ai design system. Use this when the user asks to make a screen in our design system or in mymeet style — phrases like сделай в нашем дизайне экран, сгенерируй экран в стиле mymeet, сделай прототип, make a dashboard for X, make a screen of X in mymeet style. The skill prototypes the screen on localhost (Next.js 16 with Tailwind 4) then optionally exports it back to Figma with library component instances and bound text styles plus spacing radius and color variables.
 ---
 
 # Design Screen — mymeet.ai
