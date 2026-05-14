@@ -28,11 +28,4 @@ export const prototypes: Prototype[] = [
     tags: ["modal", "upload"],
     updatedAt: "2026-05-05",
   },
-  {
-    slug: "meeting-stats",
-    title: "Статистика встреч",
-    description: "Дашборд статистики: метрики, график активности, источники, последние встречи",
-    tags: ["dashboard", "ds-test"],
-    updatedAt: "2026-05-11",
-  },
 ];
