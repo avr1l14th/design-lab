@@ -36,6 +36,163 @@ If `figma-library-snapshot.json` is older than ~2 weeks, suggest refreshing via 
 
 ---
 
+## Design philosophy — mymeet.ai patterns (collected from designer)
+
+Эти правила определяют **«нативный» mymeet-look** даже когда библиотечного компонента под ситуацию нет. Соблюдай их при любой inline-вёрстке, не отступай без явной просьбы пользователя.
+
+### Density and rhythm
+- **Comfortable middle**, не dense, не spacious. Стиль ближе к Stripe чем к Linear или Notion.
+- Padding для карточек: `16`–`24`
+- Высота строк в списках: `48`–`56`
+- Padding страницы (horizontal): `40` (если main full-width)
+
+### Page layout
+- **Sidebar шириной 280** (не 240!). Фиксированный.
+- **Main content полная ширина** ТОЛЬКО на дашбордах (meeting-stats, главный экран встреч).
+- **Все прочие экраны (settings, конкретная встреча, кастомизация бота, отчёты)** — **container с фиксированной шириной 580–670px** в зависимости от контекста, центрирован в main-зоне.
+- Page header: **только title H2 (`Medium 24`) слева + actions/filters справа**. Без subtitle и breadcrumbs по умолчанию.
+
+### Cards
+- **Border-only, без shadow.** `1px border/default` + `surface/page` (white) + `radius/4`. Точка.
+- Shadow используется ТОЛЬКО для popover / modal / dropdown menu (`shadow/default`).
+- **Все cards белые.** Никаких tinted backgrounds кроме Banner (он использует `surface/info`).
+- Cards с padding `24` для крупных контентных блоков, `16` для compact (MetricCard и подобные).
+
+### Typography
+- **`Medium 13` — главный body text везде в UI.** Default для любого текста: label, nav, list rows, badges, settings rows, captions.
+- `Regular 12` / `Medium 12` — для меты, секондари инфы (время, размер, формат).
+- `Medium 16` — заголовки секций внутри страницы (Card header, Section header).
+- `Medium 24` — page H2 (главный заголовок страницы).
+- `Semibold 32` — крупные метрики в дашбордах.
+- `Regular 14` / `Medium 14` — для длинного контентного текста с line-height 135% (description, body paragraph).
+
+### Icons
+- **Filled (heroicons solid), 16 или 20 px.** Не stroke!
+- Default color: `icon/secondary` (#818AA3) — серые.
+- Active/selected: `icon/primary` (#212833) — тёмные.
+- Brand-цветные filled (Integrations, категорийные) — только когда иконка сама по себе бренд (Google Meet, Zoom, Telemost, Teams и т.д.).
+- ⚠️ **Не использовать outline / stroke иконки** (Lucide-style 1-1.5px) — это не в стиле mymeet, даже если кажется «нейтральнее».
+
+### Avatars
+- Только **два размера**: `16` (в badge'ах внутри строк) и `20` (немного крупнее, для inline-аватаров).
+- Не делай 24, 32, 48 — их в DS не предусмотрено.
+- `Avatar/Default`, `Avatar/Initials`, `Avatar/Cat`, `Avatar/Face`, `Avatar/Abstract` — пользователь выбирает аватар при онбординге.
+
+### Brand blue (`action/primary` / `#0138C7`)
+- **Только для:** Primary CTA buttons, links (`text/link`), focus rings, selected/active states (active SidebarItem, активный таб, выбранный DropdownItem checkmark), chart bars/progress indicators в дашбордах.
+- **Не для:** декоративных tint'ов карточек, общих accent'ов, gradients, headlines.
+- Сдержанный брендинг — синий виден на экране в 2–4 местах, не больше.
+
+### Interactive states
+- **Background change only.** Никаких transforms, scale, opacity changes.
+- Hover → `surface/light` (#FAFAFA) или `surface/subtle` (#F7F7F8).
+- Pressed → `surface/subtle` (#F7F7F8).
+- ⚠️ **Никаких CSS `transition`** в коде — UI **статичный**, переходы происходят мгновенно. Это сознательный design choice mymeet (Linear-style minimalism, но без анимации). Не добавлять `transition-colors`, `transition-all`, `hover:scale-*` и т.п. в Tailwind классы.
+
+### Loading states
+- **Skeleton (серые пластины).** Pulse animation OK, но без сложных shimmer'ов.
+- Spinner — только внутри submit-button во время async actions.
+- ProgressBar (компонент) — для известного прогресса (transcribing, uploading).
+
+### Empty states
+- Использовать компонент `EmptyState` с variant `Type=Icon` или `Type=GIF`.
+- **Icon variant** — heroicons solid 24px иконка + title + description.
+- **GIF variant** — анимированная gif с «котами или обезьянками» (не abstract illustrations) — bring personality.
+
+### Toast / Snackbar
+- **Bottom-center.** Slide-in от низа, fade-in, исчезновение через 3–5 сек.
+- **Не bottom-right** (стандарт большинства SaaS) и **не top-right** (Slack-style).
+
+### Tone of voice
+- Деловой но живой.
+- Глаголы в инфинитиве: «Сохранить», «Добавить встречу», «Загрузить».
+- Empty/info-тексты неформальные, короткие: «Пока здесь ничего нет», «Как только у вас появятся встречи, они появятся здесь».
+- **Без «Вы» с большой буквы.** Только «вы» строчная (или вообще без обращения).
+- Без эмодзи в UI-текстах (эмодзи допустимы только в illustrations/гифках).
+- Короткие фразы. Не «Произошла ошибка при попытке выполнить запрос на сервер», а просто «Не получилось — попробуй ещё раз».
+
+### Marketing / onboarding pages
+- Те же токены и компоненты что и in-app, но **чуть просторнее и празднично**.
+- Padding больше: `40`–`80`, gap `24`–`32`.
+- Можно использовать `Medium 24` или `Semibold 32` крупнее для hero-блоков.
+- ImageCard / IconCard компоненты — для onboarding-шагов.
+- Никаких отдельных design language'ей — всё в той же mymeet-эстетике.
+
+### Что **не** в стиле mymeet (типичные ошибки Claude)
+
+- ❌ Stroke иконки (Lucide-style) — должны быть filled heroicons
+- ❌ Transitions на hover (`transition-colors`) — должно быть мгновенно
+- ❌ Tinted card backgrounds (зелёные, оранжевые подложки) — только белые с border'ом
+- ❌ Аватары 24/32/48 — только 16 и 20
+- ❌ Sidebar 240 — должен быть 280
+- ❌ Settings/любой не-дашборд экран full-width — должен быть container 580–670
+- ❌ «Вы» с большой буквы — только «вы» или без обращения
+- ❌ Toast bottom-right или top-right — только bottom-center
+- ❌ Shadow на in-page cards — только border
+- ❌ Bold (font-weight 700) — максимум Medium (500) или Semi Bold (600 для Semibold 32)
+
+---
+
+## Design north stars — на чьи продукты команда равняется
+
+Команда mymeet ориентируется на эту группу продуктов. Когда сомневаешься «как бы выглядело это решение», представь как сделали бы они — и иди в ту же сторону.
+
+**Премиум SaaS / dashboards (главные ориентиры):**
+- **Linear** — dense, monochrome, fast keyboard-first UX, minimal motion
+- **Notion** — clean modular blocks, light, generous whitespace
+- **Attio** — CRM с grid-логикой, modern, density-medium
+- **Vercel** — light + dark, monospace accents, technical confidence
+- **Sana** — learning platform, premium polish
+- **V7** — AI/ML dataset workflows, technical density
+- **Skiff** — encrypted docs, minimal
+- **Craft** — beautiful typography, document-focused
+- **Framer** — design tool, восприятие как «художественный» инструмент
+
+**Productivity / niche tools:**
+- **Amie** — calendar с personality, polished
+- **Strut** — minimalist writing
+- **REKKI** — B2B food ordering, простой
+- **Tola** — finance, clean
+- **Actual** — budgeting, opensource-vibe но beautiful
+
+**Fintech:**
+- **Revolut** — banking UX, polished
+- **Ramp** — corporate cards, отличные dashboards и charts
+- **Fey** — investing с dense data
+
+**AI / data / ops:**
+- **Perplexity** — AI search, minimalism
+- **OpenAI** (ChatGPT) — neutral, generous spacing
+- **Manus** — AI agent UI
+- **Bird** — communication API, friendly
+- **Base** — minimal
+- **Visitors** — analytics
+
+**Support / incidents:**
+- **Intercom** — chat и support workflows
+- **incident.io** — incident response, dense data
+
+### Что объединяет все эти референсы
+
+1. **Сдержанная палитра** — обычно 1 brand color + grayscale + редкие semantic accents. Никаких многоцветных «брендинговых» решений.
+2. **Filled или mono icons** — не cartoony, не gradient, не 3D.
+3. **Border-only cards с минимальной elevation** — почти никто из них не использует heavy material-style shadows.
+4. **Medium-density** — не Linear-tight, но и не Notion-spacious. Comfortable middle.
+5. **Минимум motion** — UI скорее статичный, transitions ≤200ms, без spring/bounce. Linear, Vercel, Attio, Skiff — все так.
+6. **Тщательная типографика** — обычно один font family, 2-3 weight, точный letter-spacing. Не несколько шрифтов и не bold-everywhere.
+7. **«Tool feel», а не «marketing feel»** — продукты выглядят как инструменты для работы, не как landing-page.
+
+### Чем mymeet **не** должен быть
+
+- ❌ Material Design (Google products) — слишком many states, ripple animations, large shadows
+- ❌ Bootstrap-style (стандартные admin templates) — generic, identical to thousands of products
+- ❌ Stripe Atlas / Apple — слишком много gradients и hero illustrations
+- ❌ Discord / Twitch — gaming-style violent colors и dense densities
+- ❌ Salesforce / SAP — enterprise complexity
+- ❌ TikTok / Instagram — entertainment-style motion и visual play
+
+---
+
 ## The six-stage procedure
 
 ### Stage 1 — Context gathering (5 min)

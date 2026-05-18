@@ -190,6 +190,23 @@ className="shadow-[0_0_4px_0_rgba(0,0,0,0.16)]"
 
 ---
 
+## 5.5 Compound components — какие компоненты идут вместе
+
+В Figma либе некоторые компоненты по отдельности не имеют смысла — они работают **только в паре** или в **составе** другого. Snapshot перечисляет их как отдельные сущности, но при генерации экрана **обязательно** используй вместе:
+
+| Главный | Сопутствующий(е) | Когда |
+|---|---|---|
+| `Dropdown` (триггер 36×111) | `DropdownItem` (пункты, S=24 / M=32) | Любой select/выпадайка. Triger показывает выбранное значение, при клике под ним открывается popover (фрейм с `padding 4`, `radius 4`, `shadow/default`, bg `surface/raised`), внутри которого N инстансов `DropdownItem`. |
+| `Player` (плеер видео) | `Transcript/Chapter`, `Transcript/Message`, `Transcript/Speaker`, `Transcript/Text` | Страница встречи: сверху Player, под ним лента транскрипта из Chapter (раскрывающиеся главы) → Message (блок реплики) → Speaker + Text внутри Message. |
+| `MediaInput` (drop-zone для загрузки) | `FileChip` (превью загруженных файлов) | Modal загрузки файлов. Drop-zone сверху, под ней список FileChip с возможностью удалить. |
+| `Tab/Segmented` или `Tab/Pill` или `Tab/Underline` | — (стилевые варианты табов; **не** комбинировать на одной странице) | Выбирай ОДИН вид табов под контекст: Segmented — для quick filters / period picker, Pill — для secondary nav, Underline — для главной таб-навигации страницы. |
+| `Logo` Type=Full | `SidebarItem` × N | Sidebar layout: Logo в шапке, SidebarItem'ы в навигации. |
+| `MeetingListItem` × N | `EmptyState` (если есть в либе) | Список встреч: либо N штук MeetingListItem, либо EmptyState когда встреч нет. |
+
+⚠️ Если в экране нужен открытый dropdown с пунктами — **не рисуй вручную** псевдо-options через text + chevron. **Всегда** используй `DropdownItem` инстансы.
+
+---
+
 ## 6. Компоненты — код-сниппеты
 
 > Это **inline patterns**, не отдельные React-компоненты. Команда не делает абстракции преждевременно — каждая страница реализует под себя, переиспользует через copy-paste из этого файла.
