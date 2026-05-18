@@ -11,7 +11,7 @@ Updates `design-system/figma-library-snapshot.json` from the live mymeet.ai Figm
 
 - User says «обновил либу», «закомпонентил X», «добавил компоненты в фигму»
 - The `capturedAt` field in current snapshot is more than 2 weeks old
-- A `/design-screen` invocation discovers a needed component that's missing from snapshot, but the designer claims it exists
+- A `/mymeet-design` invocation discovers a needed component that's missing from snapshot, but the designer claims it exists
 
 ## Procedure
 

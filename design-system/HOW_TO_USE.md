@@ -56,28 +56,41 @@ claude
 
 ---
 
-## Как сгенерировать экран
+## Как сгенерировать что-то в нашем дизайне
 
 ### Самый быстрый способ — через skill
 
-В этом репо есть готовый skill `design-screen`. Просто скажи Claude:
+В этом репо есть готовый универсальный skill `mymeet-design`. Он генерит **что угодно** в дизайне mymeet.ai: UI-экраны, документы (кейсбуки, отчёты, гайды), презентации (КП, pitch decks), email-рассылки, лендинги. Просто скажи Claude:
 
 ```
-/design-screen сделай экран настроек профиля
+/mymeet-design сделай экран настроек профиля
+```
+или
+```
+/mymeet-design обнови этот кейсбук под наш дизайн   [приложи PDF]
+```
+или
+```
+/mymeet-design собери КП для клиента X в нашем стиле   [приложи pptx/data]
 ```
 
-Или просто:
+Или просто без слеша:
 ```
 Сделай в нашем дизайне экран настроек профиля
+Обнови кейсбук под mymeet
+Сделай рассылку про новую фичу
 ```
 
-Claude автоматически активирует skill (по фразе «в нашем дизайне / mymeet / прототип») и выполнит **полный цикл**:
+Claude по фразе («в нашем дизайне» / «mymeet» / «прототип» / «кейсбук» / «КП» / «рассылка» / «лендинг») автоматически активирует skill, определит тип артефакта (UI / документ / презентация / email / лендинг) и выполнит **полный цикл** под выбранный тип:
 1. Прочитает `DESIGN_SYSTEM.md` и `figma-library-snapshot.json` (реестр всех компонентов либы)
-2. Создаст `app/<slug>/page.tsx` с использованием React-компонентов, чьи имена 1-в-1 как в Figma-либе
-3. Возьмёт только разрешённые значения spacing/radius/font-size (не «20» если в либе есть только «16, 24»)
-4. Зарегистрирует прототип в `prototypes-registry.ts`
-5. Запустит dev server, проверит экран
-6. (По запросу) экспортирует в Figma — НЕ плоский ватман, а **фрейм с инстансами компонентов либы** и привязанными токенами (text styles, spacing/radius/color variables)
+2. Применит общие mymeet правила (philosophy + north stars): density, typography, цветовая дисциплина, ToV
+3. Сгенерит артефакт под нужный output:
+   - **UI** → `app/<slug>/page.tsx` + Figma фрейм с инстансами либы
+   - **Документ** → HTML с print-CSS (можно сохранить в PDF через Cmd+P)
+   - **Презентация** → Figma Slides файл (или PPTX через отдельный pptx skill)
+   - **Email** → HTML email с table-based layout
+   - **Лендинг** → Next.js страница в `app/landing-<slug>/`
+4. Выдаст preview URL + screenshot + summary что сделано
 
 ### Шаблон промпта (минимальный)
 
@@ -109,19 +122,18 @@ Claude автоматически активирует skill (по фразе «
 **С привязкой к Figma:**
 > Сделай в нашем дизайне экран онбординга — 4 шага. Я открыл в Figma desktop фрейм 1234:5678 — прочитай его и используй как референс для структуры.
 
-### Что Claude сделает автоматически (по skill `design-screen`)
+### Что Claude сделает автоматически (по skill `mymeet-design`)
 
-1. **Контекст:** прочитает `DESIGN_SYSTEM.md` + `figma-library-snapshot.json` (89 компонентов, 14 text styles, ~120 variables)
-2. **Localhost:** создаст `app/<slug>/page.tsx` с компонентами, чьи имена и варианты 1-в-1 как в Figma (`SidebarItem`, `MeetingListItem`, `TabSegmented`, `Logo`, `Integrations/Telemost/16` и т.д.)
-3. **Только токенные значения:** spacing из {0,2,4,6,8,12,16,24,32,40,64,80}, radius {0,1,2,3,4,full}, font sizes из либы
-4. **Регистрация:** обновит `prototypes-registry.ts`
-5. **Проверка:** запустит dev, проверит на скриншоте, очистит ошибки
-6. **(Опционально) Figma export:**
-   - Захватит layout-reference через `generate_figma_design`
-   - Соберёт параллельный фрейм через `use_figma` с инстансами либы
-   - Привяжет text styles + spacing/radius/color variables (≥300 биндингов на медиум-экран)
-   - Audit: snap любого non-token значения к шкале
-7. **Отчёт:** localhost URL, Figma URL, список инстансов, число биндингов, скриншот
+1. **Контекст:** прочитает `DESIGN_SYSTEM.md` + `figma-library-snapshot.json` (~89 компонентов, 13 text styles, ~120 variables) + Design philosophy + Design north stars
+2. **Detection:** определит тип артефакта (UI / документ / презентация / email / лендинг)
+3. **Генерация под тип:**
+   - **UI screen:** `app/<slug>/page.tsx`, компоненты 1-в-1 как в Figma, регистрация в `prototypes-registry.ts`, dev preview. Опционально — Figma фрейм с инстансами либы и привязанными токенами (≥300 биндингов на medium-экран).
+   - **Документ:** HTML страница в `app/docs/<slug>/` с print-CSS. Cmd+P → Save as PDF.
+   - **Презентация:** Figma Slides файл (16:9) с инстансами либы или PPTX (через отдельный skill).
+   - **Email:** HTML письмо table-based в `app/emails/<slug>/` для cross-client compatibility.
+   - **Лендинг:** Next.js страница `app/landing-<slug>/` с hero / features / CTA.
+4. **Token discipline везде:** spacing из {0,2,4,6,8,12,16,24,32,40,64,80}, radius {0,1,2,3,4,full}, font sizes из textStyles, цвета только через DS-токены.
+5. **Отчёт:** preview URL, итоговый артефакт, что использовано из либы, что custom, скриншот.
 
 ## Обновление либы
 
@@ -134,7 +146,7 @@ Claude автоматически активирует skill (по фразе «
 обновил либу, переснифай
 ```
 
-Skill `refresh-figma-snapshot` перепишет `figma-library-snapshot.json` свежими данными из Figma. После этого новые компоненты сразу подхватываются в `/design-screen`.
+Skill `refresh-figma-snapshot` перепишет `figma-library-snapshot.json` свежими данными из Figma. После этого новые компоненты сразу подхватываются в `/mymeet-design`.
 
 ### Как проверить и докрутить
 
