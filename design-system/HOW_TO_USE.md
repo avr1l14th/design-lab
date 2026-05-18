@@ -60,37 +60,25 @@ claude
 
 ### Самый быстрый способ — через skill
 
-В этом репо есть готовый универсальный skill `mymeet-design`. Он генерит **что угодно** в дизайне mymeet.ai: UI-экраны, документы (кейсбуки, отчёты, гайды), презентации (КП, pitch decks), email-рассылки, лендинги. Просто скажи Claude:
+В этом репо есть универсальный skill `mymeet-design`. Он применяет правила, токены и философию mymeet.ai к **любому** артефакту, который ты попросишь сделать. Технологию для output Claude выбирает сам исходя из задачи.
 
 ```
-/mymeet-design сделай экран настроек профиля
-```
-или
-```
-/mymeet-design обнови этот кейсбук под наш дизайн   [приложи PDF]
-```
-или
-```
-/mymeet-design собери КП для клиента X в нашем стиле   [приложи pptx/data]
+/mymeet-design <твой запрос>
 ```
 
-Или просто без слеша:
+Или без слеша — skill активируется автоматически по фразе «в нашем дизайне» / «mymeet» / «в стиле mymeet»:
+
 ```
-Сделай в нашем дизайне экран настроек профиля
-Обнови кейсбук под mymeet
-Сделай рассылку про новую фичу
+Сделай в нашем дизайне X
+Обнови X под mymeet
+Свёрстай X в нашем стиле
 ```
 
-Claude по фразе («в нашем дизайне» / «mymeet» / «прототип» / «кейсбук» / «КП» / «рассылка» / «лендинг») автоматически активирует skill, определит тип артефакта (UI / документ / презентация / email / лендинг) и выполнит **полный цикл** под выбранный тип:
-1. Прочитает `DESIGN_SYSTEM.md` и `figma-library-snapshot.json` (реестр всех компонентов либы)
-2. Применит общие mymeet правила (philosophy + north stars): density, typography, цветовая дисциплина, ToV
-3. Сгенерит артефакт под нужный output:
-   - **UI** → `app/<slug>/page.tsx` + Figma фрейм с инстансами либы
-   - **Документ** → HTML с print-CSS (можно сохранить в PDF через Cmd+P)
-   - **Презентация** → Figma Slides файл (или PPTX через отдельный pptx skill)
-   - **Email** → HTML email с table-based layout
-   - **Лендинг** → Next.js страница в `app/landing-<slug>/`
-4. Выдаст preview URL + screenshot + summary что сделано
+Что Claude сделает:
+1. Прочитает правила (`design-system/DESIGN_SYSTEM.md`) и реестр Figma-компонентов (`design-system/figma-library-snapshot.json`)
+2. Применит общие mymeet принципы: токены, типографика, плотность, цветовая дисциплина, ToV, референсы Linear/Notion/Vercel/etc
+3. Выберет технологию под задачу и сгенерит артефакт
+4. Выдаст preview URL + скриншот + summary что использовано из либы и что custom
 
 ### Шаблон промпта (минимальный)
 
@@ -122,18 +110,13 @@ Claude по фразе («в нашем дизайне» / «mymeet» / «про
 **С привязкой к Figma:**
 > Сделай в нашем дизайне экран онбординга — 4 шага. Я открыл в Figma desktop фрейм 1234:5678 — прочитай его и используй как референс для структуры.
 
-### Что Claude сделает автоматически (по skill `mymeet-design`)
+### Что Claude применяет к любому артефакту
 
-1. **Контекст:** прочитает `DESIGN_SYSTEM.md` + `figma-library-snapshot.json` (~89 компонентов, 13 text styles, ~120 variables) + Design philosophy + Design north stars
-2. **Detection:** определит тип артефакта (UI / документ / презентация / email / лендинг)
-3. **Генерация под тип:**
-   - **UI screen:** `app/<slug>/page.tsx`, компоненты 1-в-1 как в Figma, регистрация в `prototypes-registry.ts`, dev preview. Опционально — Figma фрейм с инстансами либы и привязанными токенами (≥300 биндингов на medium-экран).
-   - **Документ:** HTML страница в `app/docs/<slug>/` с print-CSS. Cmd+P → Save as PDF.
-   - **Презентация:** Figma Slides файл (16:9) с инстансами либы или PPTX (через отдельный skill).
-   - **Email:** HTML письмо table-based в `app/emails/<slug>/` для cross-client compatibility.
-   - **Лендинг:** Next.js страница `app/landing-<slug>/` с hero / features / CTA.
-4. **Token discipline везде:** spacing из {0,2,4,6,8,12,16,24,32,40,64,80}, radius {0,1,2,3,4,full}, font sizes из textStyles, цвета только через DS-токены.
-5. **Отчёт:** preview URL, итоговый артефакт, что использовано из либы, что custom, скриншот.
+1. **Контекст:** `DESIGN_SYSTEM.md` + `figma-library-snapshot.json` (~89 компонентов, 13 text styles, ~120 variables) + Design philosophy + Design north stars
+2. **Token discipline:** spacing из {0,2,4,6,8,12,16,24,32,40,64,80}, radius {0,1,2,3,4,full}, font sizes из textStyles, цвета только через DS-токены
+3. **Принципы:** Stripe-middle density, Medium 13 как UI body, border-only cards без shadow, filled heroicons 16/20, brand blue restrained (только в accent'ах), bg-only состояния без transitions, ToV без «Вы» с большой
+4. **Технология output** — выбирается Claude'ом исходя из задачи (Next.js, HTML, Figma фрейм, table-based email, SVG, etc.)
+5. **Отчёт:** preview URL, итоговый артефакт, что использовано из либы, что custom, скриншот
 
 ## Обновление либы
 
