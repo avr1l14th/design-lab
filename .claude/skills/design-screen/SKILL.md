@@ -133,6 +133,66 @@ If `figma-library-snapshot.json` is older than ~2 weeks, suggest refreshing via 
 
 ---
 
+## Design north stars — на чьи продукты команда равняется
+
+Команда mymeet ориентируется на эту группу продуктов. Когда сомневаешься «как бы выглядело это решение», представь как сделали бы они — и иди в ту же сторону.
+
+**Премиум SaaS / dashboards (главные ориентиры):**
+- **Linear** — dense, monochrome, fast keyboard-first UX, minimal motion
+- **Notion** — clean modular blocks, light, generous whitespace
+- **Attio** — CRM с grid-логикой, modern, density-medium
+- **Vercel** — light + dark, monospace accents, technical confidence
+- **Sana** — learning platform, premium polish
+- **V7** — AI/ML dataset workflows, technical density
+- **Skiff** — encrypted docs, minimal
+- **Craft** — beautiful typography, document-focused
+- **Framer** — design tool, восприятие как «художественный» инструмент
+
+**Productivity / niche tools:**
+- **Amie** — calendar с personality, polished
+- **Strut** — minimalist writing
+- **REKKI** — B2B food ordering, простой
+- **Tola** — finance, clean
+- **Actual** — budgeting, opensource-vibe но beautiful
+
+**Fintech:**
+- **Revolut** — banking UX, polished
+- **Ramp** — corporate cards, отличные dashboards и charts
+- **Fey** — investing с dense data
+
+**AI / data / ops:**
+- **Perplexity** — AI search, minimalism
+- **OpenAI** (ChatGPT) — neutral, generous spacing
+- **Manus** — AI agent UI
+- **Bird** — communication API, friendly
+- **Base** — minimal
+- **Visitors** — analytics
+
+**Support / incidents:**
+- **Intercom** — chat и support workflows
+- **incident.io** — incident response, dense data
+
+### Что объединяет все эти референсы
+
+1. **Сдержанная палитра** — обычно 1 brand color + grayscale + редкие semantic accents. Никаких многоцветных «брендинговых» решений.
+2. **Filled или mono icons** — не cartoony, не gradient, не 3D.
+3. **Border-only cards с минимальной elevation** — почти никто из них не использует heavy material-style shadows.
+4. **Medium-density** — не Linear-tight, но и не Notion-spacious. Comfortable middle.
+5. **Минимум motion** — UI скорее статичный, transitions ≤200ms, без spring/bounce. Linear, Vercel, Attio, Skiff — все так.
+6. **Тщательная типографика** — обычно один font family, 2-3 weight, точный letter-spacing. Не несколько шрифтов и не bold-everywhere.
+7. **«Tool feel», а не «marketing feel»** — продукты выглядят как инструменты для работы, не как landing-page.
+
+### Чем mymeet **не** должен быть
+
+- ❌ Material Design (Google products) — слишком many states, ripple animations, large shadows
+- ❌ Bootstrap-style (стандартные admin templates) — generic, identical to thousands of products
+- ❌ Stripe Atlas / Apple — слишком много gradients и hero illustrations
+- ❌ Discord / Twitch — gaming-style violent colors и dense densities
+- ❌ Salesforce / SAP — enterprise complexity
+- ❌ TikTok / Instagram — entertainment-style motion и visual play
+
+---
+
 ## The six-stage procedure
 
 ### Stage 1 — Context gathering (5 min)
