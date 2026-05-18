@@ -1,8 +1,8 @@
 {
-  "_comment": "Snapshot реестра mymeet.ai Figma library. Обновляется через `use_figma` запрос — см. design-system/HOW_TO_REFRESH_SNAPSHOT.md. Используется Claude при генерации экранов: ищет компоненты, стили, переменные по этому файлу вместо динамической разведки.",
+  "_comment": "Snapshot реестра mymeet.ai Figma library. Обновляется через /refresh-figma-snapshot skill. Используется Claude при генерации экранов: ищет компоненты, стили, переменные по этому файлу вместо динамической разведки.",
   "fileKey": "Ma7dtZb6eSHJ5YoaiVEUn2",
   "libraryKey": "lk-b75b74abde4928fbe977e65ee9a7750188d46f83273822cd48ec71e06b47a48957be656c392783cbf775c7010f0bd874b8c2e5ebbaa33effc066ff1de3d717d0",
-  "capturedAt": "2026-05-14",
+  "capturedAt": "2026-05-14T12:50",
   "components": [
     { "name": "Avatar/Abstract", "key": "44a87d8ea7a4c3c4af3f9cfe621fc32e40ccfd70", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
     { "name": "Avatar/Cat", "key": "24fd0c19a9d118bb64cb23de7ba79b5c8507de9a", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
@@ -20,6 +20,14 @@
         { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","disabled"] }
       ],
       "textLayers": ["Label","Secondary"] },
+
+    { "name": "Banner", "key": "23c6fe4df7285dde5b21576bafa2de3bad042a0d", "type": "COMPONENT", "page": "Components", "size": "368x62",
+      "props": [
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" }
+      ],
+      "textLayers": ["Title","Description"],
+      "_note": "Info-style inline alert. Bg surface/info, icon в левом верхнем углу, title+description под ним (description занимает всю ширину под иконкой)." },
 
     { "name": "Button", "key": "4480b3cafd24f47f0479b5bfc142a0e3ba6a453a", "type": "COMPONENT_SET", "page": "Components", "size": "65x36",
       "props": [
@@ -42,8 +50,32 @@
       ],
       "textLayers": ["Dropdown"] },
 
+    { "name": "DropdownItem", "key": "71f8cc0a9a7e9f141eb95a3630edaeb4fcef79ef", "type": "COMPONENT_SET", "page": "Components", "size": "192x32",
+      "props": [
+        { "name": "with-icon", "type": "BOOLEAN", "default": false },
+        { "name": "Icon", "type": "INSTANCE_SWAP" },
+        { "name": "Size", "type": "VARIANT", "default": "M", "options": ["M","S"] },
+        { "name": "State", "type": "VARIANT", "default": "Default", "options": ["Default","Hovered","Disabled"] }
+      ],
+      "textLayers": ["Label"],
+      "_note": "Пункт выпадающего списка. S=24px без иконки, M=32px с иконкой. Используется внутри popover-обёртки рядом с Dropdown триггером." },
+
+    { "name": "EmptyState", "key": "550d277c44db9bfa7dcecb76c17da5fa117b6df1", "type": "COMPONENT_SET", "page": "Components", "size": "320x103",
+      "props": [
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" },
+        { "name": "Type", "type": "VARIANT", "default": "Icon", "options": ["Icon","GIF"] }
+      ],
+      "textLayers": ["Title","Description"],
+      "_note": "Type=Icon — статичная иконка. Type=GIF — анимированная иллюстрация (например, поиск, загрузка)." },
+
     { "name": "FileChip", "key": "06402a678dd0b0996c4e25ff95afb71867f85fdb", "type": "COMPONENT_SET", "page": "Components", "size": "240x49",
-      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }],
+      "props": [
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Format", "type": "TEXT", "default": "PDF" },
+        { "name": "Size", "type": "TEXT", "default": "1 MB" },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }
+      ],
       "textLayers": ["Title","Format","Size"] },
 
     { "name": "IconBox", "key": "4d426b127b817947253bf9498ce829340f93e186", "type": "COMPONENT_SET", "page": "Components", "size": "36x36",
@@ -54,6 +86,7 @@
 
     { "name": "Icons/Bolt/24", "key": "7e44e43b36a7a5f43409fdffb1cb4ebeda454771", "type": "COMPONENT", "page": "Icons", "size": "24x24" },
     { "name": "Icons/Check/12", "key": "de5fcf8d03147e03f5f201c5ed9a8039b512a32d", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
+    { "name": "Icons/Check/16", "key": "6efb240376ed2e59ede15e6cf713f74c38a75e6a", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
     { "name": "Icons/ChevronDown/12", "key": "131d56a7662a5309ce6b6673ecc89f2b91c57d24", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
     { "name": "Icons/ChevronDown/16", "key": "ab451bc13611bfca684206f5e352f151538e0214", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
     { "name": "Icons/ChevronRight/16", "key": "5a9771b6bd1d73dcbdb9c2863f90505539b50dde", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
@@ -84,6 +117,7 @@
     { "name": "Icons/Trash/16", "key": "b5c775a25d263cfda4a647b4d8dd77b72f20c835", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
     { "name": "Icons/Upgrade/16", "key": "8eca98f5ba0ef088ee2b74b1223e5de9cdb687d8", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
     { "name": "Icons/Users/16", "key": "95d62785422fdf90b687b81962151d643feb9a5d", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
+    { "name": "Icons/Video/32", "key": "ac35f2162c49fc357cb6e1712afa333297f1351c", "type": "COMPONENT", "page": "Icons", "size": "32x32" },
     { "name": "Icons/Volume/16", "key": "1d856e35be93c9eb7e6c67ca3483c2a9c13b2d1b", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
     { "name": "Icons/X/12", "key": "c8f57ffa1f4d42aed97e5a660ffa523fb52ff804", "type": "COMPONENT", "page": "Icons", "size": "12x12" },
     { "name": "Icons/X/16", "key": "bce675c32e28b1562ddbcaee4ae623a7e0b1da24", "type": "COMPONENT", "page": "Icons", "size": "16x16" },
@@ -116,6 +150,8 @@
     { "name": "List Item", "key": "4483dbb2dc5f7f84e8d1026f25c94975323fa518", "type": "COMPONENT_SET", "page": "Components", "size": "580x68",
       "props": [
         { "name": "Trailing", "type": "INSTANCE_SWAP" },
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" },
         { "name": "State", "type": "VARIANT", "default": "Default", "options": ["Default","hover","pressed","disabled"] }
       ],
       "textLayers": ["Title","Description"] },
@@ -127,7 +163,8 @@
       "props": [
         { "name": "Upload type", "type": "INSTANCE_SWAP" },
         { "name": "error", "type": "BOOLEAN", "default": false },
-        { "name": "with-button", "type": "BOOLEAN", "default": false },
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" },
         { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }
       ],
       "textLayers": ["Title","Description","Error"] },
@@ -135,17 +172,26 @@
     { "name": "MediaInput/Template/Empty", "key": "b13c1017b922c8e9bd825adb45b7b2c2aa20795b", "type": "COMPONENT", "page": "Components", "size": "670x260",
       "props": [
         { "name": "with-button", "type": "BOOLEAN", "default": false },
-        { "name": "Upload type", "type": "INSTANCE_SWAP" },
-        { "name": "error", "type": "BOOLEAN", "default": false }
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" }
       ],
       "textLayers": ["Title","Description","Button"] },
 
     { "name": "MeetingListItem", "key": "3e289c00c00e217082c33fb3c8a8b4324b4bf4ce", "type": "COMPONENT_SET", "page": "Components", "size": "1160x72",
-      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","disabled","pressed"] }],
-      "textLayers": ["Title","00:00","0 min","Label (email)","Label (source)"] },
+      "props": [
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Time", "type": "TEXT", "default": "12:00" },
+        { "name": "Length", "type": "TEXT", "default": "100 min" },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","disabled","pressed"] }
+      ],
+      "textLayers": ["Title","Time","Length","Label (email)","Label (source)"] },
 
     { "name": "Modal/Announcement", "key": "dad043ff1a0693dab9a2312b25a3429b0e18f637", "type": "COMPONENT", "page": "Components", "size": "500x507",
-      "props": [{ "name": "Trailing", "type": "INSTANCE_SWAP" }],
+      "props": [
+        { "name": "Header", "type": "TEXT", "default": "Header" },
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" }
+      ],
       "textLayers": ["Header","Title","Description","Button"] },
 
     { "name": "Onboarding/IconCard", "key": "2b975f631f0e48dec1986d9ec6d8b1d8cc9f5bc2", "type": "COMPONENT_SET", "page": "Components", "size": "232x144",
@@ -153,7 +199,11 @@
       "textLayers": ["Title"] },
 
     { "name": "Onboarding/ImageCard", "key": "ab0a1140f3d69baa0127ae0b1ce0fbc127b82004", "type": "COMPONENT_SET", "page": "Components", "size": "360x300",
-      "props": [{ "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","inactive"] }],
+      "props": [
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" },
+        { "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","inactive"] }
+      ],
       "textLayers": ["Title","Description"] },
 
     { "name": "Player", "key": "94c19f741c35d169b4fbe84ad647989704e5956d", "type": "COMPONENT_SET", "page": "Components", "size": "976x54",
@@ -162,6 +212,9 @@
         { "name": "State", "type": "VARIANT", "default": "Default", "options": ["Default","Hover"] }
       ],
       "textLayers": ["Video Title","0:00","/","0:00:00"] },
+
+    { "name": "ProgressBar", "key": "285006045435156547448ae94a20635bebe60512", "type": "COMPONENT", "page": "Components", "size": "255x6",
+      "_note": "Generic horizontal progress bar. Track bg color/blue/100, fill color/blue/500, height 6, radius/full. Width fill через изменение слоя 'Fill' в инспекторе." },
 
     { "name": "SidebarItem", "key": "ca5594c3c20e2c9601a2965259d6bb3f7311ca5b", "type": "COMPONENT_SET", "page": "Components", "size": "255x24",
       "props": [{ "name": "State", "type": "VARIANT", "default": "Inactive", "options": ["Inactive","Hover","Pressed","Active"] }],
@@ -183,7 +236,11 @@
       "textLayers": ["Tab"] },
 
     { "name": "Template/Section", "key": "fc85b663662dce39962002535073a84043797d0d", "type": "COMPONENT_SET", "page": "Components", "size": "670x75",
-      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }],
+      "props": [
+        { "name": "Header", "type": "TEXT", "default": "Header" },
+        { "name": "Content", "type": "TEXT", "default": "Content" },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover"] }
+      ],
       "textLayers": ["Header","Content"] },
 
     { "name": "Thumbnail", "key": "1a29c19ea9f862afc3fbf3e2c5cc914388f85a11", "type": "COMPONENT_SET", "page": "Components", "size": "80x48",
@@ -191,7 +248,11 @@
       "textLayers": ["REC"] },
 
     { "name": "Tile", "key": "f1450785417dd87beab7500471af1e847eb00d24", "type": "COMPONENT_SET", "page": "Components", "size": "284x120",
-      "props": [{ "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","pressed"] }],
+      "props": [
+        { "name": "Title", "type": "TEXT", "default": "Title" },
+        { "name": "Description", "type": "TEXT", "default": "Description" },
+        { "name": "State", "type": "VARIANT", "default": "default", "options": ["default","hover","pressed"] }
+      ],
       "textLayers": ["Title","Description"] },
 
     { "name": "Toggle", "key": "a4df52155cb7b82c75e3c37fb7c08d18902af4e8", "type": "COMPONENT_SET", "page": "Components", "size": "24x16",
@@ -200,12 +261,15 @@
     { "name": "Tooltip", "key": "622b58976fb5b0d6624c4a00fe019594df0b55b9", "type": "COMPONENT", "page": "Components", "size": "48x28", "textLayers": ["Button label"] },
 
     { "name": "Transcript/Chapter", "key": "b401b99ba478cc38d88c7ebc434f2286ad6c304d", "type": "COMPONENT_SET", "page": "Components", "size": "670x34",
-      "props": [{ "name": "Variant", "type": "VARIANT", "default": "Collapsed", "options": ["Collapsed","Expanded"] }],
+      "props": [
+        { "name": "with-icon", "type": "BOOLEAN", "default": false },
+        { "name": "Variant", "type": "VARIANT", "default": "Collapsed", "options": ["Collapsed","Expanded"] }
+      ],
       "textLayers": ["1. Title"] },
 
-    { "name": "Transcript/Message", "key": "a870f8b63653b8a32da337eb58172281cf1df402", "type": "COMPONENT", "page": "Components", "size": "670x76",
-      "props": [{ "name": "with-icon", "type": "BOOLEAN", "default": false }],
-      "textLayers": ["Speaker","0:12","<text>"] },
+    { "name": "Transcript/Chapter/Transcript/Message", "key": "a870f8b63653b8a32da337eb58172281cf1df402", "type": "COMPONENT", "page": "Components", "size": "670x76",
+      "textLayers": ["Speaker","time","text"],
+      "_note": "⚠️ ИМЯ выглядит как ошибка — компонент видимо случайно вложен. Должно быть просто Transcript/Message. Стоит переименовать в Figma." },
 
     { "name": "Transcript/Speaker", "key": "613bcd9ea533cc16187182da3a2018d3d9da8b3c", "type": "COMPONENT_SET", "page": "Components", "size": "55x20",
       "props": [{ "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","active"] }],
@@ -213,7 +277,7 @@
 
     { "name": "Transcript/Text", "key": "12208726ee3b15a5569712609321720b42cf3c93", "type": "COMPONENT_SET", "page": "Components", "size": "658x36",
       "props": [{ "name": "Variant", "type": "VARIANT", "default": "default", "options": ["default","hover","active"] }],
-      "textLayers": ["<text>"] }
+      "textLayers": ["text"] }
   ],
 
   "textStyles": [
@@ -287,7 +351,8 @@
       "surface/light":        { "key": "0314ce19d55f8ca4b9f2e4e4d38e1714bcdc2be5", "_hex": "#FAFAFA" },
       "surface/subtle":       { "key": "b32e3f9e1f4b1271ff5ca5266ca624e29a39fd45", "_hex": "#F7F7F8" },
       "surface/overlay":      { "key": "4d33cc02b0bb1e0f06c912f43603b81d3f308bb5" },
-      "surface/info":         { "key": "a1711136395883ec7cffeea2af7f416248430a87" },
+      "surface/info":         { "key": "a1711136395883ec7cffeea2af7f416248430a87", "_note": "Banner Info bg, ~light blue" },
+      "surface/info strong":  { "key": "6379e80309b1eb56a899669e0bd0d955cae8a8f4", "_note": "новая variable — более насыщенный info surface" },
       "border/default":       { "key": "e895b668e6ce73334755b492ac775f4caa285cb8", "_hex": "#EFEFEF" },
       "border/strong":        { "key": "c87e4e541a248536a3ed795294dcd9d02aa0dc77", "_hex": "#DDDEDF" },
       "border/secondary":     { "key": "bc8330df09f4701d41b9a70fc0ffad15ed511506" },
