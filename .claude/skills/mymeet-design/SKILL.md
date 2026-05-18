@@ -219,13 +219,96 @@ Used when binding paint to Figma variable (для Figma-artifacts).
 
 ---
 
-## Figma library
+## Figma library — реестр компонентов
 
-Файл библиотеки: `Ma7dtZb6eSHJ5YoaiVEUn2`.
+Файл библиотеки: `Ma7dtZb6eSHJ5YoaiVEUn2`. Используй эти компоненты по имени когда генерируешь артефакт — даже в HTML / документе ссылайся на структуру/состояния из библиотеки чтобы поведение было консистентным.
 
-Полный реестр компонентов (имена, ключи, варианты, текстовые слои) — в файле **`figma-library-snapshot.json`** рядом с этим SKILL.md. Открой его если артефакт делается в Figma или нужно увидеть какие компоненты доступны.
+Для **программного импорта** компонента в Figma (через `importComponentByKeyAsync`) нужны точные `componentKey` — они в файле `figma-library-snapshot.json` рядом с этим SKILL.md (опциональный resource; для большинства задач не нужен).
 
-Базовые компоненты которые точно есть: Button, Input, Checkbox, Toggle, Dropdown, DropdownItem, Badge, Banner, Tooltip, FileChip, EmptyState, ProgressBar, MeetingListItem, SidebarItem, List Item, Tile, Logo (Mark/Full), Tab/Segmented, Tab/Pill, Tab/Underline, Modal/Announcement, Player, Thumbnail, Onboarding/IconCard, Onboarding/ImageCard, Template/Section, Transcript/Chapter, Transcript/Speaker, Transcript/Text, MediaInput, плюс icons (Icons/*) и интеграции (Integrations/*).
+### Базовые UI-компоненты
+
+| Имя | Тип | Варианты | Текстовые слоты | Использование |
+|---|---|---|---|---|
+| `Button` | set | `Color` Primary/Secondary, `State` default/hover/pressed/disabled, `with-icon` | Button | Primary CTA, secondary actions. Высота 36. |
+| `Input` | set | `State` default/focus, `with-icon` | Input | Текстовые поля форм |
+| `Checkbox` | set | `Variant` Unchecked/Checked/Success | — | Чекбоксы 16×16 |
+| `Toggle` | set | `State` on/off/on-disabled/off-disabled | — | Переключатели 24×16 |
+| `Dropdown` | set | `Size` M/S, `State` default/hover/pressed/disabled, `with-icon` | Dropdown | Триггер выпадающего списка |
+| `DropdownItem` | set | `Size` M/S, `State` Default/Hovered/Disabled, `with-icon`, Icon swap | Label | Пункты выпадайки внутри Dropdown popover |
+| `Tab/Segmented` | comp | `with-icon` | Tab 1/Tab 2/Tab 3 | Quick filters / period picker (3 фикс таба, активный = Tab 1) |
+| `Tab/Pill` | set | `Variant` Active/Inactive/Inactive-hover | Tab 1 | Secondary nav, фильтры-чипы |
+| `Tab/Underline` | set | `Variant` Active/Inactive/Inactive-hover, `with-text` | Tab | Главная таб-навигация страницы |
+
+### Контейнеры и blocks
+
+| Имя | Тип | Варианты | Текстовые слоты | Использование |
+|---|---|---|---|---|
+| `Banner` | comp | — | Title, Description | Inline info-alert. Bg surface/info, иконка слева, title + description справа |
+| `EmptyState` | set | `Type` Icon/GIF | Title, Description | Пустые состояния (нет встреч, ничего не найдено). Icon = heroicon 24, GIF = анимация |
+| `Tile` | set | `State` default/hover/pressed | Title, Description | Карточка-плитка с заголовком и описанием |
+| `List Item` | set | `State` Default/hover/pressed/disabled, Trailing swap | Title, Description | Строка списка с заголовком + описанием + опциональным trailing-элементом |
+| `Template/Section` | set | `State` default/hover | Header, Content | Секция-обёртка с заголовком и контентом |
+| `Modal/Announcement` | comp | — | Header, Title, Description, Button | Модалка анонса фичи / важного объявления |
+
+### Mymeet-специфичные
+
+| Имя | Тип | Варианты | Текстовые слоты | Использование |
+|---|---|---|---|---|
+| `MeetingListItem` | set | `State` default/hover/disabled/pressed | Title, Time, Length, Label×2 | Строка в списке встреч (thumbnail + title + время/длительность + author email + source) |
+| `SidebarItem` | set | `State` Inactive/Hover/Pressed/Active | Tab | Пункт sidebar-нав (255×24 в либе; в коде растягивай по ширине sidebar 280) |
+| `Player` | set | `Mode` Full/Hidden, `State` Default/Hover | Video Title, 0:00, /, 0:00:00 | Видео-плеер для страницы встречи |
+| `Thumbnail` | set | `Type` Recording / Audio-1..12 / Video-1..4 / No Audio | REC | Превью встречи 80×48 (видео / аудио аватары / recording badge) |
+| `Transcript/Chapter` | set | `Variant` Collapsed/Expanded, `with-icon` | 1. Title | Глава в транскрипте, раскрывающаяся |
+| `Transcript/Speaker` | set | `Variant` default/hover/active | Speaker | Имя спикера в транскрипте |
+| `Transcript/Text` | set | `Variant` default/hover/active | text | Реплика спикера |
+| `Transcript/Message` | comp | `with-icon` | Speaker, time, text | Целый блок реплики (speaker + time + text) |
+
+### Brand и навигация
+
+| Имя | Тип | Варианты | Использование |
+|---|---|---|---|
+| `Logo` | set | `Type` Mark (32×32 знак) / Full (135×32 знак + «mymeet.ai») | Mark — для tab bar / favicon-area / mobile; Full — для sidebar header / landing / footer |
+| `ProgressBar` | comp | — | Горизонтальный прогресс-бар. Track `color/blue/100`, fill `color/blue/500`, height 6, radius full |
+
+### Inputs and uploads
+
+| Имя | Тип | Варианты | Текстовые слоты | Использование |
+|---|---|---|---|---|
+| `MediaInput` | set | `State` default/hover, `error`, Upload type swap | Title, Description, Error | Drop-zone для загрузки файлов |
+| `MediaInput/Template/Empty` | comp | `with-button` | Title, Description, Button | Пустое состояние внутри MediaInput |
+| `FileChip` | set | `State` default/hover | Title, Format, Size | Превью загруженного файла (icon + название + формат + размер) |
+
+### Дополнительные
+
+| Имя | Тип | Использование |
+|---|---|---|
+| `Badge` | set (Size S/M, State default/disabled, with-icon, with-secondary-text, with-trailing) | Маленький pill с лейблом, иконкой и опциональным trailing-элементом. Для статусов, тегов, счётчиков. |
+| `IconBox` | set (Variant Filled/Outlined) | Декоративная иконка-плашка 36×36 (для onboarding, feature highlights) |
+| `IconButton` | set (State default/hover/pressed/disabled) | Кнопка с одной иконкой 36×36 (без текста). Для action в toolbar/header |
+| `Tooltip` | comp | Подсказка на hover. Без variants. |
+| `DateHeader` | comp | Заголовок-разделитель в списках встреч (дата + день недели) |
+| `Onboarding/IconCard` | set (State default/active) | Карточка-выбор в онбординге (с иконкой) |
+| `Onboarding/ImageCard` | set (Variant default/hover/inactive) | Карточка-выбор в онбординге (с картинкой 360×300) |
+
+### Avatars (16×16)
+
+`Avatar/Default`, `Avatar/Initials` (с двумя буквами), `Avatar/Cat`, `Avatar/Face`, `Avatar/Abstract` — пользователь выбирает в онбординге какой аватар использовать.
+
+### Icons (filled heroicons-style)
+
+12px: `Icons/Check/12`, `Icons/ChevronDown/12`, `Icons/Download/12`, `Icons/Interpunct/16` (12px несмотря на /16 в имени), `Icons/Pause/12`, `Icons/Play/12`, `Icons/X/12`
+
+16px: `Icons/Check/16`, `Icons/ChevronDown/16`, `Icons/ChevronRight/16`, `Icons/ChevronUp/16`, `Icons/Download/16`, `Icons/Filter/16`, `Icons/Fire/16`, `Icons/Link/16`, `Icons/More/16`, `Icons/Plug/16`, `Icons/Plus/16`, `Icons/Search/16`, `Icons/Settings/16`, `Icons/SkipBack/16`, `Icons/SkipForward/16`, `Icons/Squares2x2/16`, `Icons/Trash/16`, `Icons/Upgrade/16`, `Icons/Users/16`, `Icons/Volume/16`, `Icons/X/16`
+
+20px: `Icons/ChevronRight/20`, `Icons/MicMuted/20`, `Icons/Note/20`
+
+24px: `Icons/Bolt/24`, `Icons/Folder/24`, `Icons/Lock/24`, `Icons/MicMuted/24`, `Icons/Photo/24`, `Icons/XCircle/24`
+
+32px: `Icons/Video/32`
+
+### Integrations (16×16, brand-colored)
+
+`Integrations/GoogleMeet/16`, `Integrations/Zoom/16`, `Integrations/Telemost/16`, `Integrations/Teams/16`, `Integrations/Jitsi/16`, `Integrations/KonturTalk/16`, `Integrations/MTSLink/16`, `Integrations/SaluteJazz/16`, `Integrations/TrueConf/16`, `Integrations/GCalendar/16`, `Integrations/YCalendar/16`, `Integrations/Outlook/16`, `Integrations/Exchange/16`, `Integrations/Telegram/16`, `Integrations/amoCRM/16`, `Integrations/Extension/16`
 
 ---
 
