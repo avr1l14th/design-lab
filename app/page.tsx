@@ -51,26 +51,28 @@ export default function Home() {
         </p>
 
         <div className="flex w-full flex-col items-start gap-[30px]">
-          {prototypes.map((p) => (
-            <Link
-              key={p.slug}
-              href={`/${p.slug}`}
-              className="-mx-[16px] -my-[12px] flex w-fit flex-col items-start gap-[2px] rounded-[4px] px-[16px] py-[12px] transition-colors duration-300 ease-out hover:bg-[#fafafa]"
-            >
-              <span
-                className="text-[16px] font-medium leading-normal"
-                style={{ color: tokens.black, letterSpacing: "-0.32px" }}
+          {[...prototypes]
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+            .map((p) => (
+              <Link
+                key={p.slug}
+                href={`/${p.slug}`}
+                className="-mx-[16px] -my-[12px] flex w-fit flex-col items-start gap-[2px] rounded-[4px] px-[16px] py-[12px] transition-colors duration-300 ease-out hover:bg-[#fafafa]"
               >
-                {p.title}
-              </span>
-              <span
-                className="whitespace-nowrap text-[16px] font-medium leading-normal"
-                style={{ color: tokens.grey, letterSpacing: "-0.32px" }}
-              >
-                {formatMonthYear(p.updatedAt)}
-              </span>
-            </Link>
-          ))}
+                <span
+                  className="text-[16px] font-medium leading-normal"
+                  style={{ color: tokens.black, letterSpacing: "-0.32px" }}
+                >
+                  {p.title}
+                </span>
+                <span
+                  className="whitespace-nowrap text-[16px] font-medium leading-normal"
+                  style={{ color: tokens.grey, letterSpacing: "-0.32px" }}
+                >
+                  {formatMonthYear(p.updatedAt)}
+                </span>
+              </Link>
+            ))}
         </div>
       </div>
     </main>

@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "app-leads-v2",
+    title: "App Leads V2",
+    description: "4 B2B-lead элемента (топ-баннер, сайдбар, in-list, меню) с тоглами и модалкой Business",
+    tags: ["leads", "modal", "hover"],
+    updatedAt: "2026-05-26",
+  },
+  {
     slug: "search-filters",
     title: "Поиск и фильтры",
     description: "Мои встречи — список с группировкой по датам",
