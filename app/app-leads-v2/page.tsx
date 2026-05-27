@@ -1,7 +1,7 @@
 "use client";
 
 import { Inter } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   MEETINGS,
   SOURCE_META,
@@ -243,11 +243,15 @@ function SidebarMenuItem({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function TopBanner({ onOpen }: { onOpen: () => void }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="flex h-[40px] w-full shrink-0 items-center justify-between border-b border-solid p-[12px] text-left hover:bg-[color:var(--_hover)] transition-colors"
+      onKeyDown={(e) => e.key === "Enter" && onOpen()}
+      className="flex h-[40px] w-full shrink-0 cursor-pointer items-center justify-between border-b border-solid p-[12px] text-left hover:bg-[color:var(--_hover)] transition-colors"
       style={{ backgroundColor: tokens.grey10, borderColor: tokens.grey40, ["--_hover" as string]: tokens.grey20 }}
     >
       <div className="h-[16px] w-[16px]" />
@@ -271,11 +275,16 @@ function TopBanner({ onOpen }: { onOpen: () => void }) {
           <img src={leadAsset("ic-arrow-right.svg")} alt="" className="h-[9px] w-[10px]" />
         </span>
       </div>
-      <span aria-hidden className="flex h-[16px] w-[16px] items-center justify-center">
+      <button
+        type="button"
+        aria-label="Закрыть"
+        onClick={(e) => { e.stopPropagation(); setDismissed(true); }}
+        className="flex h-[16px] w-[16px] items-center justify-center"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={leadAsset("ic-close.svg")} alt="" className="h-[16px] w-[16px]" />
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -292,7 +301,8 @@ function MiniIconTile({ bg, icon }: { bg: string; icon: string }) {
 }
 
 function ListBanner({ onOpen }: { onOpen: () => void }) {
-  // Three columns, colors and icon mapping 1:1 from Figma.
+  const [dismissed, setDismissed] = useState(false);
+
   const col1 = [
     { bg: "rgba(242,195,0,0.15)", icon: "tile-gold.svg" },
     { bg: "rgba(1,56,199,0.16)", icon: "tile-blue.svg" },
@@ -309,17 +319,39 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
     { bg: "rgba(255,158,44,0.15)", icon: "tile-orange.svg" },
     { bg: "rgba(204,51,51,0.15)", icon: "tile-red.svg" },
   ];
+
+  if (dismissed) return null;
+
   return (
-    <div className="group flex w-full items-center px-[16px]">
+    // mt-[-9px] pulls the wrapper up by 9px (cancels scroll container pt-[9px] visually),
+    // pt-[9px] gives space inside for the icon to float above the banner border.
+    <div className="group/row relative -mt-[9px] flex w-full items-center px-[16px] pt-[9px]">
+
+      {/* ✕ dismiss — sits at top-right corner of banner edge, visible on row hover */}
+      <button
+        type="button"
+        aria-label="Закрыть"
+        onClick={(e) => { e.stopPropagation(); setDismissed(true); }}
+        className="absolute right-[9px] top-[0px] z-10 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/row:opacity-100"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={leadAsset("ic-list-close.svg")} width={16} height={16} alt="" />
+      </button>
+
+      {/* group/banner — whole banner is clickable; illustration hover scoped here */}
       <div
-        className="flex h-[72px] w-full items-center gap-[8px] overflow-clip rounded-[4px] border border-solid bg-white pl-[12px] pr-[18px] py-[12px]"
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={(e) => e.key === "Enter" && onOpen()}
+        className="group/banner flex h-[72px] w-full cursor-pointer items-center gap-[8px] overflow-clip rounded-[4px] border border-solid bg-white pl-[12px] pr-[18px] py-[12px]"
         style={{ borderColor: tokens.grey40 }}
       >
-        {/* Illustration — on parent hover columns drift up/down/up smoothly */}
+        {/* Illustration — columns drift on banner hover, clipped by overflow-clip */}
         <div className="relative h-[48px] w-[80px] shrink-0">
           <div className="absolute top-1/2 left-[calc(50%-2px)] flex -translate-x-1/2 -translate-y-1/2 items-center gap-[8px]">
             <div
-              className="flex flex-col items-start gap-[8px] transition-transform duration-[600ms] ease-out group-hover:-translate-y-[10px]"
+              className="flex flex-col items-start gap-[8px] transition-transform duration-[600ms] ease-out group-hover/banner:-translate-y-[10px]"
               style={{ willChange: "transform" }}
             >
               {col1.map((c, i) => (
@@ -327,7 +359,7 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
               ))}
             </div>
             <div
-              className="flex flex-col items-start gap-[8px] transition-transform duration-[600ms] ease-out group-hover:translate-y-[10px]"
+              className="flex flex-col items-start gap-[8px] transition-transform duration-[600ms] ease-out group-hover/banner:translate-y-[10px]"
               style={{ willChange: "transform" }}
             >
               {col2.map((c, i) => (
@@ -335,7 +367,7 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
               ))}
             </div>
             <div
-              className="flex flex-col items-start gap-[8px] transition-transform duration-[600ms] ease-out group-hover:-translate-y-[10px]"
+              className="flex flex-col items-start gap-[8px] transition-transform duration-[600ms] ease-out group-hover/banner:-translate-y-[10px]"
               style={{ willChange: "transform" }}
             >
               {col3.map((c, i) => (
@@ -344,6 +376,7 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
             </div>
           </div>
         </div>
+
         {/* Text */}
         <div className="flex min-w-0 flex-1 flex-col gap-[4px]">
           <p
@@ -359,17 +392,16 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
             Удобная работа со встречами в команде
           </p>
         </div>
-        {/* Button */}
-        <button
-          type="button"
-          onClick={onOpen}
-          className="flex shrink-0 items-center justify-center gap-[6px] rounded-[4px] px-[12px] py-[10px] hover:bg-[color:var(--_hover)] transition-colors"
-          style={{ backgroundColor: tokens.grey20, ["--_hover" as string]: tokens.grey40 }}
+
+        {/* "Попробовать" — visual label only, click handled by parent wrapper */}
+        <div
+          className="flex shrink-0 items-center justify-center gap-[6px] rounded-[4px] px-[12px] py-[10px]"
+          style={{ backgroundColor: tokens.grey20 }}
         >
           <span className="text-[13px]" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
             Попробовать
           </span>
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -496,8 +528,19 @@ function ModalLeftPanel({
   filled: boolean;
 }) {
   const [headcountOpen, setHeadcountOpen] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
+
+  function handleSubmit() {
+    if (status !== "idle") return;
+    setStatus("loading");
+    setTimeout(() => {
+      setStatus("sent");
+      setTimeout(() => onSubmit(), 3000);
+    }, 900);
+  }
+
   return (
-    <div className="flex h-full w-[400px] shrink-0 flex-col items-center justify-center gap-[24px] bg-white p-[24px]">
+    <div className="relative flex h-full w-[400px] shrink-0 flex-col items-center justify-center gap-[24px] overflow-visible rounded-l-[4px] bg-white p-[24px]">
       <div className="flex w-full flex-col items-start gap-[8px]">
         <p
           className="w-full text-[20px] font-medium leading-[24px]"
@@ -598,17 +641,21 @@ function ModalLeftPanel({
         </FormField>
         <button
           type="button"
-          disabled={!filled}
-          onClick={onSubmit}
-          className="flex w-full items-center justify-center gap-[6px] rounded-[4px] px-[12px] py-[10px] transition-colors"
-          style={{ backgroundColor: filled ? tokens.blue : "#809be3" }}
+          disabled={!filled && status === "idle"}
+          onClick={handleSubmit}
+          className="flex h-[36px] w-full items-center justify-center gap-[6px] overflow-hidden rounded-[4px] px-[12px] transition-colors duration-300"
+          style={{ backgroundColor: status === "sent" ? "#0D9655" : filled || status !== "idle" ? tokens.blue : "#809be3" }}
         >
-          <span
-            className="text-[13px] font-medium text-white"
-            style={{ letterSpacing: "-0.13px" }}
-          >
-            Отправить
-          </span>
+          {status === "loading" ? (
+            <div className="h-[16px] w-[16px] rounded-full border-2 border-white border-t-transparent animate-spin" />
+          ) : (
+            <span
+              className="text-[13px] font-medium text-white text-center leading-[1.2]"
+              style={{ letterSpacing: "-0.13px" }}
+            >
+              {status === "sent" ? "Отправлено, свяжемся с вами в течение 24 часов" : "Отправить"}
+            </span>
+          )}
         </button>
       </div>
     </div>
@@ -669,21 +716,53 @@ function ModalRightPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+const MODAL_CLOSE_DUR = 150;
+
 function LeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [headcount, setHeadcount] = useState("");
 
+  // Animation state machine: 'idle' (unmounted) → 'entering' (mount, opacity 0 / scale 0.96)
+  // → 'open' (CSS .is-open → opacity 1 / scale 1) → 'closing' (.is-closing) → 'idle'
+  const [phase, setPhase] = useState<"idle" | "entering" | "open" | "closing">("idle");
+
+  // Mount + trigger enter when `open` becomes true; trigger close when false
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      if (phase === "idle" || phase === "closing") {
+        setPhase("entering");
+      }
+      return;
+    }
+    if (phase === "entering" || phase === "open") {
+      setPhase("closing");
+    }
+  }, [open, phase]);
+
+  // entering → open: after one painted frame the browser has the "from" state
+  // (opacity:0 / scale:0.96), then .is-open triggers the CSS transition.
+  useEffect(() => {
+    if (phase !== "entering") return;
+    const id = window.setTimeout(() => setPhase((p) => (p === "entering" ? "open" : p)), 32);
+    return () => clearTimeout(id);
+  }, [phase]);
+
+  // closing → idle after CSS transition finishes
+  useEffect(() => {
+    if (phase !== "closing") return;
+    const id = window.setTimeout(() => {
+      setPhase("idle");
       setCompany("");
       setContact("");
       setHeadcount("");
-    }
-  }, [open]);
+    }, MODAL_CLOSE_DUR);
+    return () => clearTimeout(id);
+  }, [phase]);
 
+  // Lock scroll + ESC while mounted (any non-idle phase)
   useEffect(() => {
-    if (!open) return;
+    if (phase === "idle") return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
@@ -694,21 +773,25 @@ function LeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [phase, onClose]);
 
-  if (!open) return null;
+  if (phase === "idle") return null;
 
   const filled = company.trim() !== "" && contact.trim() !== "" && headcount !== "";
+  const isOpen = phase === "open";
+  const isClosing = phase === "closing";
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className={`t-backdrop fixed inset-0 z-[100] flex items-center justify-center${isOpen ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
       style={{ backgroundColor: "rgba(33,40,51,0.55)" }}
       onClick={onClose}
     >
       <div
+        data-phase={phase}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex h-[394px] w-[800px] items-start overflow-clip rounded-[4px] bg-white"
+        className={`t-modal relative flex h-[394px] w-[800px] items-start rounded-[4px] bg-white${isOpen ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
+        style={{ pointerEvents: isOpen ? "auto" : "none" }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="leads-modal-title"
@@ -974,7 +1057,7 @@ export default function AppLeadsV2Page() {
             </div>
           </div>
 
-          <div className="flex w-full min-h-0 flex-1 flex-col items-start overflow-y-auto">
+          <div className="flex w-full min-h-0 flex-1 flex-col items-start overflow-y-auto pt-[9px]">
             {toggles.listBanner && <ListBanner onOpen={openModal} />}
             <div className="flex w-full flex-col items-start">
               {groups.map((g) => (
