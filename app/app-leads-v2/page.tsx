@@ -541,13 +541,27 @@ function ModalLeftPanel({
 
   return (
     <div className="relative flex h-full w-[400px] shrink-0 flex-col items-center justify-center gap-[24px] overflow-visible rounded-l-[4px] bg-white p-[24px]">
-      <div className="flex w-full flex-col items-start gap-[8px]">
-        <p
-          className="w-full text-[20px] font-medium leading-[24px]"
-          style={{ color: tokens.black, letterSpacing: "-0.4px" }}
-        >
-          Тариф Business на команду
-        </p>
+      <div className="flex w-full flex-col items-start gap-[12px]">
+        <div className="flex w-full flex-col items-start gap-[6px]">
+          {/* chip */}
+          <div className="flex items-center justify-center gap-[6px] overflow-clip rounded-[4px] p-[2px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={leadAsset("ic-modal-chip.svg")} alt="" className="h-[12px] w-[12px] shrink-0" />
+            <span
+              className="whitespace-nowrap text-[12px] font-medium"
+              style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
+            >
+              Решение для бизнеса
+            </span>
+          </div>
+          {/* title */}
+          <p
+            className="w-full text-[24px] font-medium leading-[1]"
+            style={{ color: tokens.black, letterSpacing: "-0.48px" }}
+          >
+            Тариф Business на команду
+          </p>
+        </div>
         <p
           className="w-full text-[13px] leading-[16px]"
           style={{ color: tokens.black, letterSpacing: "-0.13px" }}
@@ -790,7 +804,7 @@ function LeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       <div
         data-phase={phase}
         onClick={(e) => e.stopPropagation()}
-        className={`t-modal relative flex h-[394px] w-[800px] items-start rounded-[4px] bg-white${isOpen ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
+        className={`t-modal relative flex h-[426px] w-[800px] items-start rounded-[4px] bg-white${isOpen ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
         style={{ pointerEvents: isOpen ? "auto" : "none" }}
         role="dialog"
         aria-modal="true"
