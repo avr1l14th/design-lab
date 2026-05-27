@@ -344,7 +344,7 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
         tabIndex={0}
         onClick={onOpen}
         onKeyDown={(e) => e.key === "Enter" && onOpen()}
-        className="group/banner flex h-[72px] w-full cursor-pointer items-center gap-[8px] overflow-clip rounded-[4px] border border-solid bg-white pl-[12px] pr-[18px] py-[12px]"
+        className="group/banner flex h-[72px] w-full cursor-pointer items-center gap-[8px] overflow-clip rounded-[4px] border border-solid bg-white pl-[12px] pr-[18px] py-[12px] transition-colors hover:bg-[#FAFAFA] active:bg-[#F7F7F8]"
         style={{ borderColor: tokens.grey40 }}
       >
         {/* Illustration — columns drift on banner hover, clipped by overflow-clip */}
@@ -378,7 +378,7 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
         </div>
 
         {/* Text */}
-        <div className="flex min-w-0 flex-1 flex-col gap-[4px]">
+        <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
           <p
             className="truncate text-[13px] font-medium"
             style={{ color: tokens.black, letterSpacing: "-0.13px" }}
@@ -393,15 +393,6 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
           </p>
         </div>
 
-        {/* "Попробовать" — visual label only, click handled by parent wrapper */}
-        <div
-          className="flex shrink-0 items-center justify-center gap-[6px] rounded-[4px] px-[12px] py-[10px]"
-          style={{ backgroundColor: tokens.grey20 }}
-        >
-          <span className="text-[13px]" style={{ color: tokens.black, letterSpacing: "-0.13px" }}>
-            Попробовать
-          </span>
-        </div>
       </div>
     </div>
   );
@@ -535,18 +526,16 @@ function ModalLeftPanel({
     setStatus("loading");
     setTimeout(() => {
       setStatus("sent");
-      setTimeout(() => onSubmit(), 3000);
+      setTimeout(() => onSubmit(), 2000);
     }, 900);
   }
 
   return (
-    <div className="relative flex h-full w-[400px] shrink-0 flex-col items-center justify-center gap-[24px] overflow-visible rounded-l-[4px] bg-white p-[24px]">
+    <div className="relative flex h-full w-[410px] shrink-0 flex-col items-center justify-center gap-[24px] overflow-visible rounded-l-[4px] bg-white p-[32px]">
       <div className="flex w-full flex-col items-start gap-[12px]">
         <div className="flex w-full flex-col items-start gap-[6px]">
           {/* chip */}
-          <div className="flex items-center justify-center gap-[6px] overflow-clip rounded-[4px] p-[2px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={leadAsset("ic-modal-chip.svg")} alt="" className="h-[12px] w-[12px] shrink-0" />
+          <div className="flex items-center justify-center overflow-clip rounded-[4px] p-[2px]">
             <span
               className="whitespace-nowrap text-[12px] font-medium"
               style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
@@ -657,14 +646,14 @@ function ModalLeftPanel({
           type="button"
           disabled={!filled && status === "idle"}
           onClick={handleSubmit}
-          className="flex h-[36px] w-full items-center justify-center gap-[6px] overflow-hidden rounded-[4px] px-[12px] transition-colors duration-300"
-          style={{ backgroundColor: status === "sent" ? "#0D9655" : filled || status !== "idle" ? tokens.blue : "#809be3" }}
+          className="flex h-[36px] w-full items-center justify-center gap-[6px] overflow-hidden rounded-[4px] px-[12px]"
+          style={{ backgroundColor: status === "sent" ? "#0D9655" : filled || status !== "idle" ? "#212833" : "#636971" }}
         >
           {status === "loading" ? (
             <div className="h-[16px] w-[16px] rounded-full border-2 border-white border-t-transparent animate-spin" />
           ) : (
             <span
-              className="text-[13px] font-medium text-white text-center leading-[1.2]"
+              className="text-[13px] font-medium text-white text-center leading-[1.2] whitespace-nowrap"
               style={{ letterSpacing: "-0.13px" }}
             >
               {status === "sent" ? "Отправлено, свяжемся с вами в течение 24 часов" : "Отправить"}
@@ -702,7 +691,7 @@ function FeatureCard({ icon, label }: { icon: string; label: string }) {
 function ModalRightPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="relative flex h-full w-[400px] shrink-0 flex-col items-start justify-center gap-[32px] overflow-clip rounded-r-[4px] p-[24px]"
+      className="relative flex h-full w-[410px] shrink-0 flex-col items-start justify-center gap-[32px] overflow-clip rounded-r-[4px] p-[32px]"
       style={{
         backgroundColor: "#2b2f3a",
         backgroundImage: `url(${leadAsset("modal-bg.jpg")})`,
@@ -804,7 +793,7 @@ function LeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       <div
         data-phase={phase}
         onClick={(e) => e.stopPropagation()}
-        className={`t-modal relative flex h-[426px] w-[800px] items-start rounded-[4px] bg-white${isOpen ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
+        className={`t-modal relative flex h-[442px] w-[820px] items-start rounded-[4px] bg-white${isOpen ? " is-open" : ""}${isClosing ? " is-closing" : ""}`}
         style={{ pointerEvents: isOpen ? "auto" : "none" }}
         role="dialog"
         aria-modal="true"
