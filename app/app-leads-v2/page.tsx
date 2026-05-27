@@ -721,7 +721,7 @@ function ModalRightPanel({ onClose }: { onClose: () => void }) {
 
 const MODAL_CLOSE_DUR = 150;
 
-function LeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function LeadsModal({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => void }) {
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [headcount, setHeadcount] = useState("");
@@ -806,7 +806,7 @@ function LeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
           setCompany={setCompany}
           setContact={setContact}
           setHeadcount={setHeadcount}
-          onSubmit={onClose}
+          onSubmit={onSubmit}
           filled={filled}
         />
         <ModalRightPanel onClose={onClose} />
@@ -898,8 +898,14 @@ export default function AppLeadsV2Page() {
     menuItem: true,
   });
   const [modalOpen, setModalOpen] = useState(false);
-  const openModal = () => setModalOpen(true);
+  const [modalSource, setModalSource] = useState<string | null>(null);
+  const [submittedSources, setSubmittedSources] = useState<Set<string>>(new Set());
+  const openModal = (source: string) => { setModalSource(source); setModalOpen(true); };
   const closeModal = () => setModalOpen(false);
+  const handleSubmit = () => {
+    if (modalSource) setSubmittedSources((prev) => new Set(prev).add(modalSource));
+    setModalOpen(false);
+  };
 
   const groups = groupByDate(MEETINGS);
 
@@ -908,7 +914,7 @@ export default function AppLeadsV2Page() {
       className={`${inter.className} flex h-screen w-full flex-col overflow-hidden bg-white`}
       style={{ color: tokens.black }}
     >
-      {toggles.topBanner && <TopBanner onOpen={openModal} />}
+      {toggles.topBanner && !submittedSources.has("topBanner") && <TopBanner onOpen={() => openModal("topBanner")} />}
 
       <div className="relative flex h-full min-h-0 flex-1 items-stretch bg-white">
         {/* Sidebar */}
@@ -945,7 +951,7 @@ export default function AppLeadsV2Page() {
                   <SidebarMenuItem icon="icon-ai.svg" label="AI Отчеты" />
                   <SidebarMenuItem icon="icon-integrations.svg" label="Интеграции" />
                   <SidebarMenuItem icon="icon-settings.svg" label="Настройки" />
-                  {toggles.menuItem && <CommandPlanMenuItem onOpen={openModal} />}
+                  {toggles.menuItem && !submittedSources.has("menuItem") && <CommandPlanMenuItem onOpen={() => openModal("menuItem")} />}
                 </div>
               </div>
             </div>
@@ -960,7 +966,7 @@ export default function AppLeadsV2Page() {
           </div>
 
           <div className="flex w-[280px] flex-col items-start">
-            {toggles.sidebarBanner && <SidebarBusinessBanner onOpen={openModal} />}
+            {toggles.sidebarBanner && !submittedSources.has("sidebarBanner") && <SidebarBusinessBanner onOpen={() => openModal("sidebarBanner")} />}
             {!toggles.sidebarBanner && (
               <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
             )}
@@ -1061,7 +1067,7 @@ export default function AppLeadsV2Page() {
           </div>
 
           <div className="flex w-full min-h-0 flex-1 flex-col items-start overflow-y-auto pt-[9px]">
-            {toggles.listBanner && <ListBanner onOpen={openModal} />}
+            {toggles.listBanner && !submittedSources.has("listBanner") && <ListBanner onOpen={() => openModal("listBanner")} />}
             <div className="flex w-full flex-col items-start">
               {groups.map((g) => (
                 <div key={g.key} className="flex w-full flex-col">
@@ -1077,7 +1083,7 @@ export default function AppLeadsV2Page() {
       </div>
 
       <ControlPanel toggles={toggles} setToggles={setToggles} />
-      <LeadsModal open={modalOpen} onClose={closeModal} />
+      <LeadsModal open={modalOpen} onClose={closeModal} onSubmit={handleSubmit} />
     </main>
   );
 }
