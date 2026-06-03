@@ -375,12 +375,22 @@ function RecIndicator() {
 // Stop-recording button (24×24 container, 16px icon). The tooltip lives in the widget
 // slot (outside the crossfading .cm-rec-b), so its backdrop-filter blur samples the page
 // instead of being trapped by the crossfade's transform/filter.
-function StopRecButton({ onClick }: { onClick?: () => void }) {
+function StopRecButton({
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
   return (
     <button
       type="button"
       aria-label="Завершить запись"
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className="flex h-[24px] w-[24px] shrink-0 items-center justify-center p-[4px]"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -398,6 +408,10 @@ function CurrentMeetingWidget({
   sourceIcon: string;
   onStop?: () => void;
 }) {
+  // Tooltip is driven by hovering the 24px stop button specifically (not the wider slot),
+  // so the hover zone matches the click zone. It can't use group-hover because the tooltip
+  // lives outside the crossfading wrapper (for backdrop-filter), so we track hover in state.
+  const [tipOpen, setTipOpen] = useState(false);
   return (
     <div
       className="cm-rec-host flex w-full flex-col items-start px-[12px] py-[8px]"
@@ -424,7 +438,7 @@ function CurrentMeetingWidget({
             two dissimilar shapes so it reads as one morph. Both stack absolutely: REC
             anchored to the right, stop flush to the block edge (right:-4). Hover lives on
             the whole 40px block (.cm-rec-host); 40px height preserved (slot is 16px tall). */}
-        <span className="group/stop relative flex h-[16px] w-[34px] shrink-0 items-center">
+        <span className="relative flex h-[16px] w-[34px] shrink-0 items-center">
           <span className="cm-rec-a absolute right-0 top-1/2 flex items-center gap-[4px]">
             <RecIndicator />
             <span
@@ -435,27 +449,34 @@ function CurrentMeetingWidget({
             </span>
           </span>
           <span className="cm-rec-b absolute top-1/2" style={{ right: -4 }}>
-            <StopRecButton onClick={onStop} />
+            <StopRecButton
+              onClick={onStop}
+              onMouseEnter={() => setTipOpen(true)}
+              onMouseLeave={() => setTipOpen(false)}
+            />
           </span>
           {/* Tooltip — sibling of .cm-rec-b (NOT under its transform/filter), so the
-              backdrop-filter blur samples the page. Shown on hover of the slot.
-              Centered on the stop button: button is 24px flush at right:-4, so its
-              centre sits 8px in from the slot's right edge → right-8 + translate-x-1/2. */}
-          <span
-            className="pointer-events-none absolute bottom-full right-[8px] z-50 mb-[6px] hidden translate-x-1/2 items-center justify-center gap-[6px] whitespace-nowrap rounded-[3px] p-[8px] group-hover/stop:flex"
-            style={{
-              backgroundColor: "rgba(33,40,51,0.4)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
-            }}
-          >
+              backdrop-filter blur samples the page. Toggled by hovering the 24px button
+              (state), so the hover zone matches the click zone. Centered on the button:
+              it's 24px flush at right:-4, so its centre sits 8px in from the slot's right
+              edge → right-8 + translate-x-1/2. */}
+          {tipOpen && (
             <span
-              className="font-normal"
-              style={{ color: "#FFF", fontSize: "10px", lineHeight: "normal", letterSpacing: "-0.1px" }}
+              className="pointer-events-none absolute bottom-full right-[8px] z-50 mb-[6px] flex translate-x-1/2 items-center justify-center gap-[6px] whitespace-nowrap rounded-[3px] p-[8px]"
+              style={{
+                backgroundColor: "rgba(33,40,51,0.4)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+              }}
             >
-              Завершить запись
+              <span
+                className="font-normal"
+                style={{ color: "#FFF", fontSize: "10px", lineHeight: "normal", letterSpacing: "-0.1px" }}
+              >
+                Завершить запись
+              </span>
             </span>
-          </span>
+          )}
         </span>
       </div>
     </div>
