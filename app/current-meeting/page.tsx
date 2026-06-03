@@ -379,7 +379,7 @@ function StopRecButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       type="button"
-      aria-label="Остановить запись"
+      aria-label="Завершить запись"
       onClick={onClick}
       className="flex h-[24px] w-[24px] shrink-0 items-center justify-center p-[4px]"
     >
@@ -451,7 +451,7 @@ function CurrentMeetingWidget({
               className="font-normal"
               style={{ color: "#FFF", fontSize: "10px", lineHeight: "normal", letterSpacing: "-0.1px" }}
             >
-              Остановить запись
+              Завершить запись
             </span>
           </span>
         </span>
