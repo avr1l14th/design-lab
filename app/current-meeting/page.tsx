@@ -394,7 +394,7 @@ function CurrentMeetingWidget({
 }) {
   return (
     <div
-      className="group/widget flex w-full flex-col items-start px-[12px] py-[8px]"
+      className="cm-rec-host flex w-full flex-col items-start px-[12px] py-[8px]"
       style={{
         backgroundColor: tokens.grey20,
         // top+bottom borders as inset shadow so they don't add to the 40px height
@@ -413,13 +413,13 @@ function CurrentMeetingWidget({
         >
           {title}
         </span>
-        {/* REC label swaps to the stop button on widget hover — instant, no animation.
-            Both are in flow and toggled via display, so the slot shrinks from REC-width
-            to button-width on hover and the flex-1 title fills the freed space (still
-            truncating). Button keeps 40px block height + flush-right edge via negative
-            margins (-4 top/right/bottom). */}
-        <span className="flex shrink-0 items-center">
-          <span className="flex items-center gap-[4px] group-hover/widget:hidden">
+        {/* REC ↔ stop crossfade. Stable layout (fixed slot) so nothing reflows — only
+            opacity/filter/transform animate (GPU). A subtle blur masks the swap between
+            two dissimilar shapes so it reads as one morph. Both stack absolutely: REC
+            anchored to the right, stop flush to the block edge (right:-4). Hover lives on
+            the whole 40px block (.cm-rec-host); 40px height preserved (slot is 16px tall). */}
+        <span className="relative flex h-[16px] w-[34px] shrink-0 items-center">
+          <span className="cm-rec-a absolute right-0 top-1/2 flex items-center gap-[4px]">
             <RecIndicator />
             <span
               className="text-[10px] font-medium"
@@ -428,10 +428,7 @@ function CurrentMeetingWidget({
               REC
             </span>
           </span>
-          <span
-            className="hidden group-hover/widget:block"
-            style={{ margin: "-4px -4px -4px 0" }}
-          >
+          <span className="cm-rec-b absolute top-1/2" style={{ right: -4 }}>
             <StopRecButton onClick={onStop} />
           </span>
         </span>

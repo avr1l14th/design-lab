@@ -55,6 +55,46 @@ body {
   .rec-flicker { animation: none; }
 }
 
+/* current-meeting — REC ↔ stop button crossfade.
+   Emil-style: stable layout (nothing reflows), only opacity/filter/transform animate
+   (GPU). A 2px blur bridges the two dissimilar shapes so the eye reads one morph, not
+   two objects swapping. Both elements stack absolutely; hover lives on .cm-rec-host. */
+.cm-rec-a,
+.cm-rec-b {
+  transform: translateY(-50%) scale(1);
+  transition:
+    opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    filter 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: opacity, filter, transform;
+}
+.cm-rec-b {
+  opacity: 0;
+  filter: blur(2px);
+  transform: translateY(-50%) scale(0.96);
+  pointer-events: none;
+}
+.cm-rec-host:hover .cm-rec-a {
+  opacity: 0;
+  filter: blur(2px);
+  transform: translateY(-50%) scale(0.96);
+  pointer-events: none;
+}
+.cm-rec-host:hover .cm-rec-b {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(-50%) scale(1);
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-rec-a,
+  .cm-rec-b {
+    transition-duration: 90ms;
+    filter: none !important;
+    transform: translateY(-50%) !important;
+  }
+}
+
 /* multi-file-upload — text-state swap (uploading ↔ done ↔ error) */
 :root {
   --text-swap-dur: 140ms;
