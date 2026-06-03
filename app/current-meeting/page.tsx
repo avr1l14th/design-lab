@@ -1242,7 +1242,7 @@ export default function SearchFiltersPage() {
           <div className="flex w-[280px] flex-col items-start rounded-[4px]">
             {!recordingStopped ? (
               <CurrentMeetingWidget
-                title="Blockchain Bonanza: Revolutionizing Transactions"
+                title="Стратегическая сессия — вижен 2026"
                 sourceIcon="source-telemost.png"
                 onStop={() => setRecordingStopped(true)}
               />
@@ -1537,7 +1537,7 @@ export default function SearchFiltersPage() {
                       <DateHeader label={g.label} subLabel={g.subLabel} />
                       {gi === 0 && showProcessing && (
                         <ProcessingMeetingRow
-                          title="Blockchain Bonanza: Revolutionizing Transactions"
+                          title="Стратегическая сессия — вижен 2026"
                           startTime="12:00"
                           durationMin={100}
                           email="alice.smith@gmail.com"
