@@ -372,38 +372,19 @@ function RecIndicator() {
   );
 }
 
-// Stop-recording button (24×24 container, 16px icon) + tooltip on its own hover.
+// Stop-recording button (24×24 container, 16px icon). The tooltip lives in the widget
+// slot (outside the crossfading .cm-rec-b), so its backdrop-filter blur samples the page
+// instead of being trapped by the crossfade's transform/filter.
 function StopRecButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       type="button"
       aria-label="Остановить запись"
       onClick={onClick}
-      className="group/stop relative flex h-[24px] w-[24px] shrink-0 items-center justify-center p-[4px]"
+      className="flex h-[24px] w-[24px] shrink-0 items-center justify-center p-[4px]"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={asset("icon-stop-rec.svg")} alt="" className="h-[16px] w-[16px]" />
-      {/* Tooltip — appears above the button, centered, 4px gap. Instant, no animation. */}
-      <span
-        className="pointer-events-none absolute bottom-full left-1/2 mb-[4px] hidden -translate-x-1/2 items-center justify-center gap-[6px] whitespace-nowrap rounded-[3px] p-[8px] group-hover/stop:flex"
-        style={{
-          backgroundColor: "rgba(33,40,51,0.4)",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-        }}
-      >
-        <span
-          className="font-normal"
-          style={{
-            color: "#FFF",
-            fontSize: "10px",
-            lineHeight: "normal",
-            letterSpacing: "-0.1px",
-          }}
-        >
-          Остановить запись
-        </span>
-      </span>
     </button>
   );
 }
@@ -443,7 +424,7 @@ function CurrentMeetingWidget({
             two dissimilar shapes so it reads as one morph. Both stack absolutely: REC
             anchored to the right, stop flush to the block edge (right:-4). Hover lives on
             the whole 40px block (.cm-rec-host); 40px height preserved (slot is 16px tall). */}
-        <span className="relative flex h-[16px] w-[34px] shrink-0 items-center">
+        <span className="group/stop relative flex h-[16px] w-[34px] shrink-0 items-center">
           <span className="cm-rec-a absolute right-0 top-1/2 flex items-center gap-[4px]">
             <RecIndicator />
             <span
@@ -455,6 +436,23 @@ function CurrentMeetingWidget({
           </span>
           <span className="cm-rec-b absolute top-1/2" style={{ right: -4 }}>
             <StopRecButton onClick={onStop} />
+          </span>
+          {/* Tooltip — sibling of .cm-rec-b (NOT under its transform/filter), so the
+              backdrop-filter blur samples the page. Shown on hover of the slot. */}
+          <span
+            className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-[6px] hidden -translate-x-1/2 items-center justify-center gap-[6px] whitespace-nowrap rounded-[3px] p-[8px] group-hover/stop:flex"
+            style={{
+              backgroundColor: "rgba(33,40,51,0.4)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+          >
+            <span
+              className="font-normal"
+              style={{ color: "#FFF", fontSize: "10px", lineHeight: "normal", letterSpacing: "-0.1px" }}
+            >
+              Остановить запись
+            </span>
           </span>
         </span>
       </div>
