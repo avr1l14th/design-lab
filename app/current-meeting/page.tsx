@@ -438,9 +438,11 @@ function CurrentMeetingWidget({
             <StopRecButton onClick={onStop} />
           </span>
           {/* Tooltip — sibling of .cm-rec-b (NOT under its transform/filter), so the
-              backdrop-filter blur samples the page. Shown on hover of the slot. */}
+              backdrop-filter blur samples the page. Shown on hover of the slot.
+              Centered on the stop button: button is 24px flush at right:-4, so its
+              centre sits 8px in from the slot's right edge → right-8 + translate-x-1/2. */}
           <span
-            className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-[6px] hidden -translate-x-1/2 items-center justify-center gap-[6px] whitespace-nowrap rounded-[3px] p-[8px] group-hover/stop:flex"
+            className="pointer-events-none absolute bottom-full right-[8px] z-50 mb-[6px] hidden translate-x-1/2 items-center justify-center gap-[6px] whitespace-nowrap rounded-[3px] p-[8px] group-hover/stop:flex"
             style={{
               backgroundColor: "rgba(33,40,51,0.4)",
               backdropFilter: "blur(6px)",
