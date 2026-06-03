@@ -1242,7 +1242,7 @@ export default function SearchFiltersPage() {
           <div className="flex w-[280px] flex-col items-start rounded-[4px]">
             {!recordingStopped ? (
               <CurrentMeetingWidget
-                title="Командный синк"
+                title="Итоги спринта mymeet.ai"
                 sourceIcon="source-telemost.png"
                 onStop={() => setRecordingStopped(true)}
               />
@@ -1537,7 +1537,7 @@ export default function SearchFiltersPage() {
                       <DateHeader label={g.label} subLabel={g.subLabel} />
                       {gi === 0 && showProcessing && (
                         <ProcessingMeetingRow
-                          title="Командный синк"
+                          title="Итоги спринта mymeet.ai"
                           startTime="12:00"
                           durationMin={100}
                           email="alice.smith@gmail.com"
