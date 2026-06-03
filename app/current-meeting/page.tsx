@@ -201,9 +201,10 @@ function MeetingRow({ m }: { m: Meeting }) {
   );
 }
 
-// A just-stopped recording, shown at the top of the list while it's being processed.
-// Matches Figma 35187:11506: dark thumbnail with %-progress, and title/author/source
-// greyed to text/disabled until the meeting is ready. Time stays text/secondary.
+// A just-stopped recording shown at the top of the list. It processes live: the percent
+// ticks 1→100 with the left progress fill growing in sync (Figma 35187:11506, title/
+// author/source greyed to text/disabled). On 100% it becomes a ready meeting — NEW
+// thumbnail, full-colour text. Time stays text/secondary in both states.
 function ProcessingMeetingRow({
   title,
   startTime,
@@ -211,7 +212,6 @@ function ProcessingMeetingRow({
   email,
   sourceIcon,
   sourceLabel,
-  percent = 1,
 }: {
   title: string;
   startTime: string;
@@ -219,39 +219,64 @@ function ProcessingMeetingRow({
   email: string;
   sourceIcon: string;
   sourceLabel: string;
-  percent?: number;
 }) {
+  const [percent, setPercent] = useState(1);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (done) return;
+    if (percent >= 100) {
+      const t = setTimeout(() => setDone(true), 500);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => setPercent((p) => Math.min(100, p + 1)), 45);
+    return () => clearTimeout(t);
+  }, [percent, done]);
+
+  const titleColor = done ? tokens.black : tokens.grey60;
+  const metaColor = done ? tokens.grey : tokens.grey60;
+  const textColor = done ? tokens.black : tokens.grey60;
+  const dim = done ? "" : "opacity-50";
+
   return (
     <div className="flex h-[72px] w-full items-center justify-between bg-white px-[24px] py-[12px]">
       <div className="flex items-center gap-[24px]">
         <div className="flex w-[446px] items-center gap-[12px]">
-          {/* processing thumbnail: image + dark overlay + blur + left progress + % */}
-          <div className="relative flex h-[48px] w-[80px] shrink-0 items-center justify-center overflow-clip rounded-[4px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={asset("property2.png")} alt="" className="absolute inset-0 h-full w-full rounded-[4px] object-cover" />
-            <div
-              className="absolute inset-0 rounded-[4px]"
-              style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}
-            />
-            <div
-              className="absolute left-0 top-0 h-full"
-              style={{ width: `${Math.max(3, (percent / 100) * 80)}px`, backgroundColor: "rgba(255,255,255,0.24)" }}
-            />
-            <span className="relative text-[12px] font-medium text-white" style={{ letterSpacing: "-0.24px" }}>
-              {percent}%
-            </span>
-          </div>
+          {done ? (
+            <Thumb kind="new" />
+          ) : (
+            // processing thumbnail: image + dark overlay + blur + growing left progress + %
+            <div className="relative flex h-[48px] w-[80px] shrink-0 items-center justify-center overflow-clip rounded-[4px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={asset("property2.png")} alt="" className="absolute inset-0 h-full w-full rounded-[4px] object-cover" />
+              <div
+                className="absolute inset-0 rounded-[4px]"
+                style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}
+              />
+              <div
+                className="absolute left-0 top-0 h-full"
+                style={{
+                  width: `${Math.max(3, (percent / 100) * 80)}px`,
+                  backgroundColor: "rgba(255,255,255,0.24)",
+                  transition: "width 120ms linear",
+                }}
+              />
+              <span className="relative text-[12px] font-medium text-white" style={{ letterSpacing: "-0.24px" }}>
+                {percent}%
+              </span>
+            </div>
+          )}
           <div className="flex min-w-0 flex-1 flex-col gap-[4px]">
-            <p className="truncate text-[13px] font-medium" style={{ color: tokens.grey60, letterSpacing: "-0.13px" }}>
+            <p className="truncate text-[13px] font-medium" style={{ color: titleColor, letterSpacing: "-0.13px" }}>
               {title}
             </p>
             <div className="flex items-center gap-[4px]">
-              <span className="text-[12px]" style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}>
+              <span className="text-[12px]" style={{ color: metaColor, letterSpacing: "-0.24px" }}>
                 {startTime}
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={asset("dot.svg")} alt="" className="h-[3px] w-[3px] opacity-50" />
-              <span className="text-[12px]" style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}>
+              <img src={asset("dot.svg")} alt="" className={`h-[3px] w-[3px] ${dim}`} />
+              <span className="text-[12px]" style={{ color: metaColor, letterSpacing: "-0.24px" }}>
                 {durationMin} min
               </span>
             </div>
@@ -259,20 +284,20 @@ function ProcessingMeetingRow({
         </div>
         <div className="flex w-[180px] flex-col items-start">
           <div className="flex w-[156px] items-center gap-[8px]">
-            <span className="flex shrink-0 opacity-50">
+            <span className={`flex shrink-0 ${dim}`}>
               <AuthorAvatar color={tokens.grey} letter={email.charAt(0).toUpperCase()} />
             </span>
-            <p className="min-w-0 flex-1 truncate text-[12px]" style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}>
+            <p className="min-w-0 flex-1 truncate text-[12px]" style={{ color: textColor, letterSpacing: "-0.24px" }}>
               {email}
             </p>
           </div>
         </div>
         <div className="flex w-[180px] flex-col items-start overflow-clip">
           <div className="flex w-full items-center gap-[8px]">
-            <span className="flex shrink-0 opacity-50">
+            <span className={`flex shrink-0 ${dim}`}>
               <SourceIcon src={sourceIcon} />
             </span>
-            <span className="truncate text-[12px]" style={{ color: tokens.grey60, letterSpacing: "-0.24px" }}>
+            <span className="truncate text-[12px]" style={{ color: textColor, letterSpacing: "-0.24px" }}>
               {sourceLabel}
             </span>
           </div>
@@ -1074,7 +1099,7 @@ export default function SearchFiltersPage() {
 
   useEffect(() => {
     if (!recordingStopped) return;
-    const t = setTimeout(() => setShowProcessing(true), 2000);
+    const t = setTimeout(() => setShowProcessing(true), 1000);
     return () => clearTimeout(t);
   }, [recordingStopped]);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1194,12 +1219,15 @@ export default function SearchFiltersPage() {
             </div>
           </div>
           <div className="flex w-[280px] flex-col items-start rounded-[4px]">
-            {!recordingStopped && (
+            {!recordingStopped ? (
               <CurrentMeetingWidget
                 title="Blockchain Bonanza: Revolutionizing Transactions"
                 sourceIcon="source-telemost.png"
                 onStop={() => setRecordingStopped(true)}
               />
+            ) : (
+              // widget gone → keep the top divider above the profile (its border did that before)
+              <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
             )}
             <div className="flex w-full flex-col items-start rounded-t-[4px] pl-[8px] pr-[4px] py-[4px]">
               <div className="flex w-full items-center justify-between rounded-[4px] pl-[4px] pr-[8px] py-[4px]">
