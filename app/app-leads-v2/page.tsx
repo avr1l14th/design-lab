@@ -263,14 +263,14 @@ function TopBanner({ onOpen }: { onOpen: () => void }) {
             className="whitespace-nowrap text-[13px]"
             style={{ color: tokens.black, letterSpacing: "-0.13px" }}
           >
-            Подключите команду и получите выгодные условия
+            Тариф Business с расширенным функционалом
           </span>
         </div>
         <span
           className="flex items-center gap-[4px] whitespace-nowrap text-[13px]"
           style={{ color: tokens.grey, letterSpacing: "-0.13px" }}
         >
-          Подключить
+          Подключить бесплатно
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={leadAsset("ic-arrow-right.svg")} alt="" className="h-[9px] w-[10px]" />
         </span>
@@ -383,93 +383,18 @@ function ListBanner({ onOpen }: { onOpen: () => void }) {
             className="truncate text-[13px] font-medium"
             style={{ color: tokens.black, letterSpacing: "-0.13px" }}
           >
-            Подключите команду и получите выгодные условия
+            Получите тестовый доступ на всю команду
           </p>
           <p
             className="truncate text-[12px]"
             style={{ color: tokens.grey, letterSpacing: "-0.24px" }}
           >
-            Удобная работа со встречами в команде
+            Выдадим тариф Business и обсудим решение
           </p>
         </div>
 
       </div>
     </div>
-  );
-}
-
-function SidebarBusinessBanner({ onOpen }: { onOpen: () => void }) {
-  // Three small white tiles, slightly rotated, layered — 1:1 from Figma (34120:30163).
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group relative flex h-[40px] w-full shrink-0 items-center overflow-clip border-b border-solid pl-[8px] pr-[12px] py-[8px] text-left hover:bg-[color:var(--_hover)] transition-colors"
-      style={{ backgroundColor: tokens.grey15, borderColor: tokens.grey40, ["--_hover" as string]: tokens.grey20 }}
-    >
-      <div className="flex items-center gap-[6px] rounded-[4px] p-[4px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={leadAsset("ic-bolt.svg")} alt="" className="h-[16px] w-[16px]" />
-        <span
-          className="whitespace-nowrap text-[13px] font-medium"
-          style={{ color: tokens.black, letterSpacing: "-0.13px" }}
-        >
-          Business тариф
-        </span>
-      </div>
-      {/* Decorative cluster of 3 mini-tiles on the right — fan out on hover */}
-      <div
-        className="pointer-events-none absolute right-[8px] top-[8px] h-[38px] w-[91px]"
-        aria-hidden
-      >
-        <div
-          className="absolute left-0 top-[11px] flex h-[31px] w-[31px] items-center justify-center rounded-[4px] border border-solid bg-white -rotate-[6deg] transition-transform duration-[450ms] ease-out will-change-transform group-hover:-translate-x-[2px] group-hover:-translate-y-[1px] group-hover:-rotate-[16deg]"
-          style={{ borderColor: tokens.grey40 }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={leadAsset("ic-mini1.svg")} alt="" className="h-[18px] w-[18px]" />
-        </div>
-        <div
-          className="absolute left-[29px] top-[6px] z-10 flex h-[31px] w-[31px] items-center justify-center rounded-[4px] border border-solid bg-white transition-transform duration-[450ms] ease-out will-change-transform group-hover:-translate-y-[3px]"
-          style={{ borderColor: tokens.grey40 }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={leadAsset("ic-mini3.svg")} alt="" className="h-[18px] w-[18px]" />
-        </div>
-        <div
-          className="absolute left-[58px] top-[11px] flex h-[31px] w-[31px] items-center justify-center rounded-[4px] border border-solid bg-white rotate-[6deg] transition-transform duration-[450ms] ease-out will-change-transform group-hover:translate-x-[2px] group-hover:-translate-y-[1px] group-hover:rotate-[16deg]"
-          style={{ borderColor: tokens.grey40 }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={leadAsset("ic-mini2.svg")} alt="" className="h-[16px] w-[16px]" />
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function CommandPlanMenuItem({ onOpen }: { onOpen: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex w-full items-center rounded-[3px] gap-[8px] p-[4px] hover:bg-[color:var(--_hover)] transition-colors"
-      style={{ ["--_hover" as string]: tokens.grey20 }}
-    >
-      {/* 16×16 icon container with 10% inset — matches Figma's Icons/Upgrade/16 padding */}
-      <div className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={leadAsset("ic-upgrade.svg")}
-          alt=""
-          className="block"
-          style={{ width: "12.8px", height: "12.8px" }}
-        />
-      </div>
-      <span className="text-[13px]" style={{ color: tokens.blue, letterSpacing: "-0.13px" }}>
-        Командный тариф
-      </span>
-    </button>
   );
 }
 
@@ -548,14 +473,14 @@ function ModalLeftPanel({
             className="w-full text-[24px] font-medium leading-[1]"
             style={{ color: tokens.black, letterSpacing: "-0.48px" }}
           >
-            Тариф Business на команду
+            Тариф Business для команды
           </p>
         </div>
         <p
           className="w-full text-[13px] leading-[16px]"
           style={{ color: tokens.black, letterSpacing: "-0.13px" }}
         >
-          Выдадим доступ, посчитаем стоимость с учетом объема и скидок, обсудим кастомные доработки
+          Покажем и расскажем как можно использовать mymeet.ai в процессах вашей команды
         </p>
       </div>
       <div className="flex w-full flex-col items-start gap-[16px]">
@@ -656,7 +581,7 @@ function ModalLeftPanel({
               className="text-[13px] font-medium text-white text-center leading-[1.2] whitespace-nowrap"
               style={{ letterSpacing: "-0.13px" }}
             >
-              {status === "sent" ? "Отправлено, свяжемся с вами в течение 24 часов" : "Отправить"}
+              {status === "sent" ? "Отправлено, свяжемся с вами в течение 24 часов" : "Получить тестовый доступ"}
             </span>
           )}
         </button>
@@ -701,7 +626,7 @@ function ModalRightPanel({ onClose }: { onClose: () => void }) {
     >
       <div className="relative z-[1] flex w-full flex-col items-start justify-center gap-[6px]">
         <FeatureCard icon="modal-feat-1.svg" label="Полнофункциональный медиаплеер" />
-        <FeatureCard icon="modal-feat-2.svg" label="Удобный кабинет для команды" />
+        <FeatureCard icon="modal-feat-2.svg" label="Кастомные отчеты" />
         <FeatureCard icon="modal-feat-3.svg" label="Кастомизация бота и словаря терминов" />
         <FeatureCard icon="modal-feat-4.svg" label="Личный аккаунт менеджер и поддержка" />
         <FeatureCard icon="modal-feat-5.svg" label="Командные варианты цен" />
@@ -821,9 +746,7 @@ function LeadsModal({ open, onClose, onSubmit }: { open: boolean; onClose: () =>
 
 type Toggles = {
   topBanner: boolean;
-  sidebarBanner: boolean;
   listBanner: boolean;
-  menuItem: boolean;
 };
 
 function Switch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -852,10 +775,8 @@ function ControlPanel({
   setToggles: React.Dispatch<React.SetStateAction<Toggles>>;
 }) {
   const rows: { key: keyof Toggles; label: string }[] = [
-    { key: "topBanner", label: "Баннер во всю ширину сверху" },
-    { key: "sidebarBanner", label: "Баннер внизу слева" },
+    { key: "topBanner", label: "Растяжка во всю ширину сверху" },
     { key: "listBanner", label: "Баннер в списке встреч" },
-    { key: "menuItem", label: "Раздел в меню" },
   ];
   return (
     <div
@@ -893,9 +814,7 @@ function ControlPanel({
 export default function AppLeadsV2Page() {
   const [toggles, setToggles] = useState<Toggles>({
     topBanner: true,
-    sidebarBanner: true,
     listBanner: true,
-    menuItem: true,
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSource, setModalSource] = useState<string | null>(null);
@@ -951,7 +870,6 @@ export default function AppLeadsV2Page() {
                   <SidebarMenuItem icon="icon-ai.svg" label="AI Отчеты" />
                   <SidebarMenuItem icon="icon-integrations.svg" label="Интеграции" />
                   <SidebarMenuItem icon="icon-settings.svg" label="Настройки" />
-                  {toggles.menuItem && !submittedSources.has("menuItem") && <CommandPlanMenuItem onOpen={() => openModal("menuItem")} />}
                 </div>
               </div>
             </div>
@@ -966,10 +884,7 @@ export default function AppLeadsV2Page() {
           </div>
 
           <div className="flex w-[280px] flex-col items-start">
-            {toggles.sidebarBanner && !submittedSources.has("sidebarBanner") && <SidebarBusinessBanner onOpen={() => openModal("sidebarBanner")} />}
-            {!toggles.sidebarBanner && (
-              <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
-            )}
+            <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
             <div className="flex w-full flex-col items-start pl-[8px] pr-[4px] py-[4px]">
               <div className="flex w-full items-center justify-between rounded-[4px] pl-[4px] pr-[8px] py-[4px]">
                 <div className="flex items-center gap-[8px]">
