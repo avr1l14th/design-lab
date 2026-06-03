@@ -41,6 +41,20 @@ body {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* current-meeting — REC outer ball border flicker.
+   Class named rec-flicker (not animate-*) to avoid Tailwind v4's animate-* utility
+   namespace, which would shadow it and drop the keyframes. */
+@keyframes border-flicker {
+  0%, 100% { border-color: rgb(255, 241, 241); } /* очень светлый розовый */
+  50%      { border-color: rgb(255, 165, 165); } /* red-300 */
+}
+.rec-flicker {
+  animation: border-flicker 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-flicker { animation: none; }
+}
+
 /* multi-file-upload — text-state swap (uploading ↔ done ↔ error) */
 :root {
   --text-swap-dur: 140ms;
