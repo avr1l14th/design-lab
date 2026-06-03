@@ -783,12 +783,6 @@ function ControlPanel({
       className="fixed bottom-[16px] right-[16px] z-50 flex w-[200px] flex-col gap-[6px] rounded-[6px] border border-solid bg-white p-[10px]"
       style={{ borderColor: tokens.grey40, boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
     >
-      <p
-        className="mb-[2px] text-[10px] font-medium uppercase"
-        style={{ color: tokens.grey, letterSpacing: "0.5px" }}
-      >
-        B2B leads
-      </p>
       {rows.map((row) => (
         <label
           key={row.key}
@@ -899,9 +893,6 @@ export default function AppLeadsV2Page() {
                     </p>
                   </div>
                 </div>
-                <span className="text-[12px]" style={{ color: tokens.grey50 }}>
-                  ⋯
-                </span>
               </div>
             </div>
             <div className="h-px w-full" style={{ backgroundColor: tokens.grey40 }} />
