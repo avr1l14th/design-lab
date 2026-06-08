@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "b2c-upgrade-cta",
+    title: "B2C CTA — Улучшить план",
+    description: "CTA-баннер в сайдбаре между футер-меню и user info: «Улучшить план» + три стэкнутые интеграции",
+    tags: ["sidebar", "cta", "b2c"],
+    updatedAt: "2026-06-08",
+  },
+  {
     slug: "current-meeting",
     title: "Виджет текущей встречи",
     description: "Активная запись в сайдбаре — пульсирующий REC-индикатор над списком встреч",
