@@ -246,7 +246,7 @@ export default function UploadModal({
       className="fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Загрузка аудио или видео файла"
+      aria-label="Загрузка аудио или видео файлов"
       style={{ width: "100vw", height: "100vh" }}
     >
       <button
@@ -294,7 +294,7 @@ export default function UploadModal({
                 whiteSpace: "nowrap",
               }}
             >
-              Загрузка аудио или видео файла
+              Загрузка аудио или видео файлов
             </span>
           </div>
           <button

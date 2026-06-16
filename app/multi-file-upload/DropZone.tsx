@@ -108,9 +108,9 @@ export default function DropZone({
           style={{ color: tokens.black, letterSpacing: "-0.13px" }}
         >
           <span style={{ color: tokens.blue, textDecoration: "underline" }}>
-            Выберите файл
+            Выберите файлы
           </span>
-          {" или перетащите его сюда"}
+          {" или перетащите их сюда"}
         </p>
         <p
           className="text-[12px] leading-none"
