@@ -66,7 +66,7 @@ export function startUpload(item: QueueItem, opts: SimOpts): () => void {
     if (failAtPct > 0 && pct >= failAtPct) {
       clearInterval(interval);
       opts.onTick(item.id, failAtPct);
-      opts.onComplete(item.id, "error", "Не удалось загрузить файл");
+      opts.onComplete(item.id, "error", "Что-то пошло не так");
       return;
     }
 

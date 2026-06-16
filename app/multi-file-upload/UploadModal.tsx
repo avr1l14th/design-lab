@@ -13,19 +13,19 @@ const tokens = {
   grey20: "#f7f7f8",
   grey40: "#efefef",
   white: "#ffffff",
+  red: "#c33",
 };
 
 const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
 const asset = (p: string) => `${BASE}/multi-file-upload/${p}`;
 
-// Порядок очереди (как в Figma-доке): по возрастанию длительности — короткие выше.
-// Файлы с ошибкой опускаются в самый низ списка. Тай-брейк — по имени (natural sort).
+// Порядок очереди (как в Figma-доке): по очереди добавления — массив items уже в этом
+// порядке. Любые файлы с ошибкой уходят в самый низ. Array.prototype.sort стабилен,
+// поэтому порядок добавления внутри групп сохраняется.
 function compareQueueItems(a: QueueItem, b: QueueItem): number {
   const aErr = a.status === "error" ? 1 : 0;
   const bErr = b.status === "error" ? 1 : 0;
-  if (aErr !== bErr) return aErr - bErr;
-  if (a.durationMin !== b.durationMin) return a.durationMin - b.durationMin;
-  return a.name.localeCompare(b.name, undefined, { numeric: true });
+  return aErr - bErr;
 }
 
 function pluralFile(n: number): string {
@@ -135,10 +135,8 @@ export default function UploadModal({
   const queueRef = useRef<HTMLDivElement>(null);
   const modalDragCounterRef = useRef(0);
 
-  // Порядок отображения: по возрастанию длительности, ошибки — вниз (см. Figma-доку).
+  // Порядок отображения: по очереди добавления, ошибки — вниз (см. Figma-доку).
   const sortedItems = [...items].sort(compareQueueItems);
-  // Самый свежедобавленный файл — массив items хранится в порядке добавления.
-  const newestId = items.length > 0 ? items[items.length - 1].id : null;
 
   useEffect(() => {
     if (open) {
@@ -149,28 +147,17 @@ export default function UploadModal({
     }
   }, [open]);
 
-  // Auto-scroll the freshly-added file into view once the queue becomes scrollable (>3 items).
-  // Под сортировку по длительности новый файл не обязательно внизу — скроллим к его позиции.
+  // При добавлении (если файлов больше 3) список всегда плавно скроллится вниз —
+  // новые файлы добавляются в конец и всегда видны.
   useEffect(() => {
-    if (!open || !newestId) return;
+    if (!open) return;
     if (items.length <= 3) return;
     // delay a tick so the new rows are laid out, then scroll
     const t = window.setTimeout(() => {
       const el = queueRef.current;
       if (!el) return;
-      const idx = sortedItems.findIndex((it) => it.id === newestId);
-      const row = idx >= 0 ? (el.children[idx] as HTMLElement | undefined) : undefined;
-      if (!row) return;
-      const cRect = el.getBoundingClientRect();
-      const rRect = row.getBoundingClientRect();
-      const rowTop = rRect.top - cRect.top + el.scrollTop;
-      const rowBottom = rowTop + rRect.height;
-      const maxScroll = el.scrollHeight - el.clientHeight;
-      let target = el.scrollTop;
-      if (rowBottom > el.scrollTop + el.clientHeight) target = rowBottom - el.clientHeight;
-      else if (rowTop < el.scrollTop) target = rowTop;
-      target = Math.max(0, Math.min(maxScroll, target));
-      if (reducedMotion || Math.abs(target - el.scrollTop) < 1) {
+      const target = el.scrollHeight - el.clientHeight;
+      if (reducedMotion || target - el.scrollTop < 1) {
         el.scrollTop = target;
         return;
       }
@@ -187,9 +174,7 @@ export default function UploadModal({
       }, 16);
     }, 50);
     return () => clearTimeout(t);
-    // sortedItems/items.length captured at add-time on purpose: scroll fires only on a new add.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newestId, open, reducedMotion]);
+  }, [items.length, open, reducedMotion]);
 
   useEffect(() => {
     if (!open) return;
@@ -244,11 +229,12 @@ export default function UploadModal({
     }
   };
 
-  // Кнопка активна только если есть файлы и все они done
+  // Кнопка активна только когда нет ошибок и все файлы загружены (проходят)
   const submitEnabled = items.length > 0 && items.every((i) => i.status === "done");
-  const doneItems = items.filter((i) => i.status === "done");
-  const doneCount = doneItems.length;
-  const doneMinutes = doneItems.reduce((sum, it) => sum + it.durationMin, 0);
+  // Счётчик считает ВСЕ файлы очереди и краснеет, если есть хоть одна ошибка (Figma-док)
+  const hasError = items.some((i) => i.status === "error");
+  const totalCount = items.length;
+  const totalMinutes = items.reduce((sum, it) => sum + it.durationMin, 0);
 
   const overlayTransition = reducedMotion ? "none" : "opacity 180ms ease-out";
   const modalTransition = reducedMotion
@@ -429,12 +415,12 @@ export default function UploadModal({
             borderRadius: "0 0 4px 4px",
           }}
         >
-          {doneCount >= 2 ? (
+          {totalCount >= 2 ? (
             <span
               className="text-[13px]"
-              style={{ color: tokens.grey, letterSpacing: "-0.13px", lineHeight: 1 }}
+              style={{ color: hasError ? tokens.red : tokens.grey, letterSpacing: "-0.13px", lineHeight: 1 }}
             >
-              {doneCount} {pluralFile(doneCount)} ({doneMinutes} {pluralMinute(doneMinutes)})
+              {totalCount} {pluralFile(totalCount)} ({totalMinutes} {pluralMinute(totalMinutes)})
             </span>
           ) : (
             <span />
