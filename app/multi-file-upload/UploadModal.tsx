@@ -322,10 +322,11 @@ export default function UploadModal({
           {items.length > 0 && (
             <div
               ref={queueRef}
-              className="mfu-queue-scroll flex flex-col"
+              className="mfu-queue-scroll"
               style={{
-                // gap removed — spacing handled per-row via `.mfu-row { margin-top: 16px }`
-                // so the gap collapses together with the row during exit animation.
+                // Plain block layout (NOT flex) so margin-top on each .mfu-row counts
+                // toward scrollHeight — flex column has a known gotcha where children's
+                // top margins don't extend the scroll area, breaking overflow: auto.
                 // 3 rows × 48 + 2 gaps × 16 = 176; cap height; scrollbar may or may not appear
                 maxHeight: 176,
                 overflowY: "auto",
@@ -451,6 +452,42 @@ export default function UploadModal({
           </button>
         </div>
       </div>
+
+      <style jsx global>{`
+        /* File queue row — fixed 48px height + 16px between rows, animated exit.
+           Lives here (styled-jsx global) rather than globals.css because Tailwind v4's
+           content scanner sometimes strips custom classes referenced only via template
+           literals. Co-locating with the component guarantees the rules ship. */
+        .mfu-row {
+          overflow: hidden;
+          opacity: 1;
+          transform: translateX(0);
+          max-height: 48px;
+          margin-top: 16px;
+          flex-shrink: 0;
+          transition:
+            max-height 220ms cubic-bezier(0.4, 0, 0.2, 1),
+            margin-top 220ms cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 180ms cubic-bezier(0.4, 0, 1, 1),
+            transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: max-height, opacity, transform;
+        }
+        .mfu-row:first-child {
+          margin-top: 0;
+        }
+        .mfu-row.is-removing {
+          max-height: 0;
+          margin-top: 0;
+          opacity: 0;
+          transform: translateX(-8px);
+          pointer-events: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .mfu-row {
+            transition: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
