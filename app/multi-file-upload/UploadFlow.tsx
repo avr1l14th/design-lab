@@ -33,6 +33,7 @@ export default function UploadFlow() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [items, setItems] = useState<QueueItem[]>([]);
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [errorOnNext, setErrorOnNext] = useState(false);
   const [processingMeetings, setProcessingMeetings] = useState<ProcessingMeeting[]>([]);
 
@@ -40,16 +41,21 @@ export default function UploadFlow() {
   const cancelsRef = useRef<Map<string, () => void>>(new Map());
   // Per-meeting timer to flip "обрабатывается" → done
   const procTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Per-id pending removal timers (so we can clean up on unmount)
+  const removeTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Cleanup on unmount
   useEffect(() => {
     const cancels = cancelsRef.current;
     const timers = procTimersRef.current;
+    const removeTimers = removeTimersRef.current;
     return () => {
       cancels.forEach((c) => c());
       cancels.clear();
       timers.forEach((t) => clearTimeout(t));
       timers.clear();
+      removeTimers.forEach((t) => clearTimeout(t));
+      removeTimers.clear();
     };
   }, []);
 
@@ -99,13 +105,41 @@ export default function UploadFlow() {
   );
 
   const handleRemoveItem = useCallback((id: string) => {
+    // Отмена in-flight (всегда — не зависит от анимации)
     const cancel = cancelsRef.current.get(id);
     if (cancel) {
       cancel();
       cancelsRef.current.delete(id);
     }
-    setItems((prev) => prev.filter((it) => it.id !== id));
-  }, []);
+
+    // Reduced-motion — без анимации, удаляем сразу
+    if (reducedMotion) {
+      setItems((prev) => prev.filter((it) => it.id !== id));
+      return;
+    }
+
+    // Если timer уже стоит на этом id — игнорируем повторный клик
+    if (removeTimersRef.current.has(id)) return;
+
+    // Запускаем exit-анимацию
+    setRemovingIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
+    // Через 220ms — реально вычистить из items + removingIds
+    const t = setTimeout(() => {
+      setItems((prev) => prev.filter((it) => it.id !== id));
+      setRemovingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      removeTimersRef.current.delete(id);
+    }, 220);
+    removeTimersRef.current.set(id, t);
+  }, [reducedMotion]);
 
   const handleRetryItem = useCallback((id: string) => {
     setItems((prev) => {
@@ -194,6 +228,7 @@ export default function UploadFlow() {
       <UploadModal
         open={isModalOpen}
         items={items}
+        removingIds={removingIds}
         onAddFiles={handleAddFiles}
         onRemoveItem={handleRemoveItem}
         onRetryItem={handleRetryItem}

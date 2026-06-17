@@ -78,10 +78,12 @@ export default function FileQueueItem({
   item,
   onRemove,
   onRetry,
+  isRemoving,
 }: {
   item: QueueItem;
   onRemove: (id: string) => void;
   onRetry?: (id: string) => void;
+  isRemoving?: boolean;
 }) {
   const isUploading = item.status === "uploading";
   const isError = item.status === "error";
@@ -141,43 +143,45 @@ export default function FileQueueItem({
   );
 
   return (
-    <div className="flex w-full items-center gap-[12px]">
-      {thumb}
+    <div className={`mfu-row${isRemoving ? " is-removing" : ""}`}>
+      <div className="flex w-full items-center gap-[12px]">
+        {thumb}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-[6px]">
-        <p
-          className="truncate text-[13px] font-medium leading-none"
-          style={{
-            color: isUploading ? tokens.grey60 : tokens.black,
-            letterSpacing: "-0.13px",
-          }}
-        >
-          {item.name}
-        </p>
-        <MetaLineContent item={item} />
-      </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-[6px]">
+          <p
+            className="truncate text-[13px] font-medium leading-none"
+            style={{
+              color: isUploading ? tokens.grey60 : tokens.black,
+              letterSpacing: "-0.13px",
+            }}
+          >
+            {item.name}
+          </p>
+          <MetaLineContent item={item} />
+        </div>
 
-      {isError && onRetry && (
+        {isError && onRetry && (
+          <button
+            type="button"
+            onClick={() => onRetry(item.id)}
+            aria-label="Повторить загрузку"
+            className="flex h-[16px] w-[16px] shrink-0 items-center justify-center"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={asset("retry.svg")} alt="" className="h-[16px] w-[16px]" />
+          </button>
+        )}
+
         <button
           type="button"
-          onClick={() => onRetry(item.id)}
-          aria-label="Повторить загрузку"
+          onClick={() => onRemove(item.id)}
+          aria-label="Удалить файл"
           className="flex h-[16px] w-[16px] shrink-0 items-center justify-center"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("retry.svg")} alt="" className="h-[16px] w-[16px]" />
+          <img src={asset("close-row.svg")} alt="" className="h-[16px] w-[16px]" />
         </button>
-      )}
-
-      <button
-        type="button"
-        onClick={() => onRemove(item.id)}
-        aria-label="Удалить файл"
-        className="flex h-[16px] w-[16px] shrink-0 items-center justify-center"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset("close-row.svg")} alt="" className="h-[16px] w-[16px]" />
-      </button>
+      </div>
     </div>
   );
 }

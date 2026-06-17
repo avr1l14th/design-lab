@@ -113,6 +113,7 @@ function Divider() {
 export default function UploadModal({
   open,
   items,
+  removingIds,
   onAddFiles,
   onRemoveItem,
   onRetryItem,
@@ -122,6 +123,7 @@ export default function UploadModal({
 }: {
   open: boolean;
   items: QueueItem[];
+  removingIds: Set<string>;
   onAddFiles: (files: File[]) => void;
   onRemoveItem: (id: string) => void;
   onRetryItem: (id: string) => void;
@@ -322,7 +324,8 @@ export default function UploadModal({
               ref={queueRef}
               className="mfu-queue-scroll flex flex-col"
               style={{
-                gap: 16,
+                // gap removed — spacing handled per-row via `.mfu-row { margin-top: 16px }`
+                // so the gap collapses together with the row during exit animation.
                 // 3 rows × 48 + 2 gaps × 16 = 176; cap height; scrollbar may or may not appear
                 maxHeight: 176,
                 overflowY: "auto",
@@ -338,6 +341,7 @@ export default function UploadModal({
                   item={it}
                   onRemove={onRemoveItem}
                   onRetry={onRetryItem}
+                  isRemoving={removingIds.has(it.id)}
                 />
               ))}
             </div>
