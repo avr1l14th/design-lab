@@ -105,7 +105,7 @@ function MenuItem({ item }: { item: Item }) {
   return (
     <button
       type="button"
-      className={`group flex w-full items-center rounded-[3px] p-[6px] text-left hover:bg-[#FAFAFA] ${pressableClass}`}
+      className={`group flex w-full items-center rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
     >
       <span className="flex items-center gap-[6px]">
         <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
@@ -147,7 +147,7 @@ function MenuGroup({ title, items }: { title?: string; items: Item[] }) {
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded((value) => !value)}
-          className={`group flex w-full items-center rounded-[3px] p-[6px] text-left hover:bg-[#FAFAFA] ${pressableClass}`}
+          className={`group flex w-full items-center rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
         >
           <span className="flex items-center gap-px">
             <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
@@ -167,14 +167,25 @@ function WorkspaceMenuItem({
   label,
   trailing,
   danger = false,
+  active = false,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   icon: string;
   label: string;
   trailing?: React.ReactNode;
   danger?: boolean;
+  active?: boolean;
+  onMouseEnter?: MouseEventHandler<HTMLButtonElement>;
+  onMouseLeave?: MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
-    <button type="button" className={`group flex h-[32px] w-full items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#FAFAFA] ${pressableClass}`}>
+    <button
+      type="button"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass}`}
+    >
       <span className="flex items-center gap-[6px]">
         <WorkspaceMenuIcon name={icon} danger={danger} />
         <span className="text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: danger ? tokens.red : tokens.black }}>
@@ -186,83 +197,176 @@ function WorkspaceMenuItem({
   );
 }
 
-function WorkspacePopover() {
+function ThemeSubmenu({
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  onMouseEnter: MouseEventHandler<HTMLDivElement>;
+  onMouseLeave: MouseEventHandler<HTMLDivElement>;
+}) {
   const reduceMotion = useReducedMotion();
+  const items = [
+    { label: "Как в системе", selected: false },
+    { label: "Светлая", selected: true },
+    { label: "Темная", selected: false },
+  ];
 
   return (
     <motion.div
-      data-workspace-popover="true"
+      data-theme-submenu="true"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       initial={
         reduceMotion
           ? { opacity: 0 }
-          : { opacity: 0, transform: "translateY(-6px) scale(0.965)" }
+          : { opacity: 0, transform: "translateX(-4px) scale(0.985)" }
       }
       animate={
         reduceMotion
           ? { opacity: 1 }
-          : { opacity: 1, transform: "translateY(0px) scale(1)" }
+          : { opacity: 1, transform: "translateX(0px) scale(1)" }
       }
       exit={
         reduceMotion
           ? { opacity: 0 }
-          : { opacity: 0, transform: "translateY(-2px) scale(0.985)" }
+          : { opacity: 0, transform: "translateX(-2px) scale(0.99)" }
       }
       transition={
         reduceMotion
           ? { duration: 0 }
-          : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
+          : { duration: 0.16, ease: [0.23, 1, 0.32, 1] }
       }
-      className="fixed left-[8px] top-[58px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
-      style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
+      className="fixed left-[292px] top-[252px] z-50 flex w-[200px] origin-top-left flex-col items-start rounded-[4px] bg-white p-[4px] will-change-[opacity,transform]"
+      style={{ boxShadow: "0 0 2px 0 rgba(0, 0, 0, 0.15)" }}
     >
-      <div className="flex h-[121px] w-full shrink-0 flex-col items-start gap-[10px] border-b px-[12px] pb-[12px]" style={{ borderColor: tokens.border }}>
-        <div className="flex w-full items-center rounded-[2px] pt-[8px]">
-          <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>fz4884@gmail.com</span>
-        </div>
-
-        <div className="flex h-[33px] w-full items-center gap-[8px]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("team-avatar.png")} alt="" className="h-[32px] w-[32px] shrink-0 rounded-[4px] object-cover" />
-          <div className="flex min-w-0 flex-1 flex-col items-start gap-[2px]">
-            <span className="w-full truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>mymeet.ai design team</span>
-            <span className="flex items-center gap-[4px] text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-              <span>Сотрудник</span><span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.interpunctLight }} /><span>Pro</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="flex h-[33px] w-full items-center gap-[8px]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("workspace-avatar.png")} alt="" className="h-[32px] w-[32px] shrink-0 rounded-[4px] object-cover" />
-          <div className="flex min-w-0 flex-1 flex-col items-start gap-[2px]">
-            <span className="w-full truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>fz4884’s space</span>
-            <span className="flex items-center gap-[4px] text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-              <span>Владелец</span><span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.interpunctLight }} /><span>Business</span>
-            </span>
-          </div>
-          <Icon name="workspace-selected.svg" />
-        </div>
-      </div>
-
-      <div className="flex h-[72px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
-        <WorkspaceMenuItem icon="invite.svg" label="Пригласить участников" />
-        <WorkspaceMenuItem icon="workspace-settings.svg" label="Настройки пространства" />
-      </div>
-
-      <div className="flex h-[104px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
-        <WorkspaceMenuItem
-          icon="theme.svg"
-          label="Тема оформления"
-          trailing={<span className="flex h-[16px] w-[16px] -rotate-90 items-center justify-center"><Icon name="submenu-chevron.svg" /></span>}
-        />
-        <WorkspaceMenuItem icon="plans.svg" label="Тарифные планы" />
-        <WorkspaceMenuItem icon="submenu-settings.svg" label="Настройки" />
-      </div>
-
-      <div className="flex h-[40px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
-        <WorkspaceMenuItem icon="logout.svg" label="Выйти" danger />
-      </div>
+      {items.map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
+        >
+          <span className="truncate text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+            {item.label}
+          </span>
+          {item.selected && <Icon name="workspace-selected.svg" />}
+        </button>
+      ))}
     </motion.div>
+  );
+}
+
+function WorkspacePopover() {
+  const reduceMotion = useReducedMotion();
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const themeCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showThemeMenu = useCallback(() => {
+    if (themeCloseTimer.current) {
+      clearTimeout(themeCloseTimer.current);
+      themeCloseTimer.current = null;
+    }
+    setThemeMenuOpen(true);
+  }, []);
+
+  const scheduleHideThemeMenu = useCallback(() => {
+    if (themeCloseTimer.current) clearTimeout(themeCloseTimer.current);
+    themeCloseTimer.current = setTimeout(() => {
+      setThemeMenuOpen(false);
+      themeCloseTimer.current = null;
+    }, 90);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (themeCloseTimer.current) clearTimeout(themeCloseTimer.current);
+    };
+  }, []);
+
+  return (
+    <>
+      <motion.div
+        data-workspace-popover="true"
+        initial={
+          reduceMotion
+            ? { opacity: 0 }
+            : { opacity: 0, transform: "translateY(-6px) scale(0.965)" }
+        }
+        animate={
+          reduceMotion
+            ? { opacity: 1 }
+            : { opacity: 1, transform: "translateY(0px) scale(1)" }
+        }
+        exit={
+          reduceMotion
+            ? { opacity: 0 }
+            : { opacity: 0, transform: "translateY(-2px) scale(0.985)" }
+        }
+        transition={
+          reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
+        }
+        className="fixed left-[8px] top-[58px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
+        style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
+      >
+        <div className="flex w-full shrink-0 flex-col items-start gap-[4px] border-b px-[4px] pb-[4px]" style={{ borderColor: tokens.border }}>
+          <div className="flex w-full items-center rounded-[2px] pl-[6px] pt-[8px]">
+            <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>fz4884@gmail.com</span>
+          </div>
+
+          <div className="flex w-full flex-col items-start">
+            <button type="button" className="flex w-full items-center gap-[8px] rounded-[4px] p-[6px] text-left transition-colors duration-150 ease-out hover:bg-[#F7F7F8]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={asset("team-avatar.png")} alt="" className="h-[32px] w-[32px] shrink-0 rounded-[4px] object-cover" />
+              <div className="flex min-w-0 flex-1 flex-col items-start gap-[2px]">
+                <span className="w-full truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>mymeet.ai design team</span>
+                <span className="flex items-center gap-[4px] text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+                  <span>Сотрудник</span><span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.interpunctLight }} /><span>Pro</span>
+                </span>
+              </div>
+            </button>
+
+            <button type="button" className="flex w-full items-center gap-[8px] rounded-[4px] p-[6px] text-left transition-colors duration-150 ease-out hover:bg-[#F7F7F8]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={asset("workspace-avatar.png")} alt="" className="h-[32px] w-[32px] shrink-0 rounded-[4px] object-cover" />
+              <div className="flex min-w-0 flex-1 flex-col items-start gap-[2px]">
+                <span className="w-full truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>fz4884’s space</span>
+                <span className="flex items-center gap-[4px] text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+                  <span>Владелец</span><span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.interpunctLight }} /><span>Business</span>
+                </span>
+              </div>
+              <Icon name="workspace-selected.svg" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex h-[72px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
+          <WorkspaceMenuItem icon="invite.svg" label="Пригласить участников" />
+          <WorkspaceMenuItem icon="workspace-settings.svg" label="Настройки пространства" />
+        </div>
+
+        <div className="flex h-[104px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
+          <WorkspaceMenuItem
+            icon="theme.svg"
+            label="Тема оформления"
+            active={themeMenuOpen}
+            onMouseEnter={showThemeMenu}
+            onMouseLeave={scheduleHideThemeMenu}
+            trailing={<span className="flex h-[16px] w-[16px] -rotate-90 items-center justify-center"><Icon name="submenu-chevron.svg" /></span>}
+          />
+          <WorkspaceMenuItem icon="plans.svg" label="Тарифные планы" />
+          <WorkspaceMenuItem icon="submenu-settings.svg" label="Настройки" />
+        </div>
+
+        <div className="flex h-[40px] w-full shrink-0 flex-col items-center p-[4px]">
+          <WorkspaceMenuItem icon="logout.svg" label="Выйти" danger />
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {themeMenuOpen && <ThemeSubmenu onMouseEnter={showThemeMenu} onMouseLeave={scheduleHideThemeMenu} />}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -319,14 +423,20 @@ function SidebarTooltipPortal({
 
 function SidebarCollapseButton({
   collapsed = false,
+  iconHover = true,
+  expandedOffset = true,
+  compact = false,
   tooltip,
   onClick,
 }: {
   collapsed?: boolean;
+  iconHover?: boolean;
+  expandedOffset?: boolean;
+  compact?: boolean;
   tooltip: string;
   onClick: MouseEventHandler<HTMLButtonElement>;
 }) {
-  const src = asset(collapsed ? "menu.svg" : "collapse.svg");
+  const src = asset("collapse.svg");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -343,7 +453,7 @@ function SidebarCollapseButton({
   const hideTooltip = useCallback(() => setTooltipPosition(null), []);
 
   return (
-    <span className={`relative flex h-[36px] w-[36px] shrink-0 items-center justify-center ${collapsed ? "" : "translate-x-[4px]"}`}>
+    <span className={`relative flex shrink-0 items-center justify-center ${compact ? "h-[16px] w-[16px]" : "h-[36px] w-[36px]"} ${!compact && !collapsed && expandedOffset ? "translate-x-[10px]" : ""}`}>
       <button
         ref={buttonRef}
         type="button"
@@ -353,12 +463,12 @@ function SidebarCollapseButton({
         onFocus={showTooltip}
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
-        className={`group flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] ${pressableClass}`}
+        className={`group flex shrink-0 items-center justify-center rounded-[4px] ${compact ? "h-[16px] w-[16px]" : "h-[36px] w-[36px]"} ${pressableClass}`}
       >
-        <span className="flex h-[16px] w-[16px] items-center justify-center">
+        <span className={`flex h-[16px] w-[16px] items-center justify-center ${collapsed ? "rotate-180" : ""}`}>
           <span
             aria-hidden="true"
-            className="h-[16px] w-[16px] shrink-0 bg-[#818AA3] group-hover:bg-[#585E6C] group-focus-visible:bg-[#585E6C]"
+            className={`h-[16px] w-[16px] shrink-0 bg-[#818AA3] ${iconHover ? "group-hover:bg-[#585E6C] group-focus-visible:bg-[#585E6C]" : ""}`}
             style={{
               WebkitMaskImage: `url(${src})`,
               maskImage: `url(${src})`,
@@ -428,26 +538,31 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         <div className="w-full">
           <div ref={workspaceMenuRef} className="relative">
             <div
-              className={`flex h-[54px] w-[280px] items-center justify-between border-b border-r p-[16px] hover:bg-[#FAFAFA] ${workspaceMenuOpen ? "bg-[#FAFAFA]" : "bg-white"}`}
+              className="flex h-[54px] w-[280px] items-center justify-between border-b border-r bg-white pl-[8px] pr-[16px]"
               style={{ borderColor: tokens.border }}
             >
-            <button
-              type="button"
-              aria-expanded={workspaceMenuOpen}
-              aria-haspopup="menu"
-              onClick={() => (workspaceMenuOpen ? closeWorkspaceMenu() : openWorkspaceMenu())}
-              className={`flex min-w-0 flex-1 items-center gap-[8px] text-left outline-none ${pressableClass}`}
+              <button
+                type="button"
+                aria-expanded={workspaceMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => (workspaceMenuOpen ? closeWorkspaceMenu() : openWorkspaceMenu())}
+                className={`flex h-[44px] shrink-0 items-center rounded-[4px] py-[8px] pl-[8px] pr-[8px] text-left outline-none transition-colors duration-150 ease-out hover:bg-[#F7F7F8] ${workspaceMenuOpen ? "bg-[#F7F7F8]" : "bg-transparent"} ${pressableClass}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={asset("workspace-avatar.png")} alt="" className="h-[28px] w-[28px] shrink-0 rounded-[4px] object-cover" />
-                <span className="flex min-w-0 items-center gap-[4px]">
-                  <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                    fz4884’s space
+                <span className="flex items-center gap-[8px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={asset("workspace-avatar.png")} alt="" className="h-[28px] w-[28px] shrink-0 rounded-[4px] object-cover" />
+                  <span className="flex min-w-0 items-center gap-[4px]">
+                    <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                      fz4884’s space
+                    </span>
+                    <Icon name={workspaceMenuOpen ? "workspace-chevron-open.svg" : "chevron-down.svg"} />
                   </span>
-                  <Icon name={workspaceMenuOpen ? "workspace-chevron-open.svg" : "chevron-down.svg"} />
                 </span>
               </button>
               <SidebarCollapseButton
+                compact
+                expandedOffset={false}
+                iconHover
                 tooltip="Свернуть меню"
                 onClick={() => {
                   closeWorkspaceMenu();
@@ -534,10 +649,10 @@ function MeetingsToolbar() {
     <div className="flex w-full items-center bg-white py-[16px] pl-[16px] pr-[24px]">
       <div className="flex items-center gap-[12px]">
         <div className="flex items-center gap-[8px]">
-          <button type="button" aria-label="Фильтры" className={`flex h-[36px] w-[36px] items-center justify-center rounded-[4px] border hover:bg-[#FAFAFA] ${pressableClass}`} style={{ borderColor: tokens.border }}>
+          <button type="button" aria-label="Фильтры" className={`flex h-[36px] w-[36px] items-center justify-center rounded-[4px] border hover:bg-[#F7F7F8] ${pressableClass}`} style={{ borderColor: tokens.border }}>
             <Icon name="filter.svg" />
           </button>
-          <button type="button" aria-label="Поиск" className={`flex h-[36px] w-[36px] items-center justify-center rounded-[4px] border hover:bg-[#FAFAFA] ${pressableClass}`} style={{ borderColor: tokens.border }}>
+          <button type="button" aria-label="Поиск" className={`flex h-[36px] w-[36px] items-center justify-center rounded-[4px] border hover:bg-[#F7F7F8] ${pressableClass}`} style={{ borderColor: tokens.border }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={meetingAsset("icon-search.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
           </button>
@@ -552,7 +667,7 @@ function MeetingsToolbar() {
             <button
               type="button"
               key={String(label)}
-              className={`flex h-full items-center justify-center rounded-[4px] px-[8px] py-[8px] text-[13px] font-normal leading-[normal] tracking-[-0.13px] hover:bg-[#FAFAFA] ${pressableClass}`}
+              className={`flex h-full items-center justify-center rounded-[4px] px-[8px] py-[8px] text-[13px] font-normal leading-[normal] tracking-[-0.13px] hover:bg-[#F7F7F8] ${pressableClass}`}
               style={{ backgroundColor: active ? tokens.bgSubtle : "transparent", color: active ? tokens.black : tokens.grey }}
             >
               {label}
