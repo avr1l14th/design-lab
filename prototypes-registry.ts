@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "sidebar-menu-update",
+    title: "Обновление бокового меню",
+    description: "Новая структура sidebar: workspace header, CTA, ресурсы, папки и прогресс тарифа",
+    tags: ["sidebar", "navigation", "figma"],
+    updatedAt: "2026-06-22",
+  },
+  {
     slug: "b2c-upgrade-cta",
     title: "B2C CTA — Улучшить план",
     description: "CTA-баннер в сайдбаре между футер-меню и user info: «Улучшить план» + три стэкнутые интеграции",
