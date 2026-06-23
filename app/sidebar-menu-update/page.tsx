@@ -326,7 +326,7 @@ function SidebarCollapseButton({
   tooltip: string;
   onClick: MouseEventHandler<HTMLButtonElement>;
 }) {
-  const src = asset("collapse.svg");
+  const src = asset(collapsed ? "menu.svg" : "collapse.svg");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -355,7 +355,7 @@ function SidebarCollapseButton({
         onMouseLeave={hideTooltip}
         className={`group flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] ${pressableClass}`}
       >
-        <span className={`flex h-[16px] w-[16px] items-center justify-center ${collapsed ? "rotate-180" : ""}`}>
+        <span className="flex h-[16px] w-[16px] items-center justify-center">
           <span
             aria-hidden="true"
             className="h-[16px] w-[16px] shrink-0 bg-[#818AA3] group-hover:bg-[#585E6C] group-focus-visible:bg-[#585E6C]"
