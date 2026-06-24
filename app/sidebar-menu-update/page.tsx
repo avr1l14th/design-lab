@@ -33,14 +33,12 @@ const asset = (name: string) => `${BASE}/sidebar-menu-update/${name}`;
 const meetingAsset = (name: string) => `${BASE}/search-filters/${name}`;
 const resolveIconAsset = (name: string) => name.startsWith("/") ? `${BASE}${name}` : asset(name);
 
-const sidebarEase = [0.22, 1, 0.36, 1] as const;
-const sidebarWidth = 280;
 const pressableClass = "transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none";
 
-type Item = { label: string; icon: string; muted?: boolean };
+type Item = { label: string; icon: string; muted?: boolean; active?: boolean };
 
 const primaryItems: Item[] = [
-  { label: "Встречи", icon: "meetings.svg" },
+  { label: "Встречи", icon: "meetings.svg", active: true },
   { label: "AI Отчеты", icon: "ai-reports.svg" },
   { label: "Интеграции", icon: "integrations.svg" },
   { label: "Настройки", icon: "settings-figma.svg" },
@@ -105,7 +103,7 @@ function MenuItem({ item }: { item: Item }) {
   return (
     <button
       type="button"
-      className={`group flex w-full items-center rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
+      className={`group flex w-full items-center rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${item.active ? "bg-[#F7F7F8]" : ""} ${pressableClass}`}
     >
       <span className="flex items-center gap-[6px]">
         <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
@@ -345,7 +343,7 @@ function WorkspacePopover() {
           <WorkspaceMenuItem icon="workspace-settings.svg" label="Настройки пространства" />
         </div>
 
-        <div className="flex h-[104px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
+        <div className="flex h-[136px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
           <WorkspaceMenuItem
             icon="theme.svg"
             label="Тема оформления"
@@ -356,6 +354,7 @@ function WorkspacePopover() {
           />
           <WorkspaceMenuItem icon="plans.svg" label="Тарифные планы" />
           <WorkspaceMenuItem icon="submenu-settings.svg" label="Настройки" />
+          <WorkspaceMenuItem icon="website.svg" label="Сайт" />
         </div>
 
         <div className="flex h-[40px] w-full shrink-0 flex-col items-center p-[4px]">
@@ -375,122 +374,9 @@ function WorkspacePopoverPortal() {
   return createPortal(<WorkspacePopover />, document.body);
 }
 
-function SidebarTooltipPortal({
-  collapsed,
-  position,
-  tooltip,
-}: {
-  collapsed: boolean;
-  position: { left: number; top: number } | null;
-  tooltip: string;
-}) {
-  const reduceMotion = useReducedMotion();
-  if (typeof document === "undefined") return null;
-
-  const openedTransform = collapsed ? "translateX(0px) scale(1)" : "translateX(-50%) scale(1)";
-  const closedTransform = collapsed ? "translateX(0px) scale(0.97)" : "translateX(-50%) scale(0.97)";
-
-  return createPortal(
-    <AnimatePresence>
-      {position && (
-        <motion.span
-          key={tooltip}
-          initial={reduceMotion ? { opacity: 1 } : { opacity: 0, transform: closedTransform }}
-          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: openedTransform }}
-          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: closedTransform }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.12, ease: [0.23, 1, 0.32, 1] }}
-          className="pointer-events-none fixed z-50 flex items-center justify-center whitespace-nowrap rounded-[3px] p-[8px] will-change-[opacity,transform]"
-          style={{
-            left: position.left,
-            top: position.top,
-            backgroundColor: "rgba(33,40,51,0.4)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-          }}
-        >
-          <span
-            className="font-normal"
-            style={{ color: "#FFFFFF", fontSize: "10px", lineHeight: "normal", letterSpacing: "-0.1px" }}
-          >
-            {tooltip}
-          </span>
-        </motion.span>
-      )}
-    </AnimatePresence>,
-    document.body
-  );
-}
-
-function SidebarCollapseButton({
-  collapsed = false,
-  iconHover = true,
-  expandedOffset = true,
-  compact = false,
-  tooltip,
-  onClick,
-}: {
-  collapsed?: boolean;
-  iconHover?: boolean;
-  expandedOffset?: boolean;
-  compact?: boolean;
-  tooltip: string;
-  onClick: MouseEventHandler<HTMLButtonElement>;
-}) {
-  const src = asset("collapse.svg");
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{ left: number; top: number } | null>(null);
-
-  const showTooltip = useCallback(() => {
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    setTooltipPosition({
-      left: collapsed ? rect.left : rect.left + rect.width / 2,
-      top: rect.bottom + 2,
-    });
-  }, [collapsed]);
-
-  const hideTooltip = useCallback(() => setTooltipPosition(null), []);
-
-  return (
-    <span className={`relative flex shrink-0 items-center justify-center overflow-visible ${compact ? "h-[16px] w-[16px]" : "h-[36px] w-[36px]"} ${!compact && !collapsed && expandedOffset ? "translate-x-[10px]" : ""}`}>
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-label={collapsed ? "Показать боковое меню" : "Скрыть боковое меню"}
-        onClick={onClick}
-        onBlur={hideTooltip}
-        onFocus={showTooltip}
-        onMouseEnter={showTooltip}
-        onMouseLeave={hideTooltip}
-        className={`group flex shrink-0 items-center justify-center rounded-[4px] ${compact ? "absolute left-1/2 top-1/2 h-[36px] w-[36px] -translate-x-1/2 -translate-y-1/2" : "h-[36px] w-[36px]"} ${pressableClass}`}
-      >
-        <span className={`flex h-[16px] w-[16px] items-center justify-center ${collapsed ? "rotate-180" : ""}`}>
-          <span
-            aria-hidden="true"
-            className={`h-[16px] w-[16px] shrink-0 bg-[#818AA3] ${iconHover ? "group-hover:bg-[#585E6C] group-focus-visible:bg-[#585E6C]" : ""}`}
-            style={{
-              WebkitMaskImage: `url(${src})`,
-              maskImage: `url(${src})`,
-              WebkitMaskPosition: "center",
-              maskPosition: "center",
-              WebkitMaskRepeat: "no-repeat",
-              maskRepeat: "no-repeat",
-              WebkitMaskSize: "contain",
-              maskSize: "contain",
-            }}
-          />
-        </span>
-      </button>
-      <SidebarTooltipPortal collapsed={collapsed} position={tooltipPosition} tooltip={tooltip} />
-    </span>
-  );
-}
-
-function Sidebar({ onCollapse }: { onCollapse: () => void }) {
+function Sidebar() {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const workspaceButtonRef = useRef<HTMLButtonElement>(null);
-  const reduceMotion = useReducedMotion();
 
   const openWorkspaceMenu = useCallback(() => {
     setWorkspaceMenuOpen(true);
@@ -520,13 +406,7 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   }, [closeWorkspaceMenu, workspaceMenuOpen]);
 
   return (
-    <motion.aside
-      initial={reduceMotion ? { width: sidebarWidth } : { width: 0 }}
-      animate={{ width: sidebarWidth }}
-      exit={{ width: 0 }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.24, ease: sidebarEase }}
-      className="relative h-full shrink-0 overflow-hidden bg-white"
-    >
+    <aside className="relative h-full w-[280px] shrink-0 overflow-hidden bg-white">
       <motion.div
         initial={{ opacity: 1, transform: "translateX(0px)" }}
         animate={{ opacity: 1, transform: "translateX(0px)" }}
@@ -538,7 +418,7 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         <div className="w-full">
           <div className="relative">
             <div
-              className="flex h-[54px] w-[280px] items-center justify-between border-b border-r bg-white pl-[10px] pr-[16px]"
+              className="flex h-[54px] w-[280px] items-center border-b border-r bg-white pl-[10px] pr-[16px]"
               style={{ borderColor: tokens.border }}
             >
               <button
@@ -560,16 +440,6 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
                   </span>
                 </span>
               </button>
-              <SidebarCollapseButton
-                compact
-                expandedOffset={false}
-                iconHover
-                tooltip="Свернуть меню"
-                onClick={() => {
-                  closeWorkspaceMenu();
-                  onCollapse();
-                }}
-              />
             </div>
             <AnimatePresence>
               {workspaceMenuOpen && <WorkspacePopoverPortal />}
@@ -578,8 +448,8 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
 
           <div className="flex w-full flex-col gap-[12px] p-[16px]">
             <button
-            type="button"
-            className={`flex h-[36px] w-full items-center justify-between rounded-[4px] px-[12px] py-[10px] ${pressableClass}`}
+              type="button"
+              className={`flex h-[36px] w-full items-center justify-between rounded-[4px] px-[12px] py-[10px] ${pressableClass}`}
               style={{ backgroundColor: tokens.blue }}
             >
               <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">Добавить встречу</span>
@@ -604,44 +474,16 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           </div>
         </div>
       </motion.div>
-    </motion.aside>
+    </aside>
   );
 }
 
-function AppHeader({
-  sidebarCollapsed,
-  onExpandSidebar,
-}: {
-  sidebarCollapsed: boolean;
-  onExpandSidebar: () => void;
-}) {
-  const reduceMotion = useReducedMotion();
-
+function AppHeader() {
   return (
     <header className="flex h-[54px] shrink-0 items-center border-b bg-white p-[16px]" style={{ borderColor: tokens.border }}>
-      {sidebarCollapsed ? (
-        <motion.div
-          initial={reduceMotion ? { opacity: 1, transform: "translateX(0px)" } : { opacity: 0, transform: "translateX(-2px)" }}
-          animate={{ opacity: 1, transform: "translateX(0px)" }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.14, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
-          className="flex h-[36px] items-center gap-[8px]"
-        >
-          <SidebarCollapseButton collapsed tooltip="Развернуть меню" onClick={onExpandSidebar} />
-          <h1 className="flex h-[16px] items-center text-[13px] font-medium leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
-            Встречи
-          </h1>
-        </motion.div>
-      ) : (
-        <motion.h1
-          initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.14, ease: [0.23, 1, 0.32, 1], delay: 0.03 }}
-          className="flex h-[16px] items-center text-[13px] font-medium leading-[16px] tracking-[-0.13px]"
-          style={{ color: tokens.black }}
-        >
-          Встречи
-        </motion.h1>
-      )}
+      <h1 className="flex h-[16px] items-center text-[13px] font-medium leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+        Встречи
+      </h1>
     </header>
   );
 }
@@ -799,16 +641,13 @@ function MeetingRow({ meeting }: { meeting: Meeting }) {
 
 export default function SidebarMenuUpdatePage() {
   const groups = groupByDate(MEETINGS);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <main className={`${inter.className} h-screen min-h-[720px] w-full overflow-hidden bg-white`} style={{ color: tokens.black }}>
       <div className="flex h-full w-full bg-white">
-        <AnimatePresence initial={false}>
-          {!sidebarCollapsed && <Sidebar onCollapse={() => setSidebarCollapsed(true)} />}
-        </AnimatePresence>
+        <Sidebar />
         <section className="flex min-w-0 flex-1 flex-col bg-white">
-          <AppHeader sidebarCollapsed={sidebarCollapsed} onExpandSidebar={() => setSidebarCollapsed(false)} />
+          <AppHeader />
           <MeetingsToolbar />
           <div className="flex w-full min-h-0 flex-1 flex-col items-start overflow-y-auto pt-[8px]">
             <div className="flex w-full flex-col items-start">
