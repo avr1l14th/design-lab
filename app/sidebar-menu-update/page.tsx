@@ -81,12 +81,12 @@ function MenuIcon({ name }: { name: string }) {
   );
 }
 
-function WorkspaceMenuIcon({ name, danger = false }: { name: string; danger?: boolean }) {
+function WorkspaceMenuIcon({ name, danger = false, active = false }: { name: string; danger?: boolean; active?: boolean }) {
   const src = resolveIconAsset(name);
   return (
     <span
       aria-hidden="true"
-      className={`h-[16px] w-[16px] shrink-0 ${danger ? "bg-[#CC3333]" : "bg-[#818AA3] group-hover:bg-[#585E6C]"}`}
+      className={`h-[16px] w-[16px] shrink-0 ${danger ? "bg-[#CC3333]" : active ? "bg-[#585E6C]" : "bg-[#818AA3] group-hover:bg-[#585E6C]"}`}
       style={{
         WebkitMaskImage: `url(${src})`,
         maskImage: `url(${src})`,
@@ -187,7 +187,7 @@ function WorkspaceMenuItem({
       className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass}`}
     >
       <span className="flex items-center gap-[6px]">
-        <WorkspaceMenuIcon name={icon} danger={danger} />
+        <WorkspaceMenuIcon name={icon} danger={danger} active={active} />
         <span className="text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: danger ? tokens.red : tokens.black }}>
           {label}
         </span>
@@ -236,7 +236,7 @@ function ThemeSubmenu({
           ? { duration: 0 }
           : { duration: 0.16, ease: [0.23, 1, 0.32, 1] }
       }
-      className="fixed left-[292px] top-[252px] z-50 flex w-[200px] origin-top-left flex-col items-start rounded-[4px] bg-white p-[4px] will-change-[opacity,transform]"
+      className="fixed left-[292px] top-[245px] z-50 flex w-[200px] origin-top-left flex-col items-start rounded-[4px] bg-white p-[4px] will-change-[opacity,transform]"
       style={{ boxShadow: "0 0 2px 0 rgba(0, 0, 0, 0.15)" }}
     >
       {items.map((item) => (
@@ -306,7 +306,7 @@ function WorkspacePopover() {
             ? { duration: 0 }
             : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
         }
-        className="fixed left-[8px] top-[58px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
+        className="fixed left-[8px] top-[53px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
         style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
       >
         <div className="flex w-full shrink-0 flex-col items-start gap-[4px] border-b px-[4px] pb-[4px]" style={{ borderColor: tokens.border }}>
@@ -453,7 +453,7 @@ function SidebarCollapseButton({
   const hideTooltip = useCallback(() => setTooltipPosition(null), []);
 
   return (
-    <span className={`relative flex shrink-0 items-center justify-center ${compact ? "h-[16px] w-[16px]" : "h-[36px] w-[36px]"} ${!compact && !collapsed && expandedOffset ? "translate-x-[10px]" : ""}`}>
+    <span className={`relative flex shrink-0 items-center justify-center overflow-visible ${compact ? "h-[16px] w-[16px]" : "h-[36px] w-[36px]"} ${!compact && !collapsed && expandedOffset ? "translate-x-[10px]" : ""}`}>
       <button
         ref={buttonRef}
         type="button"
@@ -463,7 +463,7 @@ function SidebarCollapseButton({
         onFocus={showTooltip}
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
-        className={`group flex shrink-0 items-center justify-center rounded-[4px] ${compact ? "h-[16px] w-[16px]" : "h-[36px] w-[36px]"} ${pressableClass}`}
+        className={`group flex shrink-0 items-center justify-center rounded-[4px] ${compact ? "absolute left-1/2 top-1/2 h-[36px] w-[36px] -translate-x-1/2 -translate-y-1/2" : "h-[36px] w-[36px]"} ${pressableClass}`}
       >
         <span className={`flex h-[16px] w-[16px] items-center justify-center ${collapsed ? "rotate-180" : ""}`}>
           <span
@@ -489,7 +489,7 @@ function SidebarCollapseButton({
 
 function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
-  const workspaceMenuRef = useRef<HTMLDivElement>(null);
+  const workspaceButtonRef = useRef<HTMLButtonElement>(null);
   const reduceMotion = useReducedMotion();
 
   const openWorkspaceMenu = useCallback(() => {
@@ -505,7 +505,7 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (workspaceMenuRef.current?.contains(target) || target.closest("[data-workspace-popover='true']")) return;
+      if (workspaceButtonRef.current?.contains(target) || target.closest("[data-workspace-popover='true']")) return;
       closeWorkspaceMenu();
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -536,22 +536,23 @@ function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         style={{ borderColor: tokens.border }}
       >
         <div className="w-full">
-          <div ref={workspaceMenuRef} className="relative">
+          <div className="relative">
             <div
-              className="flex h-[54px] w-[280px] items-center justify-between border-b border-r bg-white pl-[8px] pr-[16px]"
+              className="flex h-[54px] w-[280px] items-center justify-between border-b border-r bg-white pl-[10px] pr-[16px]"
               style={{ borderColor: tokens.border }}
             >
               <button
+                ref={workspaceButtonRef}
                 type="button"
                 aria-expanded={workspaceMenuOpen}
                 aria-haspopup="menu"
                 onClick={() => (workspaceMenuOpen ? closeWorkspaceMenu() : openWorkspaceMenu())}
-                className={`flex h-[44px] shrink-0 items-center rounded-[4px] py-[8px] pl-[8px] pr-[8px] text-left outline-none transition-colors duration-150 ease-out hover:bg-[#F7F7F8] ${workspaceMenuOpen ? "bg-[#F7F7F8]" : "bg-transparent"} ${pressableClass}`}
+                className={`flex h-[40px] shrink-0 items-center rounded-[4px] p-[6px] text-left outline-none transition-colors duration-150 ease-out hover:bg-[#F7F7F8] ${workspaceMenuOpen ? "bg-[#F7F7F8]" : "bg-transparent"} ${pressableClass}`}
               >
                 <span className="flex items-center gap-[8px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset("workspace-avatar.png")} alt="" className="h-[28px] w-[28px] shrink-0 rounded-[4px] object-cover" />
-                  <span className="flex min-w-0 items-center gap-[4px]">
+                  <img src={asset("workspace-avatar.png")} alt="" className="h-[28px] w-[28px] shrink-0 rounded-[3px] object-cover" />
+                  <span className="flex min-w-0 items-center gap-[8px]">
                     <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
                       fz4884’s space
                     </span>
@@ -626,7 +627,7 @@ function AppHeader({
           className="flex h-[36px] items-center gap-[8px]"
         >
           <SidebarCollapseButton collapsed tooltip="Развернуть меню" onClick={onExpandSidebar} />
-          <h1 className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          <h1 className="flex h-[16px] items-center text-[13px] font-medium leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
             Встречи
           </h1>
         </motion.div>
@@ -635,7 +636,8 @@ function AppHeader({
           initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 0.14, ease: [0.23, 1, 0.32, 1], delay: 0.03 }}
-          className="text-[13px] font-medium tracking-[-0.13px]"
+          className="flex h-[16px] items-center text-[13px] font-medium leading-[16px] tracking-[-0.13px]"
+          style={{ color: tokens.black }}
         >
           Встречи
         </motion.h1>
