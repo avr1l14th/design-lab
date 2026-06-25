@@ -4,7 +4,6 @@ import { Inter } from "next/font/google";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { MouseEventHandler } from "react";
 import {
   MEETINGS,
   SOURCE_META,
@@ -36,6 +35,7 @@ const resolveIconAsset = (name: string) => name.startsWith("/") ? `${BASE}${name
 const pressableClass = "transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none";
 
 type Item = { label: string; icon: string; muted?: boolean; active?: boolean };
+type WorkspaceRole = "owner" | "employee";
 
 const primaryItems: Item[] = [
   { label: "Встречи", icon: "meetings.svg", active: true },
@@ -163,157 +163,99 @@ function MenuGroup({ title, items }: { title?: string; items: Item[] }) {
 function WorkspaceMenuItem({
   icon,
   label,
-  trailing,
   danger = false,
-  active = false,
-  onMouseEnter,
-  onMouseLeave,
 }: {
   icon: string;
   label: string;
-  trailing?: React.ReactNode;
   danger?: boolean;
-  active?: boolean;
-  onMouseEnter?: MouseEventHandler<HTMLButtonElement>;
-  onMouseLeave?: MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
       type="button"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass}`}
+      className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
     >
       <span className="flex items-center gap-[6px]">
-        <WorkspaceMenuIcon name={icon} danger={danger} active={active} />
+        <WorkspaceMenuIcon name={icon} danger={danger} />
         <span className="text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: danger ? tokens.red : tokens.black }}>
           {label}
         </span>
       </span>
-      {trailing}
     </button>
   );
 }
 
-function ThemeSubmenu({
-  onMouseEnter,
-  onMouseLeave,
+function WorkspaceRoleToggle({
+  role,
+  onRoleChange,
 }: {
-  onMouseEnter: MouseEventHandler<HTMLDivElement>;
-  onMouseLeave: MouseEventHandler<HTMLDivElement>;
+  role: WorkspaceRole;
+  onRoleChange: (role: WorkspaceRole) => void;
 }) {
-  const reduceMotion = useReducedMotion();
-  const items = [
-    { label: "Как в системе", selected: false },
-    { label: "Светлая", selected: true },
-    { label: "Темная", selected: false },
+  const options: { label: string; value: WorkspaceRole }[] = [
+    { label: "Владелец", value: "owner" },
+    { label: "Сотрудник", value: "employee" },
   ];
 
   return (
+    <div className="flex w-full items-center gap-[2px] rounded-[4px] bg-[#F7F7F8] p-[2px]">
+      {options.map((option) => {
+        const active = role === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onRoleChange(option.value)}
+            className={`flex h-[24px] flex-1 items-center justify-center rounded-[3px] text-[12px] font-medium leading-[normal] tracking-[-0.24px] transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${
+              active ? "bg-white shadow-[0_0_1px_rgba(0,0,0,0.18)]" : "hover:bg-white/60"
+            }`}
+            style={{ color: active ? tokens.black : tokens.grey }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WorkspacePopover({ role }: { role: WorkspaceRole }) {
+  const reduceMotion = useReducedMotion();
+  const isOwner = role === "owner";
+  const currentWorkspaceRole = isOwner ? "Владелец" : "Сотрудник";
+
+  return (
     <motion.div
-      data-theme-submenu="true"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      data-workspace-popover="true"
       initial={
         reduceMotion
           ? { opacity: 0 }
-          : { opacity: 0, transform: "translateX(-4px) scale(0.985)" }
+          : { opacity: 0, transform: "translateY(-6px) scale(0.965)" }
       }
       animate={
         reduceMotion
           ? { opacity: 1 }
-          : { opacity: 1, transform: "translateX(0px) scale(1)" }
+          : { opacity: 1, transform: "translateY(0px) scale(1)" }
       }
       exit={
         reduceMotion
           ? { opacity: 0 }
-          : { opacity: 0, transform: "translateX(-2px) scale(0.99)" }
+          : { opacity: 0, transform: "translateY(-2px) scale(0.985)" }
       }
       transition={
         reduceMotion
           ? { duration: 0 }
-          : { duration: 0.16, ease: [0.23, 1, 0.32, 1] }
+          : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
       }
-      className="fixed left-[292px] top-[245px] z-50 flex w-[200px] origin-top-left flex-col items-start rounded-[4px] bg-white p-[4px] will-change-[opacity,transform]"
-      style={{ boxShadow: "0 0 2px 0 rgba(0, 0, 0, 0.15)" }}
+      className="fixed left-[8px] top-[53px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
+      style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
     >
-      {items.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
-        >
-          <span className="truncate text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-            {item.label}
-          </span>
-          {item.selected && <Icon name="workspace-selected.svg" />}
-        </button>
-      ))}
-    </motion.div>
-  );
-}
-
-function WorkspacePopover() {
-  const reduceMotion = useReducedMotion();
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const themeCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showThemeMenu = useCallback(() => {
-    if (themeCloseTimer.current) {
-      clearTimeout(themeCloseTimer.current);
-      themeCloseTimer.current = null;
-    }
-    setThemeMenuOpen(true);
-  }, []);
-
-  const scheduleHideThemeMenu = useCallback(() => {
-    if (themeCloseTimer.current) clearTimeout(themeCloseTimer.current);
-    themeCloseTimer.current = setTimeout(() => {
-      setThemeMenuOpen(false);
-      themeCloseTimer.current = null;
-    }, 90);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (themeCloseTimer.current) clearTimeout(themeCloseTimer.current);
-    };
-  }, []);
-
-  return (
-    <>
-      <motion.div
-        data-workspace-popover="true"
-        initial={
-          reduceMotion
-            ? { opacity: 0 }
-            : { opacity: 0, transform: "translateY(-6px) scale(0.965)" }
-        }
-        animate={
-          reduceMotion
-            ? { opacity: 1 }
-            : { opacity: 1, transform: "translateY(0px) scale(1)" }
-        }
-        exit={
-          reduceMotion
-            ? { opacity: 0 }
-            : { opacity: 0, transform: "translateY(-2px) scale(0.985)" }
-        }
-        transition={
-          reduceMotion
-            ? { duration: 0 }
-            : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
-        }
-        className="fixed left-[8px] top-[53px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
-        style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
-      >
         <div className="flex w-full shrink-0 flex-col items-start gap-[4px] border-b px-[4px] pb-[4px]" style={{ borderColor: tokens.border }}>
           <div className="flex w-full items-center rounded-[2px] pl-[6px] pt-[8px]">
             <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>fz4884@gmail.com</span>
           </div>
 
           <div className="flex w-full flex-col items-start">
-            <button type="button" className="flex w-full items-center gap-[8px] rounded-[4px] p-[6px] text-left transition-colors duration-150 ease-out hover:bg-[#F7F7F8]">
+            <button type="button" className="flex w-full items-center gap-[8px] rounded-[4px] px-[6px] py-[8px] text-left transition-colors duration-150 ease-out hover:bg-[#F7F7F8]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={asset("team-avatar.png")} alt="" className="h-[32px] w-[32px] shrink-0 rounded-[4px] object-cover" />
               <div className="flex min-w-0 flex-1 flex-col items-start gap-[2px]">
@@ -324,13 +266,13 @@ function WorkspacePopover() {
               </div>
             </button>
 
-            <button type="button" className="flex w-full items-center gap-[8px] rounded-[4px] p-[6px] text-left transition-colors duration-150 ease-out hover:bg-[#F7F7F8]">
+            <button type="button" className="flex w-full items-center gap-[8px] rounded-[4px] py-[8px] pl-[6px] pr-[10px] text-left transition-colors duration-150 ease-out hover:bg-[#F7F7F8]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={asset("workspace-avatar.png")} alt="" className="h-[32px] w-[32px] shrink-0 rounded-[4px] object-cover" />
               <div className="flex min-w-0 flex-1 flex-col items-start gap-[2px]">
                 <span className="w-full truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>fz4884’s space</span>
                 <span className="flex items-center gap-[4px] text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-                  <span>Владелец</span><span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.interpunctLight }} /><span>Business</span>
+                  <span>{currentWorkspaceRole}</span><span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.interpunctLight }} /><span>Business</span>
                 </span>
               </div>
               <Icon name="workspace-selected.svg" />
@@ -338,21 +280,15 @@ function WorkspacePopover() {
           </div>
         </div>
 
-        <div className="flex h-[72px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
-          <WorkspaceMenuItem icon="invite.svg" label="Пригласить участников" />
-          <WorkspaceMenuItem icon="workspace-settings.svg" label="Настройки пространства" />
-        </div>
+        {isOwner && (
+          <div className="flex h-[72px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
+            <WorkspaceMenuItem icon="invite.svg" label="Пригласить участников" />
+            <WorkspaceMenuItem icon="workspace-settings.svg" label="Настройки пространства" />
+          </div>
+        )}
 
-        <div className="flex h-[136px] w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
-          <WorkspaceMenuItem
-            icon="theme.svg"
-            label="Тема оформления"
-            active={themeMenuOpen}
-            onMouseEnter={showThemeMenu}
-            onMouseLeave={scheduleHideThemeMenu}
-            trailing={<span className="flex h-[16px] w-[16px] -rotate-90 items-center justify-center"><Icon name="submenu-chevron.svg" /></span>}
-          />
-          <WorkspaceMenuItem icon="plans.svg" label="Тарифные планы" />
+        <div className={`${isOwner ? "h-[104px]" : "h-[72px]"} flex w-full shrink-0 flex-col items-center border-b p-[4px]`} style={{ borderColor: tokens.border }}>
+          {isOwner && <WorkspaceMenuItem icon="plans.svg" label="Тарифные планы" />}
           <WorkspaceMenuItem icon="submenu-settings.svg" label="Настройки" />
           <WorkspaceMenuItem icon="website.svg" label="Сайт" />
         </div>
@@ -361,20 +297,19 @@ function WorkspacePopover() {
           <WorkspaceMenuItem icon="logout.svg" label="Выйти" danger />
         </div>
       </motion.div>
-
-      <AnimatePresence>
-        {themeMenuOpen && <ThemeSubmenu onMouseEnter={showThemeMenu} onMouseLeave={scheduleHideThemeMenu} />}
-      </AnimatePresence>
-    </>
   );
 }
 
-function WorkspacePopoverPortal() {
+function WorkspacePopoverPortal({
+  role,
+}: {
+  role: WorkspaceRole;
+}) {
   if (typeof document === "undefined") return null;
-  return createPortal(<WorkspacePopover />, document.body);
+  return createPortal(<WorkspacePopover role={role} />, document.body);
 }
 
-function Sidebar() {
+function Sidebar({ workspaceRole }: { workspaceRole: WorkspaceRole }) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const workspaceButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -442,7 +377,7 @@ function Sidebar() {
               </button>
             </div>
             <AnimatePresence>
-              {workspaceMenuOpen && <WorkspacePopoverPortal />}
+              {workspaceMenuOpen && <WorkspacePopoverPortal role={workspaceRole} />}
             </AnimatePresence>
           </div>
 
@@ -641,11 +576,12 @@ function MeetingRow({ meeting }: { meeting: Meeting }) {
 
 export default function SidebarMenuUpdatePage() {
   const groups = groupByDate(MEETINGS);
+  const [workspaceRole, setWorkspaceRole] = useState<WorkspaceRole>("owner");
 
   return (
     <main className={`${inter.className} h-screen min-h-[720px] w-full overflow-hidden bg-white`} style={{ color: tokens.black }}>
       <div className="flex h-full w-full bg-white">
-        <Sidebar />
+        <Sidebar workspaceRole={workspaceRole} />
         <section className="flex min-w-0 flex-1 flex-col bg-white">
           <AppHeader />
           <MeetingsToolbar />
@@ -660,6 +596,9 @@ export default function SidebarMenuUpdatePage() {
             </div>
           </div>
         </section>
+      </div>
+      <div className="fixed bottom-[16px] right-[16px] z-40 w-[220px] rounded-[6px] border bg-white p-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={{ borderColor: tokens.border }}>
+        <WorkspaceRoleToggle role={workspaceRole} onRoleChange={setWorkspaceRole} />
       </div>
     </main>
   );
