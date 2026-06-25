@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { MouseEventHandler } from "react";
 import {
   MEETINGS,
   SOURCE_META,
@@ -48,7 +49,6 @@ const resourceItems: Item[] = [
   { label: "База знаний", icon: "knowledge.svg" },
   { label: "Поддержка", icon: "support.svg" },
   { label: "Бесплатные минуты", icon: "gift.svg" },
-  { label: "Телеграм-бот", icon: "tg.svg" },
 ];
 
 function Icon({ name, size = 16 }: { name: string; size?: number }) {
@@ -163,24 +163,79 @@ function MenuGroup({ title, items }: { title?: string; items: Item[] }) {
 function WorkspaceMenuItem({
   icon,
   label,
+  trailing,
   danger = false,
+  active = false,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   icon: string;
   label: string;
+  trailing?: React.ReactNode;
   danger?: boolean;
+  active?: boolean;
+  onMouseEnter?: MouseEventHandler<HTMLButtonElement>;
+  onMouseLeave?: MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
       type="button"
-      className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass}`}
     >
       <span className="flex items-center gap-[6px]">
-        <WorkspaceMenuIcon name={icon} danger={danger} />
+        <WorkspaceMenuIcon name={icon} danger={danger} active={active} />
         <span className="text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: danger ? tokens.red : tokens.black }}>
           {label}
         </span>
       </span>
+      {trailing}
     </button>
+  );
+}
+
+function ThemeSubmenu({
+  top,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  top: number;
+  onMouseEnter: MouseEventHandler<HTMLDivElement>;
+  onMouseLeave: MouseEventHandler<HTMLDivElement>;
+}) {
+  const reduceMotion = useReducedMotion();
+  const items = [
+    { label: "Как в системе", selected: false },
+    { label: "Светлая", selected: true },
+    { label: "Темная", selected: false },
+  ];
+
+  return (
+    <motion.div
+      data-theme-submenu="true"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateX(-4px) scale(0.985)" }}
+      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "translateX(0px) scale(1)" }}
+      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateX(-2px) scale(0.99)" }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+      className="fixed left-[292px] z-50 flex w-[200px] origin-top-left flex-col items-start rounded-[4px] bg-white p-[4px] will-change-[opacity,transform]"
+      style={{ top, boxShadow: "0 0 2px 0 rgba(0, 0, 0, 0.15)" }}
+    >
+      {items.map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
+        >
+          <span className="truncate text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+            {item.label}
+          </span>
+          {item.selected && <Icon name="workspace-selected.svg" />}
+        </button>
+      ))}
+    </motion.div>
   );
 }
 
@@ -220,35 +275,67 @@ function WorkspaceRoleToggle({
 
 function WorkspacePopover({ role }: { role: WorkspaceRole }) {
   const reduceMotion = useReducedMotion();
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [themeSubmenuTop, setThemeSubmenuTop] = useState(0);
+  const themeCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isOwner = role === "owner";
   const currentWorkspaceRole = isOwner ? "Владелец" : "Сотрудник";
 
+  const keepThemeMenuOpen = useCallback(() => {
+    if (themeCloseTimer.current) {
+      clearTimeout(themeCloseTimer.current);
+      themeCloseTimer.current = null;
+    }
+    setThemeMenuOpen(true);
+  }, []);
+
+  const showThemeMenu: MouseEventHandler<HTMLButtonElement> = useCallback((event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setThemeSubmenuTop(rect.top - 4);
+    keepThemeMenuOpen();
+  }, [keepThemeMenuOpen]);
+
+  const scheduleHideThemeMenu = useCallback(() => {
+    if (themeCloseTimer.current) clearTimeout(themeCloseTimer.current);
+    themeCloseTimer.current = setTimeout(() => {
+      setThemeMenuOpen(false);
+      themeCloseTimer.current = null;
+    }, 90);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (themeCloseTimer.current) clearTimeout(themeCloseTimer.current);
+    };
+  }, []);
+
   return (
-    <motion.div
-      data-workspace-popover="true"
-      initial={
-        reduceMotion
-          ? { opacity: 0 }
-          : { opacity: 0, transform: "translateY(-6px) scale(0.965)" }
-      }
-      animate={
-        reduceMotion
-          ? { opacity: 1 }
-          : { opacity: 1, transform: "translateY(0px) scale(1)" }
-      }
-      exit={
-        reduceMotion
-          ? { opacity: 0 }
-          : { opacity: 0, transform: "translateY(-2px) scale(0.985)" }
-      }
-      transition={
-        reduceMotion
-          ? { duration: 0 }
-          : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
-      }
-      className="fixed left-[8px] top-[53px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
-      style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
-    >
+    <>
+      <motion.div
+        data-workspace-popover="true"
+        initial={
+          reduceMotion
+            ? { opacity: 0 }
+            : { opacity: 0, transform: "translateY(-6px) scale(0.965)" }
+        }
+        animate={
+          reduceMotion
+            ? { opacity: 1 }
+            : { opacity: 1, transform: "translateY(0px) scale(1)" }
+        }
+        exit={
+          reduceMotion
+            ? { opacity: 0 }
+            : { opacity: 0, transform: "translateY(-2px) scale(0.985)" }
+        }
+        transition={
+          reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
+        }
+        className="fixed left-[8px] top-[53px] z-50 flex w-[280px] origin-top-left flex-col items-start overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
+        style={{ boxShadow: "0 0 4px 0 rgba(0, 0, 0, 0.15)" }}
+      >
         <div className="flex w-full shrink-0 flex-col items-start gap-[4px] border-b px-[4px] pb-[4px]" style={{ borderColor: tokens.border }}>
           <div className="flex w-full items-center rounded-[2px] pl-[6px] pt-[8px]">
             <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>fz4884@gmail.com</span>
@@ -287,9 +374,18 @@ function WorkspacePopover({ role }: { role: WorkspaceRole }) {
           </div>
         )}
 
-        <div className={`${isOwner ? "h-[104px]" : "h-[72px]"} flex w-full shrink-0 flex-col items-center border-b p-[4px]`} style={{ borderColor: tokens.border }}>
+        <div className={`${isOwner ? "h-[168px]" : "h-[136px]"} flex w-full shrink-0 flex-col items-center border-b p-[4px]`} style={{ borderColor: tokens.border }}>
+          <WorkspaceMenuItem
+            icon="theme.svg"
+            label="Тема оформления"
+            active={themeMenuOpen}
+            onMouseEnter={showThemeMenu}
+            onMouseLeave={scheduleHideThemeMenu}
+            trailing={<span className="flex h-[16px] w-[16px] -rotate-90 items-center justify-center"><Icon name="submenu-chevron.svg" /></span>}
+          />
           {isOwner && <WorkspaceMenuItem icon="plans.svg" label="Тарифные планы" />}
           <WorkspaceMenuItem icon="submenu-settings.svg" label="Настройки" />
+          <WorkspaceMenuItem icon="tg.svg" label="Телеграм-бот" />
           <WorkspaceMenuItem icon="website.svg" label="Сайт" />
         </div>
 
@@ -297,6 +393,12 @@ function WorkspacePopover({ role }: { role: WorkspaceRole }) {
           <WorkspaceMenuItem icon="logout.svg" label="Выйти" danger />
         </div>
       </motion.div>
+      <AnimatePresence>
+        {themeMenuOpen && (
+          <ThemeSubmenu top={themeSubmenuTop} onMouseEnter={keepThemeMenuOpen} onMouseLeave={scheduleHideThemeMenu} />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -326,7 +428,11 @@ function Sidebar({ workspaceRole }: { workspaceRole: WorkspaceRole }) {
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (workspaceButtonRef.current?.contains(target) || target.closest("[data-workspace-popover='true']")) return;
+      if (
+        workspaceButtonRef.current?.contains(target) ||
+        target.closest("[data-workspace-popover='true']") ||
+        target.closest("[data-theme-submenu='true']")
+      ) return;
       closeWorkspaceMenu();
     };
     const onKeyDown = (event: KeyboardEvent) => {
