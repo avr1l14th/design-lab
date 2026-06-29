@@ -64,7 +64,7 @@ function MenuIcon({ name }: { name: string }) {
   return (
     <span
       aria-hidden="true"
-      className="h-[16px] w-[16px] shrink-0 bg-[#818AA3] group-hover:bg-[#585E6C]"
+      className="h-[16px] w-[16px] shrink-0 bg-[#818AA3]"
       style={{
         WebkitMaskImage: `url(${src})`,
         maskImage: `url(${src})`,
@@ -79,12 +79,12 @@ function MenuIcon({ name }: { name: string }) {
   );
 }
 
-function WorkspaceMenuIcon({ name, danger = false, active = false }: { name: string; danger?: boolean; active?: boolean }) {
+function WorkspaceMenuIcon({ name, danger = false }: { name: string; danger?: boolean }) {
   const src = resolveIconAsset(name);
   return (
     <span
       aria-hidden="true"
-      className={`h-[16px] w-[16px] shrink-0 ${danger ? "bg-[#CC3333]" : active ? "bg-[#585E6C]" : "bg-[#818AA3] group-hover:bg-[#585E6C]"}`}
+      className={`h-[16px] w-[16px] shrink-0 ${danger ? "bg-[#CC3333]" : "bg-[#818AA3]"}`}
       style={{
         WebkitMaskImage: `url(${src})`,
         maskImage: `url(${src})`,
@@ -185,7 +185,7 @@ function WorkspaceMenuItem({
       className={`group flex h-[32px] w-full shrink-0 items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass}`}
     >
       <span className="flex items-center gap-[6px]">
-        <WorkspaceMenuIcon name={icon} danger={danger} active={active} />
+        <WorkspaceMenuIcon name={icon} danger={danger} />
         <span className="text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: danger ? tokens.red : tokens.black }}>
           {label}
         </span>
