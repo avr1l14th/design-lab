@@ -26,6 +26,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Visitors analytics — грузится на всех страницах, всегда. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="https://cdn.visitors.now/v.js" data-token="b2bc581d-520a-47f7-916e-6fd8ab19142a"></script>
         {/* Figma capture script — нужен для generate_figma_design.
             Активен только в dev-режиме; в проде не подгружается. */}
         {process.env.NODE_ENV !== "production" && (
