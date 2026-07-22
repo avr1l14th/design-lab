@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "usage-stats",
+    title: "Статистика использования",
+    description: "Дашборд воркспейса: метрики, график встреч с тултипом и легендой-тогглами, вкладка «Участники» с таблицей",
+    tags: ["dashboard", "chart", "table", "figma"],
+    updatedAt: "2026-07-22",
+  },
+  {
     slug: "sidebar-menu-update",
     title: "Обновление бокового меню",
     description: "Новая структура sidebar: workspace header, CTA, ресурсы, папки и прогресс тарифа",
