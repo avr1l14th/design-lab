@@ -974,7 +974,10 @@ function MeetingsChart({ range, data, hourly }: { range: DateRange; data: Period
   const smoothMove = "transition-[left,top,opacity] duration-[150ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none";
 
   // Коэффициенты приглушения: сфокусированная серия — на полную, остальные — тише
-  const dimFor = (key: SeriesKey) => (focusedKey === null || focusedKey === key ? 1 : 0.2);
+  // Фокус учитываем только если серия ещё включена: иначе (выключили заховеренную чипсу)
+  // остальные графики должны вернуться на 100%
+  const activeFocus = focusedKey && enabled[focusedKey] ? focusedKey : null;
+  const dimFor = (key: SeriesKey) => (activeFocus === null || activeFocus === key ? 1 : 0.2);
 
   return (
     <div
