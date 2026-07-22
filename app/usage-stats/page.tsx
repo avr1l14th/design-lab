@@ -204,8 +204,10 @@ type Metric = { label: string; value: string; delta?: Delta; hint?: string };
 
 // Пояснение к метрике «Активных пользователей»
 const ACTIVE_USERS_HINT = "Пользователи, у которых была хотя бы одна встреча за последние 30 дней";
-// Общий терм для всех процентных чипсов
-const DELTA_HINT = "По сравнению с предыдущим периодом";
+// Общий терм для всех процентных чипсов. Первая строка связана NBSP,
+// чтобы перенос был ровно перед «периодом», как в макете (браузерные метрики
+// Inter на волосок шире фигмовских и иначе заворачивают строку раньше).
+const DELTA_HINT = "По сравнению с предыдущим периодом";
 
 type PeriodData = {
   meetingsTotal: string;
@@ -845,31 +847,34 @@ function DeltaChip({ delta }: { delta: Delta }) {
 }
 
 /**
- * Tooltip — переиспользуемый бабл в стиле блюр-карточки графика (белый фон + backdrop-blur).
- * Появляется над триггером по ховеру. align: "start" | "center" | "end" — как выравнивать по X.
+ * Tooltip — переиспользуемый тёмный бабл с блюром (тот же, что в прототипе current-meeting:
+ * фон rgba(33,40,51,0.4) + backdrop-blur, белый текст). align — выравнивание по X.
  */
 function Tooltip({
   text,
   children,
   align = "center",
+  width,
 }: {
   text: string;
   children: React.ReactNode;
   align?: "start" | "center" | "end";
+  width?: number; // фиксированная ширина в px; без неё — hug по контенту (max 240)
 }) {
   const alignClass =
     align === "start" ? "left-0" : align === "end" ? "right-0" : "left-1/2 -translate-x-1/2";
+  const sizeClass = width ? "" : "w-max max-w-[240px]";
   return (
     <span className="group/tip relative inline-flex">
       {children}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute bottom-[calc(100%+8px)] z-30 w-max max-w-[240px] whitespace-normal rounded-[4px] border border-solid p-[8px] text-left text-[12px] font-normal leading-[1.35] tracking-[-0.24px] opacity-0 backdrop-blur-[4px] transition-opacity duration-[120ms] ease-out group-hover/tip:opacity-100 ${alignClass}`}
+        className={`pointer-events-none absolute bottom-[calc(100%+8px)] z-30 rounded-[3px] p-[8px] text-left text-[10px] font-normal leading-[normal] tracking-[-0.1px] text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/tip:opacity-100 ${sizeClass} ${alignClass}`}
         style={{
-          borderColor: tokens.border,
-          backgroundColor: "rgba(255,255,255,0.85)",
-          color: tokens.black,
-          boxShadow: "0 0 4px 0 rgba(0,0,0,0.1)",
+          ...(width ? { width } : {}),
+          backgroundColor: "rgba(33,40,51,0.4)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
         }}
       >
         {text}
@@ -886,10 +891,19 @@ function MetricCard({ label, value, delta, hint }: Metric) {
       style={{ borderColor: tokens.border }}
     >
       {hint ? (
-        <Tooltip text={hint} align="end">
+        <Tooltip text={hint} align="end" width={205}>
           <span
-            className="cursor-default text-[13px] font-normal leading-[16px] tracking-[-0.13px] decoration-dotted underline-offset-2 group-hover/tip:underline"
-            style={{ color: tokens.grey, textDecorationColor: tokens.greyDisabled }}
+            className="cursor-default text-[13px] font-normal leading-[16px] tracking-[-0.13px]"
+            style={{
+              color: tokens.grey,
+              textDecorationLine: "underline",
+              textDecorationStyle: "dotted",
+              textDecorationColor: "#BABBBD",
+              textDecorationSkipInk: "auto",
+              textDecorationThickness: "12%",
+              textUnderlineOffset: "12%",
+              textUnderlinePosition: "from-font",
+            }}
           >
             {label}
           </span>
@@ -904,7 +918,7 @@ function MetricCard({ label, value, delta, hint }: Metric) {
           {value}
         </span>
         {showChip && (
-          <Tooltip text={DELTA_HINT} align="center">
+          <Tooltip text={DELTA_HINT} align="center" width={161}>
             <DeltaChip delta={delta} />
           </Tooltip>
         )}
@@ -1051,11 +1065,10 @@ function MeetingsChart({ range, data, hourly }: { range: DateRange; data: Period
           ))}
 
           <div
-            className={`pointer-events-none absolute top-[48px] flex w-[220px] flex-col gap-[8px] rounded-[4px] border border-solid p-[12px] backdrop-blur-[4px] ${smoothMove}`}
+            className={`pointer-events-none absolute top-[48px] flex w-[220px] flex-col gap-[8px] rounded-[4px] border border-solid bg-white p-[12px] ${smoothMove}`}
             style={{
               left: `${tooltipLeftPct}%`,
               borderColor: tokens.border,
-              backgroundColor: "rgba(255,255,255,0.85)",
               opacity: hovered ? 1 : 0,
               transform: hovered ? "translateY(0px)" : "translateY(4px)",
               transitionProperty: "left, top, opacity, transform",
@@ -1528,8 +1541,11 @@ function DateRangePanel({ range, onApply }: { range: DateRange; onApply: (from: 
 
   const draftDifferent = draft.from !== range.from || draft.to !== range.to;
   const canApply = draft.from !== null && draftDifferent;
+  // Один выбранный день — показываем одну дату, а не «X – X»
   const previewText = draft.from
-    ? rangeLabel(draft.from, draft.to ?? draft.from)
+    ? (draft.to ?? draft.from) === draft.from
+      ? shortDateLabel(draft.from)
+      : rangeLabel(draft.from, draft.to!)
     : null;
 
   return (
@@ -1889,11 +1905,13 @@ export default function UsageStatsPage() {
   };
 
   const applyCustom = (from: string, to: string) => {
-    setPreset("custom");
+    // Выбран ровно сегодняшний день — это пресет «Сегодня», а не кастомный период
+    setPreset(from === TODAY_ISO && to === TODAY_ISO ? 1 : "custom");
     setRange({ from, to });
   };
 
-  const hourly = preset === 1;
+  // Почасовой режим — любой однодневный период: пресет «Сегодня» или один день из календаря
+  const hourly = range.from === range.to;
   const data = useMemo(() => getPeriodData(range, preset === "all", hourly), [range, preset, hourly]);
 
   const presetLabel = presetLabelFor(preset);
