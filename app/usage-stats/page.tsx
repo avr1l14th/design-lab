@@ -199,8 +199,13 @@ const BREAKDOWN_BASE_COUNTS = [142, 96, 83, 48, 12];
 const BREAKDOWN_WIDTHS_30 = [267, 196, 185, 101, 22];
 
 type Delta = { kind: "down" | "up" | "zero"; value: string };
-// delta отсутствует для «За все время» — сравнивать не с чем
-type Metric = { label: string; value: string; delta?: Delta };
+// delta отсутствует для «За все время» — сравнивать не с чем; hint — пояснение по ховеру лейбла
+type Metric = { label: string; value: string; delta?: Delta; hint?: string };
+
+// Пояснение к метрике «Активных пользователей»
+const ACTIVE_USERS_HINT = "Пользователи, у которых была хотя бы одна встреча за последние 30 дней";
+// Общий терм для всех процентных чипсов
+const DELTA_HINT = "По сравнению с предыдущим периодом";
 
 type PeriodData = {
   meetingsTotal: string;
@@ -241,7 +246,7 @@ const DATA_30: PeriodData = {
   metrics: [
     { label: "Всего встреч", value: "3 972", delta: { kind: "down", value: "24%" } },
     { label: "Минут обработано", value: "121 234", delta: { kind: "up", value: "70%" } },
-    { label: "Активных пользователей", value: "20/20", delta: { kind: "zero", value: "0%" } },
+    { label: "Активных пользователей", value: "20/20", delta: { kind: "zero", value: "0%" }, hint: ACTIVE_USERS_HINT },
   ],
   seriesYs: { total: TOTAL_Y, online: ONLINE_Y, files: FILES_Y },
   legend: { total: "964", online: "840", files: "124" },
@@ -290,7 +295,7 @@ function getPeriodData(range: DateRange, allTime = false, hourly = false): Perio
     metrics: [
       { label: "Всего встреч", value: fmt(meetings), delta: allTime ? undefined : { kind: "down", value: `${deltas.meetings}%` } },
       { label: "Минут обработано", value: fmt(minutes), delta: allTime ? undefined : { kind: "up", value: `${deltas.minutes}%` } },
-      { label: "Активных пользователей", value: `${activeUsers}/20`, delta: allTime ? undefined : { kind: "zero", value: "0%" } },
+      { label: "Активных пользователей", value: `${activeUsers}/20`, delta: allTime ? undefined : { kind: "zero", value: "0%" }, hint: ACTIVE_USERS_HINT },
     ],
     seriesYs: hourly
       ? {
@@ -839,20 +844,70 @@ function DeltaChip({ delta }: { delta: Delta }) {
   );
 }
 
-function MetricCard({ label, value, delta }: { label: string; value: string; delta?: Delta }) {
+/**
+ * Tooltip — переиспользуемый бабл в стиле блюр-карточки графика (белый фон + backdrop-blur).
+ * Появляется над триггером по ховеру. align: "start" | "center" | "end" — как выравнивать по X.
+ */
+function Tooltip({
+  text,
+  children,
+  align = "center",
+}: {
+  text: string;
+  children: React.ReactNode;
+  align?: "start" | "center" | "end";
+}) {
+  const alignClass =
+    align === "start" ? "left-0" : align === "end" ? "right-0" : "left-1/2 -translate-x-1/2";
+  return (
+    <span className="group/tip relative inline-flex">
+      {children}
+      <span
+        role="tooltip"
+        className={`pointer-events-none absolute bottom-[calc(100%+8px)] z-30 w-max max-w-[240px] whitespace-normal rounded-[4px] border border-solid p-[8px] text-left text-[12px] font-normal leading-[1.35] tracking-[-0.24px] opacity-0 backdrop-blur-[4px] transition-opacity duration-[120ms] ease-out group-hover/tip:opacity-100 ${alignClass}`}
+        style={{
+          borderColor: tokens.border,
+          backgroundColor: "rgba(255,255,255,0.85)",
+          color: tokens.black,
+          boxShadow: "0 0 4px 0 rgba(0,0,0,0.1)",
+        }}
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
+function MetricCard({ label, value, delta, hint }: Metric) {
+  const showChip = delta && delta.kind !== "zero";
   return (
     <div
       className="flex min-w-px flex-1 flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
       style={{ borderColor: tokens.border }}
     >
-      <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.grey }}>
-        {label}
-      </span>
+      {hint ? (
+        <Tooltip text={hint} align="end">
+          <span
+            className="cursor-default text-[13px] font-normal leading-[16px] tracking-[-0.13px] decoration-dotted underline-offset-2 group-hover/tip:underline"
+            style={{ color: tokens.grey, textDecorationColor: tokens.greyDisabled }}
+          >
+            {label}
+          </span>
+        </Tooltip>
+      ) : (
+        <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.grey }}>
+          {label}
+        </span>
+      )}
       <div className="flex items-center gap-[8px]">
         <span className="text-[24px] font-medium leading-[normal] tracking-[-0.48px]" style={{ color: tokens.black }}>
           {value}
         </span>
-        {delta && <DeltaChip delta={delta} />}
+        {showChip && (
+          <Tooltip text={DELTA_HINT} align="center">
+            <DeltaChip delta={delta} />
+          </Tooltip>
+        )}
       </div>
     </div>
   );
@@ -1188,14 +1243,14 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
         className="flex w-full items-center gap-[24px] border-b border-solid px-[16px] py-[12px]"
         style={{ backgroundColor: tokens.bgSubtle, borderColor: tokens.border }}
       >
-        <span className="w-[300px] text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        <span className="w-[280px] text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           Почта
         </span>
         <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-          Онлайн-встречи
+          Онлайн встречи
         </span>
-        <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-          Файлы
+        <span className="w-[124px] shrink-0 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          Загруженные файлы
         </span>
         <div className="flex min-w-px flex-1 items-center">
           <button
@@ -1225,7 +1280,7 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
           className="flex h-[52px] w-full items-center gap-[24px] border-b border-solid bg-white px-[16px] py-[4px]"
           style={{ borderColor: tokens.border }}
         >
-          <div className="flex w-[300px] shrink-0 items-center gap-[8px]">
+          <div className="flex w-[280px] shrink-0 items-center gap-[8px]">
             <span
               className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full text-[10px] font-normal leading-[normal] text-white"
               style={{ backgroundColor: p.color, letterSpacing: "-0.1px" }}
@@ -1239,7 +1294,7 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
           <span className="min-w-px flex-1 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
             {fmt(p.online)}
           </span>
-          <span className="min-w-px flex-1 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          <span className="w-[124px] shrink-0 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
             {fmt(p.files)}
           </span>
           <span className="min-w-px flex-1 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
@@ -1252,13 +1307,13 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
         className="flex h-[52px] w-full items-center gap-[24px] px-[16px] py-[4px]"
         style={{ backgroundColor: tokens.bgSubtle }}
       >
-        <span className="w-[300px] text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        <span className="w-[280px] text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           Итого
         </span>
         <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           {fmt(data.totals.online)}
         </span>
-        <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        <span className="w-[124px] shrink-0 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           {fmt(data.totals.files)}
         </span>
         <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
@@ -1909,7 +1964,7 @@ export default function UsageStatsPage() {
               <div className="flex w-full flex-col gap-[16px]">
                 <div className="flex w-full items-center gap-[12px]">
                   {data.metrics.map((m) => (
-                    <MetricCard key={m.label} label={m.label} value={m.value} delta={m.delta} />
+                    <MetricCard key={m.label} label={m.label} value={m.value} delta={m.delta} hint={m.hint} />
                   ))}
                 </div>
                 <MeetingsChart range={range} data={data} hourly={hourly} />
