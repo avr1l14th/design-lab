@@ -27,6 +27,7 @@ const tokens = {
   blueSea: "#E4ECFA",
   red: "#CC3333",
   green: "#0D9655",
+  orange: "#FF9E15",
 } as const;
 
 const pressableClass =
@@ -70,11 +71,19 @@ function rangeLabel(fromISO: string, toISO: string): string {
   return `${shortDateLabel(fromISO)} – ${shortDateLabel(toISO)}`;
 }
 
-type PeriodPreset = 30 | 90 | 120 | "all" | "custom";
+type PeriodDays = 1 | 30 | 90 | 120 | "all";
+type PeriodPreset = PeriodDays | "custom";
 type DateRange = { from: string; to: string };
 
 // «За все время» — с даты создания воркспейса (мок)
 const ALL_TIME_FROM = "2025-09-17";
+
+function presetLabelFor(preset: PeriodPreset): string {
+  if (preset === "custom") return "Кастомный период";
+  if (preset === "all") return "Все время";
+  if (preset === 1) return "Сегодня";
+  return `Последние ${preset} дней`;
+}
 
 /* ─────────────────────────── CHART GEOMETRY (1:1 из Figma 40613:2903) ───────────────────────────
    Полилинии перенесены из векторов макета. Y — в координатах канвы 688×235.                        */
@@ -131,7 +140,7 @@ const SERIES: {
 }[] = [
   { key: "total",  label: "Всего",  color: tokens.black, fillBottom: 164, fillTop: 8,   genTop: 10,  genBottom: 133, baseline: 164, k: 1.25 },
   { key: "online", label: "Онлайн", color: tokens.blue,  fillBottom: 226, fillTop: 38,  genTop: 40,  genBottom: 188, baseline: 226, k: 0.85 },
-  { key: "files",  label: "Файлы",  color: tokens.green, fillBottom: 226, fillTop: 164, genTop: 166, genBottom: 213, baseline: 226, k: 0.4 },
+  { key: "files",  label: "Файлы",  color: tokens.orange, fillBottom: 226, fillTop: 164, genTop: 166, genBottom: 213, baseline: 226, k: 0.4 },
 ];
 
 function linePath(ys: number[]) {
@@ -142,7 +151,16 @@ function areaPath(ys: number[], bottom: number) {
   return `${linePath(ys)}L${CHART_W} ${bottom}L0 ${bottom}Z`;
 }
 
-function dateLabelFor(x: number, range: DateRange) {
+// Час станции при почасовом (1 день) режиме: 0..23
+function stationHour(x: number) {
+  return Math.min(23, Math.round((x / CHART_W) * 24));
+}
+
+// Подпись станции в тултипе: «17 июля» либо «17 июля, 16:00» для почасового режима
+function stationLabel(x: number, range: DateRange, hourly: boolean) {
+  if (hourly) {
+    return `${shortDateLabel(range.from)}, ${String(stationHour(x)).padStart(2, "0")}:00`;
+  }
   const day = Math.round((x / CHART_W) * diffDays(range.from, range.to));
   return shortDateLabel(isoAddDays(range.from, day));
 }
@@ -207,6 +225,17 @@ function genYs(days: number, top: number, bottom: number, phase: number): number
   });
 }
 
+// Суточный паттерн (режим «1 день»): тихо ночью, подъём к обеду, пик ~14:00, спад к вечеру
+function genHourlyYs(top: number, bottom: number, phase: number): number[] {
+  return X.map((x) => {
+    const h = (x / CHART_W) * 24;
+    const bump = Math.exp(-Math.pow((h - 14) / 5.2, 2));
+    const wobble = Math.sin(h * 1.6 + phase) * 0.05 + Math.sin(h * 0.7 + phase * 2) * 0.04;
+    const level = Math.max(0.05, Math.min(0.97, 0.08 + 0.85 * bump + wobble));
+    return bottom - (bottom - top) * level;
+  });
+}
+
 const DATA_30: PeriodData = {
   meetingsTotal: "3 972",
   metrics: [
@@ -222,16 +251,17 @@ const DATA_30: PeriodData = {
   totals: { online: 2637, files: 18, minutes: 120834 },
 };
 
-function getPeriodData(range: DateRange, allTime = false): PeriodData {
+function getPeriodData(range: DateRange, allTime = false, hourly = false): PeriodData {
   const days = diffDays(range.from, range.to);
-  if (days === 30 && !allTime) return DATA_30;
+  if (days === 30 && !allTime && !hourly) return DATA_30;
 
-  const k = days / 30;
-  const jit = (i: number) => 1 + 0.12 * Math.sin(i * 2.7 + days * 1.3);
+  // Для режима «1 день» берём долю одного дня, но кривые — суточные (почасовые)
+  const k = hourly ? 1 / 30 : days / 30;
+  const jit = (i: number) => 1 + 0.12 * Math.sin(i * 2.7 + (hourly ? 1 : days) * 1.3);
 
   const meetings = Math.max(1, Math.round(3972 * k * jit(7)));
   const minutes = Math.max(30, Math.round(121234 * k * jit(8)));
-  const activeUsers = Math.min(20, Math.max(2, Math.round(20 * Math.min(1, days / 14))));
+  const activeUsers = hourly ? 14 : Math.min(20, Math.max(2, Math.round(20 * Math.min(1, days / 14))));
 
   const deltas =
     days === 90
@@ -262,11 +292,17 @@ function getPeriodData(range: DateRange, allTime = false): PeriodData {
       { label: "Минут обработано", value: fmt(minutes), delta: allTime ? undefined : { kind: "up", value: `${deltas.minutes}%` } },
       { label: "Активных пользователей", value: `${activeUsers}/20`, delta: allTime ? undefined : { kind: "zero", value: "0%" } },
     ],
-    seriesYs: {
-      total: genYs(days, SERIES[0].genTop, SERIES[0].genBottom, 1),
-      online: genYs(days, SERIES[1].genTop, SERIES[1].genBottom, 1),
-      files: genYs(days, SERIES[2].genTop, SERIES[2].genBottom, 4),
-    },
+    seriesYs: hourly
+      ? {
+          total: genHourlyYs(SERIES[0].genTop, SERIES[0].genBottom, 0),
+          online: genHourlyYs(SERIES[1].genTop, SERIES[1].genBottom, 0.4),
+          files: genHourlyYs(SERIES[2].genTop, SERIES[2].genBottom, 2),
+        }
+      : {
+          total: genYs(days, SERIES[0].genTop, SERIES[0].genBottom, 1),
+          online: genYs(days, SERIES[1].genTop, SERIES[1].genBottom, 1),
+          files: genYs(days, SERIES[2].genTop, SERIES[2].genBottom, 4),
+        },
     legend: {
       total: fmt(Math.max(1, 964 * k * jit(4))),
       online: fmt(Math.max(1, 840 * k * jit(5))),
@@ -824,14 +860,22 @@ function MetricCard({ label, value, delta }: { label: string; value: string; del
 
 /* ─────────────────────────── MEETINGS CHART ─────────────────────────── */
 
-function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) {
+function MeetingsChart({ range, data, hourly }: { range: DateRange; data: PeriodData; hourly: boolean }) {
   const reduceMotion = useReducedMotion();
   const [enabled, setEnabled] = useState<Record<SeriesKey, boolean>>({ total: true, online: true, files: true });
   // station не сбрасывается при уходе мыши — маркеры и тултип плавно гаснут на месте, а не прыгают в 0
   const [station, setStation] = useState(0);
   const [hovered, setHovered] = useState(false);
+  // ховер по чипсе легенды — подсветить её график, остальные приглушить
+  const [focusedKey, setFocusedKey] = useState<SeriesKey | null>(null);
 
-  const toggle = (key: SeriesKey) => setEnabled((prev) => ({ ...prev, [key]: !prev[key] }));
+  const enabledCount = SERIES.filter((s) => enabled[s.key]).length;
+  const toggle = (key: SeriesKey) =>
+    setEnabled((prev) => {
+      // нельзя отжать последнюю активную серию — иначе график опустеет
+      if (prev[key] && Object.values(prev).filter(Boolean).length === 1) return prev;
+      return { ...prev, [key]: !prev[key] };
+    });
 
   const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -850,6 +894,8 @@ function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) 
   };
 
   const visibleSeries = SERIES.filter((s) => enabled[s.key]);
+  // Рисуем от «Файлы» к «Всего»: оранжевый слой уходит вниз стека, серый — наверх (как в Figma)
+  const drawOrder = [...visibleSeries].reverse();
   const tooltipLeftPct = useMemo(() => {
     const x = X[station];
     const left = x + 244 > CHART_W ? x - 244 : x + 24;
@@ -857,6 +903,9 @@ function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) 
   }, [station]);
 
   const smoothMove = "transition-[left,top,opacity] duration-[150ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none";
+
+  // Коэффициенты приглушения: сфокусированная серия — на полную, остальные — тише
+  const dimFor = (key: SeriesKey) => (focusedKey === null || focusedKey === key ? 1 : 0.2);
 
   return (
     <div
@@ -903,27 +952,32 @@ function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) 
               ))}
             </defs>
             {/* Морфинг формы при смене периода: число точек всех кривых одинаковое, framer интерполирует d */}
-            {visibleSeries.map((s) => (
-              <motion.path
-                key={`area-${s.key}`}
-                initial={false}
-                animate={{ d: areaPath(data.seriesYs[s.key], s.fillBottom) }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                fill={`url(#fill-${s.key})`}
-                fillOpacity="0.8"
-                opacity="0.4"
-              />
+            {/* Порядок слоёв как в Figma: «Файлы» (оранжевый) в самом низу стека, «Всего» — сверху.
+                Иначе оранжевая заливка ложится поверх синей и выглядит грязной. */}
+            {/* opacity-приглушение вешаем на обёрточный <g>, а не на motion.path:
+                framer перетирает inline-style motion-компонента на каждом рендере, <g> он не трогает */}
+            {drawOrder.map((s) => (
+              <g key={`area-${s.key}`} style={{ opacity: 0.4 * dimFor(s.key), transition: "opacity 200ms ease-out" }}>
+                <motion.path
+                  initial={false}
+                  animate={{ d: areaPath(data.seriesYs[s.key], s.fillBottom) }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  fill={`url(#fill-${s.key})`}
+                  fillOpacity="0.8"
+                />
+              </g>
             ))}
-            {visibleSeries.map((s) => (
-              <motion.path
-                key={`line-${s.key}`}
-                initial={false}
-                animate={{ d: linePath(data.seriesYs[s.key]) }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="1"
-              />
+            {drawOrder.map((s) => (
+              <g key={`line-${s.key}`} style={{ opacity: dimFor(s.key), transition: "opacity 200ms ease-out" }}>
+                <motion.path
+                  initial={false}
+                  animate={{ d: linePath(data.seriesYs[s.key]) }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth="1"
+                />
+              </g>
             ))}
           </svg>
 
@@ -953,7 +1007,7 @@ function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) 
             }}
           >
             <span className="w-full text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-              {dateLabelFor(X[station], range)}
+              {stationLabel(X[station], range, hourly)}
             </span>
             <div className="h-px w-full" style={{ backgroundColor: tokens.border }} />
             {SERIES.map((s, i) =>
@@ -977,12 +1031,19 @@ function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) 
         <div className="flex w-full flex-col items-end gap-[8px]">
           <div className="h-px w-full" style={{ backgroundColor: tokens.border }} />
           <div className="flex w-full items-center justify-between">
-            <span className="text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-              {shortDateLabel(range.from)}
-            </span>
-            <span className="text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-              {shortDateLabel(range.to)}
-            </span>
+            {/* режим «1 день» — часы по оси; иначе даты границ периода */}
+            {(hourly
+              ? ["00:00", "06:00", "12:00", "18:00", "00:00"]
+              : [shortDateLabel(range.from), shortDateLabel(range.to)]
+            ).map((label, i) => (
+              <span
+                key={i}
+                className="text-[12px] font-normal leading-[normal] tracking-[-0.24px]"
+                style={{ color: tokens.grey }}
+              >
+                {label}
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -990,12 +1051,16 @@ function MeetingsChart({ range, data }: { range: DateRange; data: PeriodData }) 
       <div className="flex items-start gap-[6px]">
         {SERIES.map((s) => {
           const on = enabled[s.key];
+          const isLastActive = on && enabledCount === 1;
           return (
             <button
               key={s.key}
               type="button"
               onClick={() => toggle(s.key)}
-              className={`flex h-[24px] cursor-pointer items-center justify-center gap-[4px] rounded-[3px] px-[8px] py-[4px] ${pressableClass}`}
+              onMouseEnter={() => on && setFocusedKey(s.key)}
+              onMouseLeave={() => setFocusedKey(null)}
+              disabled={isLastActive}
+              className={`flex h-[24px] items-center justify-center gap-[4px] rounded-[3px] px-[8px] py-[4px] ${isLastActive ? "cursor-default" : "cursor-pointer"} ${pressableClass}`}
               style={{ backgroundColor: tokens.bgSubtle }}
             >
               <span className="flex h-[12px] w-[12px] shrink-0 items-center justify-center">
@@ -1445,11 +1510,12 @@ function DateRangePanel({ range, onApply }: { range: DateRange; onApply: (from: 
 
 type Tab = "overview" | "participants";
 
-const PRESETS: { days: 30 | 90 | 120 | "all"; label: string }[] = [
+const PRESETS: { days: PeriodDays; label: string }[] = [
+  { days: 1, label: "Сегодня" },
   { days: 30, label: "Последние 30 дней" },
   { days: 90, label: "Последние 90 дней" },
   { days: 120, label: "Последние 120 дней" },
-  { days: "all", label: "За все время" },
+  { days: "all", label: "Все время" },
 ];
 
 function TabsAndFilters({
@@ -1464,7 +1530,7 @@ function TabsAndFilters({
   onTabChange: (t: Tab) => void;
   preset: PeriodPreset;
   range: DateRange;
-  onPickPreset: (days: 30 | 90 | 120 | "all") => void;
+  onPickPreset: (days: PeriodDays) => void;
   onApplyCustom: (from: string, to: string) => void;
 }) {
   const [openPanel, setOpenPanel] = useState<"preset" | "calendar" | null>(null);
@@ -1494,8 +1560,7 @@ function TabsAndFilters({
     { id: "participants", label: "Участники" },
   ];
 
-  const presetLabel =
-    preset === "custom" ? "Кастомный промежуток" : preset === "all" ? "За все время" : `Последние ${preset} дней`;
+  const presetLabel = presetLabelFor(preset);
 
   return (
     <div className="flex h-[36px] w-full items-center justify-between">
@@ -1590,7 +1655,7 @@ function TabsAndFilters({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={asset("calendar16.svg")} alt="" width={16} height={16} className="shrink-0" />
           <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-            {rangeLabel(range.from, range.to)}
+            {range.from === range.to ? shortDateLabel(range.from) : rangeLabel(range.from, range.to)}
           </span>
         </button>
 
@@ -1677,7 +1742,7 @@ function ExportPopover({ initialPeriod, onClose }: { initialPeriod: string; onCl
 
         <div className="flex w-full flex-col gap-[8px]">
           <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
-            Временной промежуток
+            Период
           </span>
           <div className="relative w-full">
             <button
@@ -1761,9 +1826,11 @@ export default function UsageStatsPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  const pickPreset = (days: 30 | 90 | 120 | "all") => {
+  const pickPreset = (days: PeriodDays) => {
     setPreset(days);
-    setRange(days === "all" ? { from: ALL_TIME_FROM, to: TODAY_ISO } : { from: isoAddDays(TODAY_ISO, -days), to: TODAY_ISO });
+    if (days === "all") setRange({ from: ALL_TIME_FROM, to: TODAY_ISO });
+    else if (days === 1) setRange({ from: TODAY_ISO, to: TODAY_ISO });
+    else setRange({ from: isoAddDays(TODAY_ISO, -days), to: TODAY_ISO });
   };
 
   const applyCustom = (from: string, to: string) => {
@@ -1771,10 +1838,10 @@ export default function UsageStatsPage() {
     setRange({ from, to });
   };
 
-  const data = useMemo(() => getPeriodData(range, preset === "all"), [range, preset]);
+  const hourly = preset === 1;
+  const data = useMemo(() => getPeriodData(range, preset === "all", hourly), [range, preset, hourly]);
 
-  const presetLabel =
-    preset === "custom" ? "Кастомный промежуток" : preset === "all" ? "За все время" : `Последние ${preset} дней`;
+  const presetLabel = presetLabelFor(preset);
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -1845,7 +1912,7 @@ export default function UsageStatsPage() {
                     <MetricCard key={m.label} label={m.label} value={m.value} delta={m.delta} />
                   ))}
                 </div>
-                <MeetingsChart range={range} data={data} />
+                <MeetingsChart range={range} data={data} hourly={hourly} />
                 <div className="flex w-full items-start gap-[16px]">
                   <BreakdownCard title="AI Отчеты" rows={buildBreakdownRows(AI_REPORT_LABELS, data)} />
                   <BreakdownCard title="Источники встреч" rows={buildBreakdownRows(INTEGRATION_LABELS, data)} />
