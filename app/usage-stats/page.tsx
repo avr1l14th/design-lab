@@ -139,8 +139,8 @@ const SERIES: {
   k: number;
 }[] = [
   { key: "total",  label: "Всего",  color: tokens.black, fillBottom: 164, fillTop: 8,   genTop: 10,  genBottom: 133, baseline: 164, k: 1.25 },
-  { key: "online", label: "Онлайн", color: tokens.blue,  fillBottom: 226, fillTop: 38,  genTop: 40,  genBottom: 188, baseline: 226, k: 0.85 },
-  { key: "files",  label: "Файлы",  color: tokens.orange, fillBottom: 226, fillTop: 164, genTop: 166, genBottom: 213, baseline: 226, k: 0.4 },
+  { key: "online", label: "Онлайн встречи", color: tokens.blue,  fillBottom: 226, fillTop: 38,  genTop: 40,  genBottom: 188, baseline: 226, k: 0.85 },
+  { key: "files",  label: "Загруженные файлы",  color: tokens.orange, fillBottom: 226, fillTop: 164, genTop: 166, genBottom: 213, baseline: 226, k: 0.4 },
 ];
 
 function linePath(ys: number[]) {
@@ -202,15 +202,15 @@ type Delta = { kind: "down" | "up" | "zero"; value: string };
 // delta отсутствует для «За все время» — сравнивать не с чем; hint — пояснение по ховеру лейбла
 type Metric = { label: string; value: string; delta?: Delta; hint?: string };
 
-// Пояснение к метрике «Активных пользователей»
-const ACTIVE_USERS_HINT = "Пользователи, у которых была хотя бы одна встреча за последние 30 дней";
+// Пояснение к метрике «Активных пользователей» — единый терм для любого периода
+// (активен = встреч за период не меньше, чем недель в нём; x = дней ÷ 7, может быть дробным)
+const ACTIVE_USERS_HINT = "Пользователи, у которых встреч за период не меньше, чем недель в нём";
 // Общий терм для всех процентных чипсов. Первая строка связана NBSP,
 // чтобы перенос был ровно перед «периодом», как в макете (браузерные метрики
 // Inter на волосок шире фигмовских и иначе заворачивают строку раньше).
 const DELTA_HINT = "По сравнению с предыдущим периодом";
 
 type PeriodData = {
-  meetingsTotal: string;
   metrics: Metric[];
   seriesYs: Record<SeriesKey, number[]>;
   legend: Record<SeriesKey, string>;
@@ -244,14 +244,14 @@ function genHourlyYs(top: number, bottom: number, phase: number): number[] {
 }
 
 const DATA_30: PeriodData = {
-  meetingsTotal: "3 972",
   metrics: [
     { label: "Всего встреч", value: "3 972", delta: { kind: "down", value: "24%" } },
     { label: "Минут обработано", value: "121 234", delta: { kind: "up", value: "70%" } },
     { label: "Активных пользователей", value: "20/20", delta: { kind: "zero", value: "0%" }, hint: ACTIVE_USERS_HINT },
   ],
   seriesYs: { total: TOTAL_Y, online: ONLINE_Y, files: FILES_Y },
-  legend: { total: "964", online: "840", files: "124" },
+  // «Всего» в легенде = KPI «Всего встреч» (правка после согласования макета)
+  legend: { total: "3 972", online: "840", files: "124" },
   breakdownCounts: BREAKDOWN_BASE_COUNTS,
   breakdownWidths: BREAKDOWN_WIDTHS_30,
   participants: PARTICIPANTS_BASE,
@@ -293,7 +293,6 @@ function getPeriodData(range: DateRange, allTime = false, hourly = false): Perio
   );
 
   return {
-    meetingsTotal: fmt(meetings),
     metrics: [
       { label: "Всего встреч", value: fmt(meetings), delta: allTime ? undefined : { kind: "down", value: `${deltas.meetings}%` } },
       { label: "Минут обработано", value: fmt(minutes), delta: allTime ? undefined : { kind: "up", value: `${deltas.minutes}%` } },
@@ -311,7 +310,7 @@ function getPeriodData(range: DateRange, allTime = false, hourly = false): Perio
           files: genYs(days, SERIES[2].genTop, SERIES[2].genBottom, 4),
         },
     legend: {
-      total: fmt(Math.max(1, 964 * k * jit(4))),
+      total: fmt(meetings),
       online: fmt(Math.max(1, 840 * k * jit(5))),
       files: fmt(Math.max(1, 124 * k * jit(6))),
     },
@@ -984,14 +983,9 @@ function MeetingsChart({ range, data, hourly }: { range: DateRange; data: Period
       className="flex w-full flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
       style={{ borderColor: tokens.border }}
     >
-      <div className="flex w-full flex-col gap-[4px]">
-        <span className="text-[14px] font-medium leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
-          Встречи
-        </span>
-        <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.grey }}>
-          {data.meetingsTotal} встреч за период
-        </span>
-      </div>
+      <span className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
+        Встречи
+      </span>
 
       <div className="flex w-full flex-col gap-[8px]">
         <div
@@ -1240,9 +1234,138 @@ function BreakdownCard({ title, rows }: { title: string; rows: BreakdownRow[] })
   );
 }
 
+/* ─────────────────────────── EMPTY STATES / SKELETON ───────────────────────────
+   Эмпти — когда за выбранный период данных нет (в прототипе: кастомный период
+   целиком до создания воркспейса). Скелетон — первое открытие страницы. */
+
+function EmptyState({ icon, height }: { icon?: string; height?: number }) {
+  return (
+    <div
+      className="flex w-full flex-col items-center justify-center gap-[8px]"
+      style={height ? { height } : { flex: 1 }}
+    >
+      {icon && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={asset(icon)} alt="" width={20} height={20} className="shrink-0" />
+      )}
+      <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: "#BABBBD" }}>
+        Нет данных за выбранный период
+      </span>
+    </div>
+  );
+}
+
+const EMPTY_METRICS: Metric[] = [
+  { label: "Всего встреч", value: "0" },
+  { label: "Минут обработано", value: "0" },
+  { label: "Активных пользователей", value: "0/20", hint: ACTIVE_USERS_HINT },
+];
+
+function EmptyOverview() {
+  return (
+    <div className="flex w-full flex-col gap-[16px]">
+      <div className="flex w-full items-center gap-[12px]">
+        {EMPTY_METRICS.map((m) => (
+          <MetricCard key={m.label} label={m.label} value={m.value} hint={m.hint} />
+        ))}
+      </div>
+      <div
+        className="flex w-full flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
+        style={{ borderColor: tokens.border }}
+      >
+        <span className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
+          Встречи
+        </span>
+        <EmptyState icon="empty-chart20.svg" height={287} />
+      </div>
+      <div className="flex w-full items-start gap-[16px]">
+        {["AI Отчеты", "Источники встреч"].map((title) => (
+          <div
+            key={title}
+            className="flex h-[255px] min-w-px flex-1 flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
+            style={{ borderColor: tokens.border }}
+          >
+            <span className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
+              {title}
+            </span>
+            <EmptyState />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Skel({ w, h }: { w?: number; h: number }) {
+  return (
+    <span
+      className="block shrink-0 rounded-[3px]"
+      style={{ width: w ?? "100%", height: h, backgroundColor: tokens.grey15 }}
+    />
+  );
+}
+
+// Экран-скелетон при первой подгрузке данных (Figma: заголовки видны, значения — плейсхолдеры)
+function OverviewSkeleton() {
+  return (
+    <div className="flex w-full flex-col gap-[16px]">
+      <div className="flex w-full items-center gap-[12px]">
+        {["Всего встреч", "Минут обработано", "Активных пользователей"].map((label) => (
+          <div
+            key={label}
+            className="flex min-w-px flex-1 flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
+            style={{ borderColor: tokens.border }}
+          >
+            <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.grey }}>
+              {label}
+            </span>
+            <Skel w={72} h={29} />
+          </div>
+        ))}
+      </div>
+      <div
+        className="flex w-full flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
+        style={{ borderColor: tokens.border }}
+      >
+        <span className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
+          Встречи
+        </span>
+        <Skel h={235} />
+        <div className="flex w-full items-center justify-between">
+          <Skel w={48} h={15} />
+          <Skel w={48} h={15} />
+        </div>
+        <div className="flex items-start gap-[6px]">
+          <Skel w={92} h={24} />
+          <Skel w={140} h={24} />
+          <Skel w={168} h={24} />
+        </div>
+      </div>
+      <div className="flex w-full items-start gap-[16px]">
+        {["AI Отчеты", "Источники встреч"].map((title) => (
+          <div
+            key={title}
+            className="flex h-[255px] min-w-px flex-1 flex-col gap-[12px] rounded-[4px] border border-solid bg-white p-[16px]"
+            style={{ borderColor: tokens.border }}
+          >
+            <span className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
+              {title}
+            </span>
+            <div className="flex w-full flex-col gap-[8px]">
+              {BREAKDOWN_WIDTHS_30.map((w, i) => (
+                <Skel key={i} w={w} h={24} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────── PARTICIPANTS TABLE ─────────────────────────── */
 
-function ParticipantsTable({ data }: { data: PeriodData }) {
+function ParticipantsTable({ data, empty = false }: { data: PeriodData; empty?: boolean }) {
   const [minutesDesc, setMinutesDesc] = useState(true);
   const sorted = useMemo(
     () =>
@@ -1262,13 +1385,14 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
         <span className="w-[280px] text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           Почта
         </span>
-        <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        {/* Числовые колонки выровнены по центру (решение после ревью макета) */}
+        <span className="min-w-px flex-1 text-center text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           Онлайн встречи
         </span>
-        <span className="w-[124px] shrink-0 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-          Загруженные файлы
+        <span className="w-[124px] shrink-0 text-center text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          Файлы
         </span>
-        <div className="flex min-w-px flex-1 items-center">
+        <div className="flex min-w-px flex-1 items-center justify-center">
           <button
             type="button"
             onClick={() => setMinutesDesc((v) => !v)}
@@ -1290,7 +1414,13 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
         </div>
       </div>
 
-      {sorted.map((p) => (
+      {empty && (
+        <div className="w-full bg-white">
+          <EmptyState icon="empty-table20.svg" height={430} />
+        </div>
+      )}
+
+      {!empty && sorted.map((p) => (
         <div
           key={p.email}
           className="flex h-[52px] w-full items-center gap-[24px] border-b border-solid bg-white px-[16px] py-[4px]"
@@ -1307,18 +1437,19 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
               {p.email}
             </span>
           </div>
-          <span className="min-w-px flex-1 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          <span className="min-w-px flex-1 text-center text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
             {fmt(p.online)}
           </span>
-          <span className="w-[124px] shrink-0 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          <span className="w-[124px] shrink-0 text-center text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
             {fmt(p.files)}
           </span>
-          <span className="min-w-px flex-1 text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          <span className="min-w-px flex-1 text-center text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
             {fmt(p.minutes)}
           </span>
         </div>
       ))}
 
+      {!empty && (
       <div
         className="flex h-[52px] w-full items-center gap-[24px] px-[16px] py-[4px]"
         style={{ backgroundColor: tokens.bgSubtle }}
@@ -1326,16 +1457,17 @@ function ParticipantsTable({ data }: { data: PeriodData }) {
         <span className="w-[280px] text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           Итого
         </span>
-        <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        <span className="min-w-px flex-1 text-center text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           {fmt(data.totals.online)}
         </span>
-        <span className="w-[124px] shrink-0 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        <span className="w-[124px] shrink-0 text-center text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           {fmt(data.totals.files)}
         </span>
-        <span className="min-w-px flex-1 text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+        <span className="min-w-px flex-1 text-center text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           {fmt(data.totals.minutes)}
         </span>
       </div>
+      )}
     </div>
   );
 }
@@ -1760,7 +1892,8 @@ function TabsAndFilters({
 
 /* ─────────────────────────── EXPORT POPOVER (Figma 40609:2707) ─────────────────────────── */
 
-const EXPORT_FORMATS = ["HTML", "PDF", "CSV"] as const;
+// PDF отменён командой (24.07.2026) — остались HTML и CSV
+const EXPORT_FORMATS = ["HTML", "CSV"] as const;
 
 function ExportPopover({ initialPeriod, onClose }: { initialPeriod: string; onClose: () => void }) {
   const [format, setFormat] = useState<(typeof EXPORT_FORMATS)[number]>("HTML");
@@ -1816,7 +1949,7 @@ function ExportPopover({ initialPeriod, onClose }: { initialPeriod: string; onCl
 
         <div className="flex w-full flex-col gap-[8px]">
           <span className="text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
-            Период
+            Временной период
           </span>
           <div className="relative w-full">
             <button
@@ -1917,6 +2050,16 @@ export default function UsageStatsPage() {
   const hourly = range.from === range.to;
   const data = useMemo(() => getPeriodData(range, preset === "all", hourly), [range, preset, hourly]);
 
+  // Эмпти-стейт: период целиком до создания воркспейса (выбери в календаре день раньше сент. 2025)
+  const isEmpty = preset !== "all" && range.to < ALL_TIME_FROM;
+
+  // Скелетон при первом открытии страницы (имитация подгрузки данных)
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 900);
+    return () => clearTimeout(t);
+  }, []);
+
   const presetLabel = presetLabelFor(preset);
 
   useEffect(() => {
@@ -1981,21 +2124,27 @@ export default function UsageStatsPage() {
               onApplyCustom={applyCustom}
             />
 
-            {tab === "overview" ? (
-              <div className="flex w-full flex-col gap-[16px]">
-                <div className="flex w-full items-center gap-[12px]">
-                  {data.metrics.map((m) => (
-                    <MetricCard key={m.label} label={m.label} value={m.value} delta={m.delta} hint={m.hint} />
-                  ))}
+            {loading ? (
+              <OverviewSkeleton />
+            ) : tab === "overview" ? (
+              isEmpty ? (
+                <EmptyOverview />
+              ) : (
+                <div className="flex w-full flex-col gap-[16px]">
+                  <div className="flex w-full items-center gap-[12px]">
+                    {data.metrics.map((m) => (
+                      <MetricCard key={m.label} label={m.label} value={m.value} delta={m.delta} hint={m.hint} />
+                    ))}
+                  </div>
+                  <MeetingsChart range={range} data={data} hourly={hourly} />
+                  <div className="flex w-full items-start gap-[16px]">
+                    <BreakdownCard title="AI Отчеты" rows={buildBreakdownRows(AI_REPORT_LABELS, data)} />
+                    <BreakdownCard title="Источники встреч" rows={buildBreakdownRows(INTEGRATION_LABELS, data)} />
+                  </div>
                 </div>
-                <MeetingsChart range={range} data={data} hourly={hourly} />
-                <div className="flex w-full items-start gap-[16px]">
-                  <BreakdownCard title="AI Отчеты" rows={buildBreakdownRows(AI_REPORT_LABELS, data)} />
-                  <BreakdownCard title="Источники встреч" rows={buildBreakdownRows(INTEGRATION_LABELS, data)} />
-                </div>
-              </div>
+              )
             ) : (
-              <ParticipantsTable data={data} />
+              <ParticipantsTable data={data} empty={isEmpty} />
             )}
           </div>
         </div>

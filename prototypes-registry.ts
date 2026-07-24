@@ -11,9 +11,9 @@ export const prototypes: Prototype[] = [
   {
     slug: "usage-stats",
     title: "Статистика использования",
-    description: "Дашборд воркспейса: метрики, график встреч с тултипом и легендой-тогглами, вкладка «Участники» с таблицей",
+    description: "Дашборд воркспейса: метрики, график встреч с тултипом и легендой-тогглами, вкладка «Участники», экспорт HTML/CSV, эмпти-стейт и скелетон",
     tags: ["dashboard", "chart", "table", "figma"],
-    updatedAt: "2026-07-22",
+    updatedAt: "2026-07-24",
   },
   {
     slug: "sidebar-menu-update",
