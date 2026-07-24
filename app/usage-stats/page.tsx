@@ -2090,9 +2090,14 @@ export default function UsageStatsPage() {
 
       <section className="flex h-full min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-[54px] w-full shrink-0 items-center justify-between bg-white p-[16px]">
-          <h1 className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-            Статистика использования
-          </h1>
+          <button
+            type="button"
+            className={`flex cursor-pointer items-center rounded-[3px] px-[8px] py-[6px] hover:bg-[#F7F7F8] ${pressableClass}`}
+          >
+            <span className="whitespace-nowrap text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+              Назад
+            </span>
+          </button>
           <div ref={exportRef} className="relative">
             <button
               type="button"
