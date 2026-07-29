@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "add-meeting-update",
+    title: "Обновление добавления встречи и подсветка десктопа",
+    description: "База — «Обновление бокового меню» 1-в-1: новый флоу добавления встречи и промо десктопного приложения",
+    tags: ["sidebar", "add-meeting", "desktop", "figma"],
+    updatedAt: "2026-07-29",
+  },
+  {
     slug: "usage-stats",
     title: "Статистика использования",
     description: "Дашборд воркспейса: метрики, график встреч с тултипом и легендой-тогглами, вкладка «Участники», экспорт HTML/CSV, эмпти-стейт и скелетон",
