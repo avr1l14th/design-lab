@@ -796,8 +796,15 @@ function OnlineMeetingModal({ onClose }: { onClose: () => void }) {
   }, [link, setCycle]);
 
   // Тултип «Поддерживаем: ...» по ховеру плитки с иконкой.
+  // Рендерится порталом с fixed-координатами: внутри скроллящегося тела модалки
+  // его высота попадала бы в scrollHeight и растила скроллбар.
   const [tooltipOpen, setTooltipOpen] = useState(false);
-  const showTooltip = useCallback(() => setTooltipOpen(true), []);
+  const [tooltipAnchor, setTooltipAnchor] = useState({ left: 0, top: 0 });
+  const showTooltip: MouseEventHandler<HTMLDivElement> = useCallback((event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltipAnchor({ left: rect.left, top: rect.bottom + 6 });
+    setTooltipOpen(true);
+  }, []);
   const hideTooltip = useCallback(() => setTooltipOpen(false), []);
   const displayIndex = lockedIndex >= 0 ? lockedIndex : cycle.index;
   const displayPrev = lockedIndex >= 0 && lockedIndex !== cycle.index ? cycle.index : cycle.prev;
@@ -918,13 +925,13 @@ function OnlineMeetingModal({ onClose }: { onClose: () => void }) {
                     </span>
                   </span>
                 </div>
-                {tooltipOpen && (
+                {tooltipOpen && createPortal(
                   <motion.div
                     initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.97)" }}
                     animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "scale(1)" }}
                     transition={reduceMotion ? { duration: 0 } : { duration: 0.125, ease: [0.23, 1, 0.32, 1] }}
-                    className="pointer-events-none absolute left-0 top-[calc(100%+6px)] z-10 flex w-[108px] origin-top-left flex-col items-start gap-[6px] rounded-[3px] p-[8px] backdrop-blur-[8px] will-change-[opacity,transform]"
-                    style={{ backgroundColor: tokens.overlay }}
+                    className="pointer-events-none fixed z-[70] flex w-[108px] origin-top-left flex-col items-start gap-[6px] rounded-[3px] p-[8px] backdrop-blur-[8px] will-change-[opacity,transform]"
+                    style={{ left: tooltipAnchor.left, top: tooltipAnchor.top, backgroundColor: tokens.overlay }}
                   >
                     <span className="text-[10px] font-normal leading-[normal] tracking-[-0.1px] text-white">Поддерживаем:</span>
                     {vksPlatforms.map((platform) => (
@@ -936,7 +943,8 @@ function OnlineMeetingModal({ onClose }: { onClose: () => void }) {
                         </span>
                       </span>
                     ))}
-                  </motion.div>
+                  </motion.div>,
+                  document.body
                 )}
               </div>
               <div
