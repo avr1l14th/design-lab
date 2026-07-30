@@ -1101,7 +1101,7 @@ function Sidebar({ workspaceRole }: { workspaceRole: WorkspaceRole }) {
 
   const sidebarResourceItems: Item[] = [
     ...resourceItems,
-    { label: "Десктоп приложение", icon: "desktop-app.svg", badge: "NEW", onSelect: () => setDesktopModalOpen(true) },
+    { label: "Десктоп приложение", icon: "desktop-app.svg", badge: "НОВОЕ", onSelect: () => setDesktopModalOpen(true) },
   ];
 
   const openWorkspaceMenu = useCallback(() => {
