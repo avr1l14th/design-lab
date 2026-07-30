@@ -554,24 +554,19 @@ function DesktopPromoModal({ onClose }: { onClose: () => void }) {
         animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "scale(1)" }}
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.99)" }}
         transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-        className="flex h-[424px] w-[820px] overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
+        className="flex h-[372px] w-[820px] overflow-hidden rounded-[4px] bg-white will-change-[opacity,transform]"
       >
         <div className="flex h-full w-[410px] shrink-0 flex-col items-center justify-center gap-[32px] bg-white p-[32px]">
-          <div className="flex w-full flex-col items-start gap-[24px]">
-            <div className="flex w-full flex-col items-start gap-[12px]">
-              <div className="flex w-full flex-col items-start gap-[4px]">
-                <span className="flex items-center justify-center overflow-hidden rounded-[4px] p-[2px]">
-                  <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-                    Десктоп приложение
-                  </span>
+          <div className="flex w-full flex-col items-start gap-[16px]">
+            <div className="flex w-full flex-col items-start gap-[4px]">
+              <span className="flex items-center justify-center overflow-hidden rounded-[4px] p-[2px]">
+                <span className="text-[12px] font-medium leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+                  Десктоп приложение
                 </span>
-                <span className="w-full text-[24px] font-medium leading-[normal] tracking-[-0.48px]" style={{ color: tokens.black }}>
-                  Запись встреч без ботов
-                </span>
-              </div>
-              <p className="w-full text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                Записывайте все онлайн-встречи и звонки локально прямо с компьютера. Без подключения ботов
-              </p>
+              </span>
+              <span className="w-full text-[24px] font-medium leading-[normal] tracking-[-0.48px]" style={{ color: tokens.black }}>
+                Запись встреч без ботов
+              </span>
             </div>
 
             <div className="flex w-full flex-col items-start gap-[12px] px-[2px]">
@@ -587,27 +582,22 @@ function DesktopPromoModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex w-full flex-col items-center gap-[8px]">
-            <div className="flex w-full items-start gap-[8px]">
-              {["macOS Silicone", "macOS Intel"].map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={`flex flex-1 items-center justify-center gap-[6px] rounded-[4px] bg-[#0138C7] px-[12px] py-[10px] hover:bg-[#0032B1] ${pressableClass}`}
-                >
-                  <span className="relative block h-[16px] w-[16px] shrink-0 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={asset("apple-logo.svg")}
-                      alt=""
-                      className="absolute left-[1.9px] top-1/2 block h-[16px] w-[12.334px] -translate-y-1/2"
-                    />
-                  </span>
-                  <span className="whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              className={`flex h-[36px] w-full items-center justify-center gap-[6px] rounded-[4px] bg-[#0138C7] px-[12px] py-[10px] hover:bg-[#0032B1] ${pressableClass}`}
+            >
+              <span className="relative block h-[16px] w-[16px] shrink-0 overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={asset("apple-logo.svg")}
+                  alt=""
+                  className="absolute left-[1.9px] top-1/2 block h-[16px] w-[12.334px] -translate-y-1/2"
+                />
+              </span>
+              <span className="whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">
+                Скачать на macOS
+              </span>
+            </button>
             <div
               aria-disabled="true"
               className="flex w-full items-center justify-center gap-[6px] rounded-[4px] px-[12px] py-[10px]"
@@ -626,7 +616,7 @@ function DesktopPromoModal({ onClose }: { onClose: () => void }) {
 
         <div className="relative h-full w-[410px] shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("desktop-promo.png")} alt="" className="block h-full w-full scale-[1.02] object-cover" />
+          <img src={asset("desktop-promo-v2.png")} alt="" className="block h-full w-full scale-[1.02] object-cover" />
           <button
             type="button"
             onClick={onClose}
@@ -1198,15 +1188,16 @@ function Sidebar({ workspaceRole }: { workspaceRole: WorkspaceRole }) {
                   if (rect) setAddMenuAnchor({ left: rect.left, top: rect.bottom + 6 });
                   setAddMenuOpen((open) => !open);
                 }}
-                className={`relative flex h-[36px] w-full items-center justify-between overflow-hidden rounded-[4px] px-[12px] py-[10px] ${pressableClass}`}
+                className={`group relative flex h-[36px] w-full items-center justify-between overflow-hidden rounded-[4px] px-[12px] py-[10px] ${pressableClass}`}
                 style={{ backgroundColor: tokens.blue }}
               >
                 <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[4px]">
+                  {/* Картина под оверлеем чуть зумится по ховеру; медленный выезд, живет только на hover-устройствах */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={asset("add-btn-paint.png")}
                     alt=""
-                    className="absolute left-0 top-[-187.97%] block h-[475.95%] w-full max-w-none"
+                    className="absolute left-0 top-[-187.97%] block h-[475.95%] w-full max-w-none transition-transform duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.12] motion-reduce:transition-none"
                   />
                   <span className="absolute inset-0 rounded-[4px]" style={{ backgroundColor: "rgba(1, 56, 199, 0.6)" }} />
                 </span>
