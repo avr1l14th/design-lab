@@ -559,7 +559,8 @@ function MeetingHeader({
   onAiCopy: () => void;
 }) {
   const [openPanel, setOpenPanel] = useState<HeaderPanel>(null);
-  const [aiAction, setAiAction] = useState<AiMenuItem>(aiMenuTop[0]);
+  // Дефолтное действие — ChatGPT (aiMenuTop[1])
+  const [aiAction, setAiAction] = useState<AiMenuItem>(aiMenuTop[1]);
   const [aiCopied, setAiCopied] = useState(false);
   const [tip, setTip] = useState<HeaderTip | null>(null);
   const [tipVisible, setTipVisible] = useState(false);
