@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "ai-export-sharing",
+    title: "ИИ экспорт и улучшение шеринга",
+    description: "Страница встречи с транскриптом: AI-кнопка, сплит «Поделиться» с копированием ссылки, «Экспорт» и плеер",
+    tags: ["export", "sharing", "ai", "figma"],
+    updatedAt: "2026-08-11",
+  },
+  {
     slug: "add-meeting-update",
     title: "Обновление добавления встречи и подсветка десктопа",
     description: "База — «Обновление бокового меню» 1-в-1: новый флоу добавления встречи и промо десктопного приложения",
