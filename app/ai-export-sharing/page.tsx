@@ -353,7 +353,7 @@ function AiExportMenu({ onSelect }: { onSelect: (item: AiMenuItem) => void }) {
   return (
     <motion.div
       {...motionProps}
-      className="absolute right-0 top-[38px] z-50 flex w-[200px] origin-top-right flex-col items-start overflow-clip rounded-[4px] bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] will-change-[opacity,transform]"
+      className="absolute right-0 top-[38px] z-50 flex w-[210px] origin-top-right flex-col items-start overflow-clip rounded-[4px] bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] will-change-[opacity,transform]"
     >
       <div className="flex w-full flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
         {aiMenuTop.map((item) => (
