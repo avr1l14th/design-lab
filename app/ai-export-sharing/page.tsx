@@ -310,8 +310,8 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 type AiMenuItem = { icon: string; label: string; external: boolean; deepseek?: boolean };
 
 const aiMenuTop: AiMenuItem[] = [
-  { icon: "menu-claude.svg", label: "Открыть в Claude", external: true },
   { icon: "menu-chatgpt.svg", label: "Открыть в ChatGPT", external: true },
+  { icon: "menu-claude.svg", label: "Открыть в Claude", external: true },
   { icon: "menu-deepseek.svg", label: "Открыть в DeepSeek", external: true, deepseek: true },
 ];
 
@@ -559,8 +559,8 @@ function MeetingHeader({
   onAiCopy: () => void;
 }) {
   const [openPanel, setOpenPanel] = useState<HeaderPanel>(null);
-  // Дефолтное действие — ChatGPT (aiMenuTop[1])
-  const [aiAction, setAiAction] = useState<AiMenuItem>(aiMenuTop[1]);
+  // Дефолтное действие — ChatGPT (первый пункт меню)
+  const [aiAction, setAiAction] = useState<AiMenuItem>(aiMenuTop[0]);
   const [aiCopied, setAiCopied] = useState(false);
   const [tip, setTip] = useState<HeaderTip | null>(null);
   const [tipVisible, setTipVisible] = useState(false);
@@ -1114,7 +1114,7 @@ export default function AiExportSharingPage() {
   };
 
   const handleAiCopy = () => {
-    showToast("Скопировано для ИИ!");
+    showToast("Скопировано для AI!");
   };
 
   useEffect(() => {
