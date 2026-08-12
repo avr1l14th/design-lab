@@ -316,8 +316,8 @@ const aiMenuTop: AiMenuItem[] = [
 ];
 
 const aiMenuBottom: AiMenuItem[] = [
-  { icon: "menu-copy.svg", label: "Скопировать для ИИ", external: false },
-  { icon: "menu-download.svg", label: "Скачать для ИИ", external: false },
+  { icon: "menu-copy.svg", label: "Скопировать для AI", external: false },
+  { icon: "menu-download.svg", label: "Скачать для AI", external: false },
 ];
 
 function AiMenuRow({ item, onSelect }: { item: AiMenuItem; onSelect: (item: AiMenuItem) => void }) {
@@ -377,7 +377,7 @@ function SharePopover() {
   return (
     <motion.div
       {...motionProps}
-      className="absolute right-0 top-[38px] z-50 flex w-[400px] origin-top-right flex-col items-center overflow-clip rounded-[4px] bg-white drop-shadow-[0px_0px_2px_rgba(0,0,0,0.15)] will-change-[opacity,transform]"
+      className="absolute right-0 top-[38px] z-50 flex w-[380px] origin-top-right flex-col items-center overflow-clip rounded-[4px] bg-white drop-shadow-[0px_0px_2px_rgba(0,0,0,0.15)] will-change-[opacity,transform]"
     >
       <div className="flex w-full items-center border-b bg-white p-[16px]" style={{ borderColor: tokens.border }}>
         <div className="flex items-center gap-[8px]">
@@ -547,7 +547,7 @@ function ExportPopover() {
 
 type HeaderPanel = "ai" | "share" | "export" | null;
 
-const AI_COPY_LABEL = "Скопировать для ИИ";
+const AI_COPY_LABEL = "Скопировать для AI";
 
 function MeetingHeader({
   linkCopied,
