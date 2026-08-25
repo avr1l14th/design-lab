@@ -2,7 +2,7 @@
 
 import { Inter } from "next/font/google";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600"] });
@@ -2258,10 +2258,30 @@ function ReportContent({ report }: { report: Report }) {
   );
 }
 
-// Заглушка на время применения отчета (иконка текущего отчета в 48px)
+// Заглушка на время применения отчета (иконка текущего отчета в 48px).
+// Контейнер тянется до низа экрана с отступом 16px, контент отцентрован по высоте
 function GeneratingPlaceholder({ report }: { report: Report }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const update = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const top = container.getBoundingClientRect().top;
+      setHeight(Math.max(240, window.innerHeight - top - 16));
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   return (
-    <div className="flex h-[400px] w-full flex-col items-center justify-center rounded-[4px] p-[16px]" style={{ backgroundColor: tokens.bgCard }}>
+    <div
+      ref={containerRef}
+      className="flex w-full flex-col items-center justify-center rounded-[4px] p-[16px]"
+      style={{ backgroundColor: tokens.bgCard, height: height ?? 400 }}
+    >
       <div className="flex w-full flex-col items-center gap-[12px]">
         <div className="report-breathe">
           <ReportIcon report={report} size={48} />
