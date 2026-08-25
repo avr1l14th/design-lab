@@ -167,6 +167,20 @@ body {
   .t-icon-swap > .t-icon { transition: none !important; }
 }
 
+/* report-switcher — иконка отчета «дышит» на заглушке генерации.
+   Класс без animate-* префикса (см. комментарий у rec-flicker). */
+@keyframes report-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+.report-breathe {
+  animation: report-breathe 1.8s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .report-breathe { animation: none; }
+}
+
 /* app-leads-v2 — modal enter/exit animation */
 .t-backdrop {
   opacity: 0;

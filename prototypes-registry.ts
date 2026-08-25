@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "report-switcher",
+    title: "Новое применение отчетов",
+    description: "Отчеты живут в одной вкладке: дропдаун с примененными, кастомными и предустановленными отчетами, пересоздание и заглушка генерации",
+    tags: ["reports", "dropdown", "tabs", "figma"],
+    updatedAt: "2026-08-25",
+  },
+  {
     slug: "ai-export-sharing",
     title: "ИИ экспорт и улучшение шеринга",
     description: "Страница встречи с транскриптом: AI-кнопка, сплит «Поделиться» с копированием ссылки, «Экспорт» и плеер",
