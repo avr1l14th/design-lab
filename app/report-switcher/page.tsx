@@ -740,12 +740,12 @@ function MeetingHeader({
   );
 }
 
-// Тост-подтверждение — заякорен к самому плееру: absolute внутри PlayerBar,
-// 8px над его верхней кромкой, по центру его ширины. CSS-transitions вместо framer.
+// Тост-подтверждение — absolute у нижней кромки контентной секции, по центру.
+// CSS-transitions вместо framer.
 function CopiedToast({ visible, message }: { visible: boolean; message: string }) {
   return (
     <div
-      className="absolute bottom-[calc(100%+8px)] left-1/2 z-50 flex h-[36px] items-center justify-center gap-[8px] rounded-[4px] px-[12px] py-[10px] transition-[opacity,transform] duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
+      className="absolute bottom-[24px] left-1/2 z-50 flex h-[36px] items-center justify-center gap-[8px] rounded-[4px] px-[12px] py-[10px] transition-[opacity,transform] duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
       style={{
         backgroundColor: tokens.black,
         opacity: visible ? 1 : 0,
@@ -768,7 +768,7 @@ function CopiedToast({ visible, message }: { visible: boolean; message: string }
 
 // Наш тултип — полупрозрачный черный с блюром (как в usage-stats/current-meeting),
 // порталом в body: кнопки шапки сидят в overflow-hidden контейнерах.
-type HeaderTip = { text: string; left: number; top: number };
+type HeaderTip = { text: string; left: number; top: number; placement?: "top" | "bottom" };
 
 function HeaderTooltip({ tip, visible }: { tip: HeaderTip | null; visible: boolean }) {
   const [mounted, setMounted] = useState(false);
@@ -777,7 +777,7 @@ function HeaderTooltip({ tip, visible }: { tip: HeaderTip | null; visible: boole
   return createPortal(
     <span
       role="tooltip"
-      className="pointer-events-none fixed z-[60] w-max max-w-[240px] -translate-x-1/2 rounded-[3px] p-[8px] text-left text-[10px] font-normal leading-[normal] tracking-[-0.1px] text-white transition-opacity duration-[120ms] ease-out motion-reduce:transition-none"
+      className={`pointer-events-none fixed z-[60] w-max max-w-[240px] -translate-x-1/2 rounded-[3px] p-[8px] text-left text-[10px] font-normal leading-[normal] tracking-[-0.1px] text-white transition-opacity duration-[120ms] ease-out motion-reduce:transition-none ${tip.placement === "top" ? "-translate-y-full" : ""}`}
       style={{
         left: tip.left,
         top: tip.top,
@@ -890,20 +890,38 @@ const customReports: Report[] = [
   { id: "antimat", label: "Антимат", icon: { kind: "badge", letter: "А", file: "badge-yellow.svg" }, group: "custom" },
 ];
 
+// Полный продуктовый список предустановленных отчетов (порядок как в настройках)
 const presetReports: Report[] = [
   { id: "regular", label: "Обычная встреча", icon: { kind: "svg", file: "preset-regular.svg" }, group: "preset" },
-  { id: "client", label: "Встреча с клиентом", icon: { kind: "svg", file: "preset-client.svg" }, group: "preset" },
+  { id: "daily", label: "Дейлик", icon: { kind: "svg", file: "preset-daily.svg" }, group: "preset" },
+  { id: "demo", label: "Демо", icon: { kind: "svg", file: "preset-demo.svg" }, group: "preset" },
+  { id: "one-on-one", label: "Один-на-один", icon: { kind: "svg", file: "preset-oneonone.svg" }, group: "preset" },
+  { id: "grooming", label: "Груминг бэклога", icon: { kind: "svg", file: "preset-grooming.svg" }, group: "preset" },
+  { id: "brainstorm", label: "Брейншторм", icon: { kind: "svg", file: "preset-brainstorm.svg" }, group: "preset" },
+  { id: "followup", label: "Follow-up письмо", icon: { kind: "svg", file: "preset-followup.svg" }, group: "preset" },
+  { id: "project-sync", label: "Синк по проекту", icon: { kind: "svg", file: "preset-projectsync.svg" }, group: "preset" },
+  { id: "protocol", label: "Протокол встречи", icon: { kind: "svg", file: "preset-protocol.svg" }, group: "preset" },
+  { id: "retro", label: "Ретроспектива", icon: { kind: "svg", file: "preset-retro.svg" }, group: "preset" },
+  { id: "sprint", label: "Планирование спринта", icon: { kind: "svg", file: "preset-sprint.svg" }, group: "preset" },
+  { id: "teamsync", label: "Командный синк", icon: { kind: "svg", file: "preset-teamsync.svg" }, group: "preset" },
+  { id: "tech-review", label: "Техническое ревью", icon: { kind: "svg", file: "preset-techreview.svg" }, group: "preset" },
   { id: "sales", label: "Коуч по продажам", icon: { kind: "svg", file: "preset-sales.svg" }, group: "preset" },
+  { id: "client", label: "Встреча с клиентом", icon: { kind: "svg", file: "preset-client.svg" }, group: "preset" },
+  { id: "existing-client", label: "Встреча с действующим клиентом", icon: { kind: "svg", file: "preset-existing-client.svg" }, group: "preset" },
+  { id: "client-onboarding", label: "Онбординг клиента", icon: { kind: "svg", file: "preset-client-onboarding.svg" }, group: "preset" },
+  articleReport,
+  { id: "joke", label: "Анекдот по встрече", icon: { kind: "svg", file: "preset-joke.svg" }, group: "preset" },
   { id: "hr", label: "HR интервью", icon: { kind: "svg", file: "preset-hr.svg" }, group: "preset" },
   { id: "research", label: "Исследование", icon: { kind: "svg", file: "preset-research.svg" }, group: "preset" },
-  { id: "teamsync", label: "Командный синк", icon: { kind: "svg", file: "preset-teamsync.svg" }, group: "preset" },
-  { id: "one-on-one", label: "Один-на-один", icon: { kind: "svg", file: "preset-oneonone.svg" }, group: "preset" },
+  { id: "medicine", label: "Медицинский анамнез", icon: { kind: "svg", file: "preset-medicine.svg" }, group: "preset" },
   { id: "notes", label: "Конспект", icon: { kind: "svg", file: "preset-notes.svg" }, group: "preset" },
-  { id: "protocol", label: "Протокол", icon: { kind: "svg", file: "preset-protocol.svg" }, group: "preset" },
-  { id: "medicine", label: "Медицина", icon: { kind: "svg", file: "preset-medicine.svg" }, group: "preset" },
+  { id: "meddic", label: "MEDDIC", icon: { kind: "svg", file: "preset-meddic.svg" }, group: "preset" },
+  { id: "ux-interview", label: "UX-интервью с пользователем", icon: { kind: "svg", file: "preset-ux-interview.svg" }, group: "preset" },
+  { id: "prd", label: "PRD", icon: { kind: "svg", file: "preset-prd.svg" }, group: "preset" },
+  { id: "usability", label: "Юзабилити-тестирование", icon: { kind: "svg", file: "preset-usability.svg" }, group: "preset" },
 ];
 
-const allReports: Report[] = [articleReport, ...customReports, ...presetReports];
+const allReports: Report[] = [...customReports, ...presetReports];
 
 // Иконка отчета: обычный SVG или бейдж кастомного отчета (подложка + буква)
 function ReportIcon({ report, size = 16 }: { report: Report; size?: number }) {
@@ -942,20 +960,41 @@ function ReportRow({
   isCurrent,
   onSelect,
   onReload,
+  onReloadTipShow,
+  onReloadTipHide,
+  onLabelTipShow,
+  onLabelTipHide,
 }: {
   report: Report;
   isCurrent?: boolean;
   onSelect: () => void;
   onReload?: () => void;
+  onReloadTipShow?: (event: React.MouseEvent<HTMLElement>) => void;
+  onReloadTipHide?: () => void;
+  onLabelTipShow?: (text: string, event: { currentTarget: HTMLElement }) => void;
+  onLabelTipHide?: () => void;
 }) {
+  // Переприменять заново можно только кастомные отчеты; у обычных — просто галочка
+  const canReload = report.group === "custom";
+  const labelRef = useRef<HTMLSpanElement>(null);
+
   return (
     <button
       type="button"
       onClick={onSelect}
+      onMouseEnter={(event) => {
+        // Тултип с полным названием — только если оно обрезано троеточием
+        const label = labelRef.current;
+        if (label && label.scrollWidth > label.clientWidth + 1) {
+          onLabelTipShow?.(report.label, event);
+        }
+      }}
+      onMouseLeave={() => onLabelTipHide?.()}
       className={`flex w-full items-center gap-[6px] rounded-[2px] px-[6px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
     >
       <ReportIcon report={report} />
       <span
+        ref={labelRef}
         className="min-w-0 flex-1 truncate text-[13px] font-normal leading-[normal] tracking-[-0.13px]"
         style={{ color: tokens.black }}
       >
@@ -963,25 +1002,44 @@ function ReportRow({
       </span>
       {isCurrent && (
         <span className="flex shrink-0 items-center gap-[6px]">
-          <span
-            role="button"
-            tabIndex={0}
-            aria-label="Пересоздать отчет"
-            onClick={(event) => {
-              event.stopPropagation();
-              onReload?.();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
+          {canReload && (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Применить заново"
+              onClick={(event) => {
                 event.stopPropagation();
+                onReloadTipHide?.();
                 onReload?.();
-              }
-            }}
-            className={`flex h-[16px] w-[16px] items-center justify-center hover:opacity-70 ${pressableClass}`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={rsAsset("ic-reload.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
-          </span>
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.stopPropagation();
+                  onReloadTipHide?.();
+                  onReload?.();
+                }
+              }}
+              onMouseEnter={onReloadTipShow}
+              onMouseLeave={onReloadTipHide}
+              className="group/reload flex h-[16px] w-[16px] items-center justify-center"
+            >
+              {/* Маска вместо img, чтобы красить иконку по ховеру */}
+              <span
+                aria-hidden="true"
+                className={`h-[16px] w-[16px] shrink-0 bg-[#818AA3] group-hover/reload:bg-[#585E6C] ${pressableClass}`}
+                style={{
+                  WebkitMaskImage: `url(${rsAsset("ic-reload.svg")})`,
+                  maskImage: `url(${rsAsset("ic-reload.svg")})`,
+                  WebkitMaskPosition: "center",
+                  maskPosition: "center",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                }}
+              />
+            </span>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={rsAsset("ic-check.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
         </span>
@@ -1008,13 +1066,32 @@ function ReportDropdown({
   const availableCustom = customReports.filter((report) => !appliedIds.includes(report.id));
   const availablePresets = presetReports.filter((report) => !appliedIds.includes(report.id));
 
+  // Тултип «Применить заново» над иконкой перезагрузки — наш блюр-тултип порталом
+  const [tip, setTip] = useState<HeaderTip | null>(null);
+  const [tipVisible, setTipVisible] = useState(false);
+
+  const showReloadTip = (event: React.MouseEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTip({ text: "Применить заново", left: rect.left + rect.width / 2, top: rect.top - 8, placement: "top" });
+    setTipVisible(true);
+  };
+  const hideReloadTip = () => setTipVisible(false);
+
+  // Тултип с полным названием отчета — для строк, где название обрезано
+  const showLabelTip = (text: string, event: { currentTarget: HTMLElement }) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTip({ text, left: rect.left + rect.width / 2, top: rect.top - 8, placement: "top" });
+    setTipVisible(true);
+  };
+
   return (
     <motion.div
       {...motionProps}
-      className="absolute left-0 top-[calc(100%+6px)] z-50 flex max-h-[368px] w-[220px] origin-top-left flex-col items-start overflow-y-auto overflow-x-clip overscroll-contain rounded-[4px] bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] will-change-[opacity,transform] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[2px] [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#DDDEDF] [&::-webkit-scrollbar-thumb]:bg-clip-padding [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:[margin:4px_0] [&::-webkit-scrollbar]:w-[8px]"
+      onScroll={hideReloadTip}
+      className="absolute left-0 top-[calc(100%+6px)] z-50 flex max-h-[368px] w-[240px] origin-top-left flex-col items-start overflow-y-auto overflow-x-clip overscroll-contain rounded-[4px] bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] will-change-[opacity,transform] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[2px] [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-[#DDDEDF] [&::-webkit-scrollbar-thumb]:bg-clip-padding [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:[margin:4px_0] [&::-webkit-scrollbar]:w-[8px]"
     >
       {/* Примененные к этой встрече отчеты */}
-      <div className="flex w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
+      <div className="flex w-full shrink-0 flex-col items-center border-b py-[4px] pl-[4px] pr-[2px]" style={{ borderColor: tokens.border }}>
         {applied.map((report) => (
           <ReportRow
             key={report.id}
@@ -1022,14 +1099,24 @@ function ReportDropdown({
             isCurrent={report.id === currentId}
             onSelect={() => onSelect(report)}
             onReload={onReload}
+            onReloadTipShow={showReloadTip}
+            onReloadTipHide={hideReloadTip}
+            onLabelTipShow={showLabelTip}
+            onLabelTipHide={hideReloadTip}
           />
         ))}
       </div>
 
       {/* Кастомные отчеты + создание */}
-      <div className="flex w-full shrink-0 flex-col items-center border-b p-[4px]" style={{ borderColor: tokens.border }}>
+      <div className="flex w-full shrink-0 flex-col items-center border-b py-[4px] pl-[4px] pr-[2px]" style={{ borderColor: tokens.border }}>
         {availableCustom.map((report) => (
-          <ReportRow key={report.id} report={report} onSelect={() => onSelect(report)} />
+          <ReportRow
+            key={report.id}
+            report={report}
+            onSelect={() => onSelect(report)}
+            onLabelTipShow={showLabelTip}
+            onLabelTipHide={hideReloadTip}
+          />
         ))}
         <button
           type="button"
@@ -1049,12 +1136,19 @@ function ReportDropdown({
 
       {/* Предустановленные отчеты */}
       {availablePresets.length > 0 && (
-        <div className="flex w-full shrink-0 flex-col items-center p-[4px]">
+        <div className="flex w-full shrink-0 flex-col items-center py-[4px] pl-[4px] pr-[2px]">
           {availablePresets.map((report) => (
-            <ReportRow key={report.id} report={report} onSelect={() => onSelect(report)} />
+            <ReportRow
+              key={report.id}
+              report={report}
+              onSelect={() => onSelect(report)}
+              onLabelTipShow={showLabelTip}
+              onLabelTipHide={hideReloadTip}
+            />
           ))}
         </div>
       )}
+      <HeaderTooltip tip={tip} visible={tipVisible} />
     </motion.div>
   );
 }
@@ -1586,6 +1680,539 @@ const reportSections: Record<string, ReportSection[]> = {
       ],
     },
   ],
+  daily: [
+    {
+      kind: "bullets",
+      title: "Вчера:",
+      items: [
+        { text: "Marisa — закрыла разметку доски референсов тегами по подходам. ", time: "0:44" },
+        { text: "Jordan — собрал первый пул ассоциаций для семиотического поля. ", time: "1:21" },
+        { text: "Ashley — заполнила разделы брифа по целям и компетенциям продукта. ", time: "2:03" },
+        { text: "Samira — свела фидбэк бренд-команды по прошлым концептам в один документ. ", time: "2:47" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Сегодня:",
+      items: [
+        { text: "Marisa — добор референсов по антропоморфному подходу, 3–5 примеров. ", time: "3:30" },
+        { text: "Jordan — валидация семиотического поля с бренд-командой в 15:00. ", time: "4:12" },
+        { text: "Ashley — драфт раздела про аудиторию с социопсихологией. ", time: "4:58" },
+        { text: "Samira — подготовка структуры текстовой рамки к завтрашнему ревью. ", time: "5:26" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Блокеры:",
+      items: [
+        { text: "Ждем позиционирование от бренд-команды — без него не закрыть бриф. ", time: "6:15" },
+        { text: "У Ashley до сих пор нет доступа к аналитике аудитории. ", time: "6:52" },
+      ],
+    },
+  ],
+  demo: [
+    {
+      kind: "paragraph",
+      title: "Что показывали:",
+      text: "Демо процесса работы с референсами для смежных команд: живой прогон комбинаторного подхода на реальном примере — от сбора примеров на доске до сборки текстовой рамки. Показали, как из разрозненных шрифтов, палитр и лейаутов собирается целостный визуальный образ, и чем этот процесс отличается от «сделаем красиво на вкус».",
+    },
+    {
+      kind: "bullets",
+      title: "Реакция аудитории:",
+      items: [
+        { text: "Продакты сразу спросили, можно ли применить подход к питч-декам — интерес живой. ", time: "3:24" },
+        { text: "Момент со сборкой текстовой рамки вызвал больше всего вопросов и скриншотов. ", time: "6:12" },
+        { text: "Маркетинг попросил отдельный прогон для лендингов. ", time: "8:45" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Вопросы с демо:",
+      items: [
+        { text: "Сколько времени занимает полный цикл от референсов до концепта. ", time: "9:03" },
+        { text: "Кто владелец семиотического поля после передачи проекта. ", time: "10:17" },
+        { text: "Можно ли пропускать нарратив на маленьких задачах. ", time: "11:29" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Фоллоу-апы:",
+      items: [
+        { text: "Расшарить запись демо и шаблон текстовой рамки всем участникам. " },
+        { text: "Назначить отдельный прогон для маркетинга на следующей неделе. " },
+      ],
+    },
+  ],
+  grooming: [
+    {
+      kind: "paragraph",
+      title: "Итоги груминга:",
+      text: "Разобрали 12 задач из дизайн-бэклога: 7 оценили и приоритизировали, 3 отправили в архив как неактуальные после смены подхода к референсам, 2 требуют уточнения от продакта. Средний размер задач уменьшился — крупные эпики про визуальный образ распилили по этапам воркшопа.",
+    },
+    {
+      kind: "bullets",
+      title: "Оценено и приоритизировано:",
+      items: [
+        { text: "Сборка единой доски референсов — S, приоритет высокий, берем в ближайший спринт. ", time: "1:38" },
+        { text: "Шаблон брифа из пяти разделов — M, высокий, зависит от позиционирования. ", time: "3:05" },
+        { text: "Семиотическое поле: воркшоп + шаблон — M, средний. ", time: "4:47" },
+        { text: "Ревизия старых концептов против текстовой рамки — L, низкий, после запуска. ", time: "6:20" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "В архив:",
+      items: [
+        { text: "Мудборд «по настроению» — заменен структурной доской референсов. ", time: "8:11" },
+        { text: "Конкурс вариантов лого внутри команды — не бьется с новым процессом. ", time: "8:56" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Требуют уточнения:",
+      items: [
+        { text: "Анимация маскота: ждем решения, насколько глубоко идем в антропоморфизм. " },
+        { text: "Гайд по тону иллюстраций: нужен вход от бренд-команды. " },
+      ],
+    },
+  ],
+  brainstorm: [
+    {
+      kind: "paragraph",
+      title: "Тема и рамки:",
+      text: "Генерили метафоры для семиотического поля продукта. Правила: без критики на этапе генерации, любая ассоциация записывается, отбор — голосованием в конце. За 25 минут собрали 23 идеи, до финала дошли шесть.",
+    },
+    {
+      kind: "bullets",
+      title: "Идеи:",
+      items: [
+        { text: "Продукт как «дирижер» — собирает разрозненные инструменты в оркестр. ", time: "2:14" },
+        { text: "Метафора «переводчика» — переводит хаос встреч на язык решений. ", time: "3:41" },
+        { text: "«Компас» — направление в потоке информации, а не еще один поток. ", time: "5:02" },
+        { text: "«Второй пилот» — рядом, но штурвал у пользователя. ", time: "6:33" },
+        { text: "«Сад» — знания растут и требуют ухода, продукт — садовник. ", time: "7:58" },
+        { text: "«Монтажер» — из сырого материала собирает финальный фильм. ", time: "9:12" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Отобрано в работу:",
+      items: [
+        { text: "«Дирижер» и «второй пилот» — идут в семиотическое поле как основные. " },
+        { text: "«Монтажер» — резерв для нарратива про отчеты. " },
+      ],
+    },
+  ],
+  followup: [
+    {
+      kind: "paragraph",
+      title: "Кому и зачем:",
+      text: "Письмо участникам воркшопа и бренд-команде: зафиксировать договоренности, приложить материалы и обозначить дедлайны, пока контекст свежий. Тон — рабочий, без формальностей.",
+    },
+    {
+      kind: "paragraph",
+      title: "Черновик письма:",
+      text: "Привет! Спасибо за плотный воркшоп по референсам. Коротко о главном: утвердили комбинаторный подход как основной, антропоморфный оставили для маскота. Доску референсов пополняем до пятницы — по 3–5 примеров с подписями. Бриф собираем по разделам, за каждым закреплен владелец. Семиотическое поле валидируем с бренд-командой в среду, после этого стартует нарратив. Запись встречи и шаблоны — во вложении. Вопросы — в тред.",
+    },
+    {
+      kind: "bullets",
+      title: "Вложения и ссылки:",
+      items: [
+        { text: "Запись воркшопа и таймкоды ключевых моментов. " },
+        { text: "Шаблон брифа из пяти разделов с примерами заполнения. " },
+        { text: "Доска референсов с тегами по подходам. " },
+      ],
+    },
+  ],
+  "project-sync": [
+    {
+      kind: "paragraph",
+      title: "Статус проекта:",
+      text: "Редизайн визуального образа идет по плану, вторая неделя из шести. Вижуал-ресерч почти закрыт, бриф в работе, нарратив стартует после валидации семиотического поля. Бюджет и сроки без изменений, эскалаций нет.",
+    },
+    {
+      kind: "bullets",
+      title: "Риски:",
+      items: [
+        { text: "Позиционирование от бренд-команды задерживается — каскадно двигает бриф и нарратив. ", time: "3:15" },
+        { text: "Отпуск Jordan через две недели попадает на пик работы над нарративом. ", time: "5:40" },
+        { text: "Смежная команда может забрать Samira на квартальный проект. ", time: "7:22" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Следующие вехи:",
+      items: [
+        { text: "Среда — валидация семиотического поля с бренд-командой. " },
+        { text: "Пятница — полная доска референсов и закрытый бриф. " },
+        { text: "Следующая пятница — драфт нарратива и первые визуальные концепты. " },
+      ],
+    },
+  ],
+  retro: [
+    {
+      kind: "bullets",
+      title: "Что было хорошо:",
+      items: [
+        { text: "Формат воркшопа с живыми примерами зашел лучше лекционного — вовлеченность заметно выше. ", time: "1:05" },
+        { text: "Единая доска референсов сразу сняла хаос из пяти инструментов. ", time: "2:36" },
+        { text: "Решения фиксировали по ходу встречи, а не по памяти после. ", time: "3:58" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Что можно улучшить:",
+      items: [
+        { text: "Опять вышли за таймбокс на обсуждении подходов — 12 минут вместо семи. ", time: "5:14" },
+        { text: "Бренд-команду надо звать на воркшопы сразу, а не согласовывать после. ", time: "6:47" },
+        { text: "Часть терминов (семиотическое поле, текстовая рамка) понимали по-разному до середины встречи. ", time: "8:09" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Экшен-айтемы:",
+      items: [
+        { text: "Завести глоссарий терминов дизайн-процесса и приложить к брифу — Ashley. " },
+        { text: "Жесткий таймбокс с таймером на следующем воркшопе — Marisa. " },
+        { text: "Приглашение бренд-команде на все воркшопы серии — Samira. " },
+      ],
+    },
+    {
+      kind: "paragraph",
+      title: "Настроение команды:",
+      text: "По быстрому опросу — 4.2 из 5, выше прошлого спринта. Команда чувствует движение: процесс перестал быть «правками на вкус» и обрел структуру. Основной источник напряжения — зависимость от внешних команд.",
+    },
+  ],
+  sprint: [
+    {
+      kind: "paragraph",
+      title: "Цель спринта:",
+      text: "Закрыть фундамент визуального образа: полный бриф, провалидированное семиотическое поле и драфт нарратива. Критерий успеха — любой новый концепт можно проверить на соответствие текстовой рамке без участия автора.",
+    },
+    {
+      kind: "bullets",
+      title: "Взято в спринт:",
+      items: [
+        { text: "Доска референсов: добор, теги, чистка дублей — 3 стори-поинта. ", time: "2:20" },
+        { text: "Бриф: разделы позиционирования и аудитории — 5 поинтов. ", time: "3:47" },
+        { text: "Семиотическое поле: воркшоп с бренд-командой и фиксация — 5 поинтов. ", time: "5:12" },
+        { text: "Драфт нарратива и текстовой рамки — 8 поинтов. ", time: "6:38" },
+      ],
+    },
+    {
+      kind: "paragraph",
+      title: "Емкость команды:",
+      text: "Четыре человека, 21 поинт при обычной емкости 24: у Jordan два дня на смежный проект, минус пятница на демо. Буфер на непредвиденное — три поинта, задача про ревизию старых концептов уходит кандидатом на выпил.",
+    },
+    {
+      kind: "bullets",
+      title: "Риски спринта:",
+      items: [
+        { text: "Валидация с бренд-командой может съехать — тогда нарратив не успеет к демо. " },
+        { text: "Оценка нарратива в 8 поинтов дана с низкой уверенностью, задача плохо изучена. " },
+      ],
+    },
+  ],
+  "tech-review": [
+    {
+      kind: "paragraph",
+      title: "Скоуп ревью:",
+      text: "Смотрели реализацию дизайн-токенов и компонентной базы под новый визуальный образ: палитра, типографика, спейсинги и сборка тем. Отдельно — как токены переживут смену образа после утверждения нарратива.",
+    },
+    {
+      kind: "bullets",
+      title: "Замечания:",
+      items: [
+        { text: "Цвета захардкожены в 14 компонентах мимо токенов — миграция обязательна до смены палитры. ", time: "2:41" },
+        { text: "Типографическая шкала в коде расходится с фигмой на двух размерах. ", time: "4:15" },
+        { text: "Спейсинги местами арбитрарные — 13px, 17px вне сетки. ", time: "5:52" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Технический долг:",
+      items: [
+        { text: "Старая тема лежит рядом с новой — двойная поддержка до конца квартала. ", time: "7:30" },
+        { text: "Нет автопроверки соответствия токенов фигма-переменным. ", time: "8:44" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Решения:",
+      items: [
+        { text: "Миграцию хардкода на токены берем в ближайший спринт, до утверждения палитры. ", time: "10:05" },
+        { text: "Заводим линтер-правило на арбитрарные значения вне шкалы. ", time: "11:12" },
+      ],
+    },
+  ],
+  "existing-client": [
+    {
+      kind: "paragraph",
+      title: "Контекст аккаунта:",
+      text: "Клиент с нами восемь месяцев, команда дизайна из шести человек, тариф командный. Пользуются в основном отчетами и транскриптами, интеграции подключены наполовину. Продление через два месяца.",
+    },
+    {
+      kind: "bullets",
+      title: "Здоровье аккаунта:",
+      items: [
+        { text: "Активность стабильная: 40+ встреч в месяц, вся команда в продукте еженедельно. ", time: "1:30" },
+        { text: "NPS от ключевого контакта — 9, от команды в среднем 7.5. ", time: "2:48" },
+        { text: "Тикетов в поддержку за квартал — два, оба закрыты в SLA. ", time: "3:35" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Новые запросы:",
+      items: [
+        { text: "Хотят кастомные отчеты под свои дизайн-ритуалы — как раз наш новый флоу. ", time: "5:09" },
+        { text: "Просят выгрузку отчетов в их вики по API. ", time: "6:54" },
+        { text: "Интересуются местами для смежной команды продактов — потенциал расширения. ", time: "8:27" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Риски оттока:",
+      items: [
+        { text: "Смена руководителя дизайна в следующем квартале — новый человек, новые предпочтения. ", time: "9:41" },
+        { text: "Финансовый отдел клиента пересматривает подписки — нужен кейс с цифрами ценности. ", time: "10:36" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Следующие шаги:",
+      items: [
+        { text: "Показать бету кастомных отчетов до конца месяца. " },
+        { text: "Подготовить value-кейс с метриками использования к переговорам о продлении. " },
+        { text: "Познакомиться с новым руководителем дизайна до смены. " },
+      ],
+    },
+  ],
+  "client-onboarding": [
+    {
+      kind: "paragraph",
+      title: "Профиль клиента:",
+      text: "Дизайн-агентство на 15 человек, пришли за протоколами клиентских встреч и передачей контекста между проектами. Драйвер внедрения — операционный директор, скептик — арт-директор («еще один инструмент»).",
+    },
+    {
+      kind: "bullets",
+      title: "Пройдено на онбординге:",
+      items: [
+        { text: "Подключили календарь и первую тройку регулярных встреч. ", time: "1:55" },
+        { text: "Прогнали живую встречу через бота — отчет получили за 40 секунд, вау-момент случился. ", time: "4:20" },
+        { text: "Настроили воркспейс и роли для всей команды. ", time: "6:41" },
+        { text: "Показали смену отчетов в одной вкладке под разные типы встреч. ", time: "8:15" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Открытые вопросы:",
+      items: [
+        { text: "Нужна политика хранения записей клиентских встреч — у агентства NDA с частью заказчиков. ", time: "9:38" },
+        { text: "Спрашивали про кастомные шаблоны под их формат брифинга. ", time: "10:52" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "План на первые 30 дней:",
+      items: [
+        { text: "Неделя 1–2: вся команда проводит встречи через продукт, чекап в конце недели. " },
+        { text: "Неделя 3: подключение интеграций с их таск-трекером. " },
+        { text: "Неделя 4: разбор метрик использования и решение по расширению мест. " },
+      ],
+    },
+  ],
+  joke: [
+    {
+      kind: "paragraph",
+      title: "Анекдот:",
+      text: "Приходит дизайнер к арт-директору: «Я собрал визуальный образ из пятидесяти референсов!» Арт-директор: «И что получилось?» — «Пока не знаю, доска не грузится». Мораль от команды: сначала текстовая рамка, потом референсы, и никогда — наоборот.",
+    },
+    {
+      kind: "paragraph",
+      title: "По мотивам момента:",
+      text: "Родился на 5:47, когда выяснилось, что половина собранных референсов ведет на несуществующие страницы, а вторая половина — на один и тот же дриббл-шот с разных аккаунтов.",
+    },
+    {
+      kind: "bullets",
+      title: "Оценка зала:",
+      items: [
+        { text: "Смеялись трое из четырех — Jordan предложил свою версию, она вошла в протокол. " },
+        { text: "Уровень кринжа: приемлемый, к публикации в общий чат допущен. " },
+      ],
+    },
+  ],
+  meddic: [
+    {
+      kind: "paragraph",
+      title: "Metrics:",
+      text: "Клиент теряет около 30 часов дизайнеров в месяц на пересборку контекста между встречами и проектами. Целевая метрика — сократить время от встречи до зафиксированных решений с двух дней до 15 минут, экономия оценочно 4500$ в месяц на команду.",
+    },
+    {
+      kind: "paragraph",
+      title: "Economic Buyer:",
+      text: "Бюджет держит операционный директор, финальная подпись — у CEO при сумме выше 10к$ в год. На встрече присутствовал опердир, реагировал на цифры экономии, попросил кейс похожей команды.",
+    },
+    {
+      kind: "bullets",
+      title: "Decision Criteria:",
+      items: [
+        { text: "Безопасность данных и NDA-совместимость — критично из-за клиентских встреч. ", time: "4:18" },
+        { text: "Скорость внедрения без обучения — команда не готова тратить больше недели. ", time: "5:33" },
+        { text: "Кастомизация отчетов под их ритуалы — обязательное условие арт-директора. ", time: "6:50" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Decision Process:",
+      items: [
+        { text: "Пилот на одной проектной команде две недели → разбор метрик → решение опердира. ", time: "8:02" },
+        { text: "Юридическая проверка договора займет еще неделю — заложить в план. ", time: "9:15" },
+      ],
+    },
+    {
+      kind: "paragraph",
+      title: "Identify Pain:",
+      text: "Решения с клиентских встреч теряются между проектами, новые дизайнеры месяцами входят в контекст, а протоколы пишет тот, кто медленнее всех отказывался. Боль подтверждена тремя участниками независимо.",
+    },
+    {
+      kind: "paragraph",
+      title: "Champion:",
+      text: "Лид проектной команды — уже пользовалась продуктом на прошлом месте, готова вести пилот и защищать результаты перед опердиром. Дать ей доступ к бете кастомных отчетов и материалы для внутренней презентации.",
+    },
+  ],
+  "ux-interview": [
+    {
+      kind: "paragraph",
+      title: "Профиль респондента:",
+      text: "Продуктовый дизайнер, 4 года опыта, ведет 8–10 встреч в неделю. Наш продукт использует три месяца, до этого конспектировал вручную в заметки. Технически подкован, любит горячие клавиши, не читает документацию.",
+    },
+    {
+      kind: "bullets",
+      title: "Сценарии и задачи:",
+      items: [
+        { text: "Найти решение с встречи двухнедельной давности — справился за 40 секунд через поиск. ", time: "2:10" },
+        { text: "Применить другой отчет к прошедшей встрече — нашел дропдаун со второй попытки. ", time: "4:26" },
+        { text: "Поделиться отчетом с коллегой без аккаунта — уперся в выбор между ссылкой и экспортом. ", time: "7:44" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Наблюдения:",
+      items: [
+        { text: "Сначала кликнул на иконку вкладки, а не на название с шевроном — ожидал меню по правому клику. ", time: "4:40" },
+        { text: "Заглушку генерации прочитал полностью — «20 секунд» снизило тревожность ожидания. ", time: "5:58" },
+        { text: "Пытался перетащить отчеты в дропдауне, чтобы поменять порядок примененных. ", time: "6:31" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Цитаты:",
+      underlined: true,
+      items: [
+        { text: "«О, они переезжают наверх — это удобно, мой набор всегда под рукой». ", time: "6:05" },
+        { text: "«А почему у Антимата есть перезапуск, а у Статьи нет? А, кастомный, понял». ", time: "8:19" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Выводы:",
+      items: [
+        { text: "Механика перемещения примененных наверх считывается без объяснений — оставляем. " },
+        { text: "Стоит проверить драг-н-дроп порядка примененных отчетов на большем числе респондентов. " },
+        { text: "Развилку «поделиться vs экспорт» разобрать отдельным исследованием. " },
+      ],
+    },
+  ],
+  prd: [
+    {
+      kind: "paragraph",
+      title: "Проблема:",
+      text: "Отчеты по встрече разбросаны по отдельным вкладкам: применил три отчета — получил три вкладки, между которыми нет связи. Пользователи не понимают, какие отчеты уже применены, применяют повторно и теряют сгенерированное. 23% тикетов в поддержку за квартал — про «куда делся мой отчет».",
+    },
+    {
+      kind: "paragraph",
+      title: "Целевая аудитория:",
+      text: "Активные пользователи с 5+ встречами в неделю, применяющие два и более отчета к одной встрече: тимлиды, продакты, аккаунт-менеджеры. Вторичная — новички, которым нужен понятный вход в многообразие отчетов.",
+    },
+    {
+      kind: "bullets",
+      title: "Пользовательские сценарии:",
+      items: [
+        { text: "Переключиться между примененными отчетами в один клик, не теряя контекст встречи. ", time: "3:12" },
+        { text: "Применить новый отчет из пресетов или кастомных и сразу увидеть прогресс генерации. ", time: "4:36" },
+        { text: "Пересоздать кастомный отчет после правки его промпта. ", time: "5:50" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Требования:",
+      items: [
+        { text: "Один таб отчета с дропдауном: секции примененных, кастомных и пресетов через дивайдеры. " },
+        { text: "Примененные перемещаются в верхнюю секцию, текущий помечен галочкой. " },
+        { text: "Заглушка генерации с иконкой отчета и ожидаемым временем. " },
+        { text: "Пересоздание — только у кастомных отчетов. " },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Метрики успеха:",
+      items: [
+        { text: "Доля встреч с 2+ примененными отчетами: рост с 14% до 25% за квартал. " },
+        { text: "Тикеты «потерял отчет»: минус 80%. " },
+        { text: "Время до первого применения второго отчета у новичков: меньше двух дней. " },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Вне скоупа:",
+      items: [
+        { text: "Редактор кастомных отчетов — отдельный эпик. " },
+        { text: "Порядок примененных отчетов драг-н-дропом — после валидации на исследовании. " },
+      ],
+    },
+  ],
+  usability: [
+    {
+      kind: "paragraph",
+      title: "Сетап теста:",
+      text: "Модерируемый тест нового переключателя отчетов: пять респондентов, прототип на живых данных, по 20 минут на сессию. Задачи покрывали переключение, применение нового отчета и пересоздание кастомного.",
+    },
+    {
+      kind: "bullets",
+      title: "Задания:",
+      items: [
+        { text: "Открыть отчет «Исследование» на встрече — 5 из 5 справились без подсказок. ", time: "1:24" },
+        { text: "Применить кастомный «Антимат» — 4 из 5, один искал кнопку в шапке. ", time: "3:47" },
+        { text: "Пересоздать текущий отчет — 3 из 5 нашли иконку сразу, двое после наведения. ", time: "6:02" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Найденные проблемы:",
+      items: [
+        { text: "Средняя: иконка пересоздания без ховера не считывается — тултип спасает, но поздно. ", time: "6:30" },
+        { text: "Низкая: двое ожидали, что «Создать отчет» откроет форму прямо в дропдауне. ", time: "8:14" },
+        { text: "Низкая: один респондент не заметил перемещения отчета наверх — искал в пресетах. ", time: "9:26" },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Метрики выполнения:",
+      items: [
+        { text: "Успешность задач: 87% против 61% на старом флоу с вкладками. " },
+        { text: "Среднее время переключения отчета: 3.2 секунды против 8.7. " },
+        { text: "SUS: 84 балла — «отлично», старый флоу набирал 67. " },
+      ],
+    },
+    {
+      kind: "bullets",
+      title: "Рекомендации:",
+      items: [
+        { text: "Оставить механику как есть, докрутить заметность иконки пересоздания. " },
+        { text: "Подумать про подсветку строки, переехавшей наверх, после применения. " },
+      ],
+    },
+  ],
 };
 
 function BulletList({ section }: { section: Extract<ReportSection, { kind: "bullets" }> }) {
@@ -1648,76 +2275,6 @@ function GeneratingPlaceholder({ report }: { report: Report }) {
           </span>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Player bar
-// ─────────────────────────────────────────────────────────────────────────────
-
-function PlayerBar({ toastVisible, toastMessage }: { toastVisible: boolean; toastMessage: string }) {
-  const segments = [
-    { played: true },
-    { played: true },
-    { played: false },
-    { played: false },
-    { played: false },
-    { played: false },
-  ];
-
-  return (
-    <div className="absolute bottom-0 left-0 right-0 z-30 flex h-[54px] items-center justify-between bg-[rgba(255,255,255,0.8)] py-[8px] pl-[10px] pr-[12px] backdrop-blur-[4px]">
-      <CopiedToast visible={toastVisible} message={toastMessage} />
-      <div className="absolute left-0 right-0 top-[-3px] flex items-center gap-[2px]">
-        {segments.map((segment, index) => (
-          <div key={index} className="flex h-[8px] min-w-px flex-1 flex-col items-center justify-center overflow-clip">
-            <div className="h-[3px] w-full" style={{ backgroundColor: segment.played ? "#BABBBD" : "#DDDEDF" }} />
-          </div>
-        ))}
-        <div className="absolute left-[384px] top-[-1px] h-[10px] w-[10px]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("progress-dot.svg")} alt="" className="block h-full w-full max-w-none scale-[1.4]" />
-        </div>
-      </div>
-
-      <div className="flex w-[141px] items-center gap-[8px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset("player-thumb.png")} alt="" className="h-[35px] w-[56px] shrink-0 rounded-[4px] object-cover" />
-        <div className="flex w-[77px] flex-col items-start justify-center gap-[2px]">
-          <span
-            className="whitespace-nowrap text-[12px] font-normal leading-[normal] tracking-[-0.24px]"
-            style={{ color: tokens.black, fontFeatureSettings: '"lnum" 1, "tnum" 1' }}
-          >
-            2. Greetings and start of the meeting
-          </span>
-          <span
-            className="flex items-center gap-[2px] text-[12px] font-normal leading-[normal] tracking-[-0.24px]"
-            style={{ color: tokens.grey, fontFeatureSettings: '"lnum" 1, "tnum" 1' }}
-          >
-            <span>2:24</span>
-            <span>/</span>
-            <span>12:56</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-[8px]">
-        <button type="button" aria-label="Назад 10 секунд" className={`flex cursor-pointer items-center p-[4px] hover:opacity-70 ${pressableClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("player-back.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
-        </button>
-        <button type="button" aria-label="Играть" className={`h-[32px] w-[32px] cursor-pointer hover:opacity-80 ${pressableClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("player-play.svg")} alt="" className="h-[32px] w-[32px] shrink-0" />
-        </button>
-        <button type="button" aria-label="Вперед 10 секунд" className={`flex cursor-pointer items-center p-[4px] hover:opacity-70 ${pressableClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={asset("player-forward.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
-        </button>
-      </div>
-
-      <div className="h-[24px] w-[141px]" />
     </div>
   );
 }
@@ -1860,7 +2417,7 @@ export default function ReportSwitcherPage() {
               </motion.div>
             </div>
           </div>
-          <PlayerBar toastVisible={toastVisible} toastMessage={toastMessage} />
+          <CopiedToast visible={toastVisible} message={toastMessage} />
         </section>
       </div>
     </main>
