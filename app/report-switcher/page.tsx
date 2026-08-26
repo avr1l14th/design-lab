@@ -923,10 +923,30 @@ const presetReports: Report[] = [
 
 const allReports: Report[] = [...customReports, ...presetReports];
 
-// Иконка отчета: обычный SVG или бейдж кастомного отчета (подложка + буква)
-function ReportIcon({ report, size = 16 }: { report: Report; size?: number }) {
+// CSS-маска для перекрашиваемых иконок (цвет задается через background)
+const maskStyle = (file: string) => ({
+  WebkitMaskImage: `url(${rsAsset(file)})`,
+  maskImage: `url(${rsAsset(file)})`,
+  WebkitMaskPosition: "center",
+  maskPosition: "center",
+  WebkitMaskRepeat: "no-repeat",
+  maskRepeat: "no-repeat",
+  WebkitMaskSize: "contain",
+  maskSize: "contain",
+} as const);
+
+// Серый вариант иконки с ховером в 585E6C — для неактивных табов (внутри group/tab)
+const mutedGlyphClass =
+  "shrink-0 bg-[#818AA3] transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/tab:bg-[#585E6C] motion-reduce:transition-none";
+
+// Иконка отчета: обычный SVG или бейдж кастомного отчета (подложка + буква).
+// muted — серый силуэт для неактивного таба
+function ReportIcon({ report, size = 16, muted = false }: { report: Report; size?: number; muted?: boolean }) {
   const scale = size / 16;
   if (report.icon.kind === "svg") {
+    if (muted) {
+      return <span aria-hidden="true" className={mutedGlyphClass} style={{ width: size, height: size, ...maskStyle(report.icon.file) }} />;
+    }
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={rsAsset(report.icon.file)} alt="" className="shrink-0" style={{ width: size, height: size }} />
@@ -934,13 +954,21 @@ function ReportIcon({ report, size = 16 }: { report: Report; size?: number }) {
   }
   return (
     <span className="relative block shrink-0 overflow-clip" style={{ width: size, height: size }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={rsAsset(report.icon.file)}
-        alt=""
-        className="absolute"
-        style={{ top: "6.28%", right: "11.74%", bottom: "6.26%", left: "11.72%", width: "76.54%", height: "87.46%" }}
-      />
+      {muted ? (
+        <span
+          aria-hidden="true"
+          className={`absolute ${mutedGlyphClass}`}
+          style={{ top: "6.28%", right: "11.74%", bottom: "6.26%", left: "11.72%", width: "76.54%", height: "87.46%", ...maskStyle(report.icon.file) }}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={rsAsset(report.icon.file)}
+          alt=""
+          className="absolute"
+          style={{ top: "6.28%", right: "11.74%", bottom: "6.26%", left: "11.72%", width: "76.54%", height: "87.46%" }}
+        />
+      )}
       <span
         className="absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center text-center font-bold uppercase leading-[normal] text-white"
         style={{ top: `calc(50% + ${0.5 * scale}px)`, fontSize: 8 * scale, width: 12 * scale, height: 13 * scale }}
@@ -1157,10 +1185,33 @@ function ReportDropdown({
 // Табы: текущий отчет (дропдаун) + Транскрипт / Чат / Задачи
 // ─────────────────────────────────────────────────────────────────────────────
 
+type MeetingTab = "report" | "transcript";
+
+// Лейбл неактивного таба: серый, по ховеру таба — 585E6C
+const inactiveTabLabelClass =
+  "whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px] text-[#818AA3] transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/tab:text-[#585E6C] motion-reduce:transition-none";
+
+// Иконка таба через маску: активная — 212833, неактивная — 818AA3 с ховером 585E6C
+function TabGlyph({ file, active, width = 16, height = 16 }: { file: string; active?: boolean; width?: number; height?: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={
+        active
+          ? "shrink-0 bg-[#212833]"
+          : "shrink-0 bg-[#818AA3] transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/tab:bg-[#585E6C] motion-reduce:transition-none"
+      }
+      style={{ width, height, ...maskStyle(file) }}
+    />
+  );
+}
+
 function ReportTabs({
   current,
   open,
   onToggle,
+  activeTab,
+  onSelectTab,
   applied,
   currentId,
   onSelect,
@@ -1170,57 +1221,93 @@ function ReportTabs({
   current: Report;
   open: boolean;
   onToggle: () => void;
+  activeTab: MeetingTab;
+  onSelectTab: (tab: MeetingTab) => void;
   applied: Report[];
   currentId: string;
   onSelect: (report: Report) => void;
   onReload: () => void;
   onClose: () => void;
 }) {
+  const reportActive = activeTab === "report";
+  const transcriptActive = activeTab === "transcript";
+  const reduceMotion = useReducedMotion();
+
+  // Подчеркивание-индикатор скользит между табами (shared layout)
+  const underline = (
+    <motion.span
+      layoutId="meeting-tab-underline"
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+      className="absolute inset-x-0 -bottom-px h-[2px] bg-[#212833]"
+    />
+  );
+
   return (
     <div className="relative w-full">
       <div className="flex w-full items-center border-b" style={{ borderColor: tokens.border }}>
+        {/* Таб текущего отчета: активный — с индикатором и шевроном дропдауна,
+            неактивный — серый, без индикатора и шеврона */}
         <button
           type="button"
-          aria-expanded={open}
-          onClick={onToggle}
-          className={`-mb-px flex items-center justify-center gap-[6px] border-b-2 border-solid px-[8px] pb-[12px] pt-[8px] ${pressableClass}`}
-          style={{ borderColor: tokens.black }}
+          aria-expanded={reportActive ? open : undefined}
+          onClick={() => (reportActive ? onToggle() : onSelectTab("report"))}
+          className={`group/tab relative flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] ${pressableClass}`}
         >
-          <ReportIcon report={current} />
-          <span className="whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          <ReportIcon report={current} muted={!reportActive} />
+          <span
+            className={
+              reportActive
+                ? "whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-[#212833]"
+                : inactiveTabLabelClass
+            }
+          >
             {current.label}
           </span>
+          {/* Шеврон плавно схлопывается, когда таб неактивен */}
           <span
-            className={`flex h-[16px] w-[16px] items-center justify-center transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${open ? "rotate-180" : "rotate-0"}`}
+            className="flex h-[16px] shrink-0 items-center justify-center overflow-hidden transition-[width,margin-left,opacity] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
+            style={{ width: reportActive ? 16 : 0, marginLeft: reportActive ? 0 : -6, opacity: reportActive ? 1 : 0 }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={rsAsset("tab-chevron.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
+            <span
+              className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${open ? "rotate-180" : "rotate-0"}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={rsAsset("tab-chevron.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
+            </span>
           </span>
+          {reportActive && underline}
         </button>
-        <button type="button" className={`flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] hover:opacity-70 ${pressableClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={rsAsset("tab-transcript.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
-          <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.grey }}>
+
+        {/* Транскрипт */}
+        <button
+          type="button"
+          onClick={() => onSelectTab("transcript")}
+          className={`group/tab relative flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] ${pressableClass}`}
+        >
+          <TabGlyph file="tab-transcript.svg" active={transcriptActive} />
+          <span
+            className={
+              transcriptActive
+                ? "whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-[#212833]"
+                : inactiveTabLabelClass
+            }
+          >
             Транскрипт
           </span>
+          {transcriptActive && underline}
         </button>
-        <button type="button" className={`flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] hover:opacity-70 ${pressableClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={rsAsset("tab-chat.svg")} alt="" className="h-[12.023px] w-[12.948px] shrink-0" />
-          <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.grey }}>
-            Чат
-          </span>
+
+        <button type="button" className={`group/tab flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] ${pressableClass}`}>
+          <TabGlyph file="tab-chat.svg" width={12.948} height={12.023} />
+          <span className={inactiveTabLabelClass}>Чат</span>
         </button>
-        <button type="button" className={`flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] hover:opacity-70 ${pressableClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={rsAsset("tab-tasks.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
-          <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: tokens.grey }}>
-            Задачи
-          </span>
+        <button type="button" className={`group/tab flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] ${pressableClass}`}>
+          <TabGlyph file="tab-tasks.svg" />
+          <span className={inactiveTabLabelClass}>Задачи</span>
         </button>
       </div>
       <AnimatePresence>
-        {open && (
+        {reportActive && open && (
           <ReportDropdown applied={applied} currentId={currentId} onSelect={onSelect} onReload={onReload} onClose={onClose} />
         )}
       </AnimatePresence>
@@ -2258,6 +2345,150 @@ function ReportContent({ report }: { report: Report }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Транскрипт (перенесен из ai-export-sharing): главы + реплики
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LINE =
+  "Hello Ruth! I hope everything is going wonderfully for you! How have you been lately? Hello Ruth! I hope ";
+
+type Replica = { speaker: string; color: string; time: string; lines: number };
+
+const chapter1Replicas: Replica[] = [
+  { speaker: "Speaker B", color: speakerColors.orange, time: "0:02", lines: 2 },
+  { speaker: "Speaker A", color: speakerColors.green, time: "0:08", lines: 1 },
+];
+
+const chapter2Replicas: Replica[] = [
+  { speaker: "Speaker A", color: speakerColors.green, time: "0:12", lines: 1 },
+  { speaker: "Speaker A", color: speakerColors.purple, time: "0:12", lines: 3 },
+  { speaker: "Speaker B", color: speakerColors.orange, time: "0:12", lines: 2 },
+  { speaker: "Speaker A", color: speakerColors.green, time: "00:12", lines: 1 },
+  { speaker: "Speaker A", color: speakerColors.green, time: "00:12", lines: 1 },
+  { speaker: "Speaker B", color: speakerColors.orange, time: "0:12", lines: 2 },
+  { speaker: "Speaker A", color: speakerColors.purple, time: "0:12", lines: 3 },
+  { speaker: "Speaker A", color: speakerColors.blue, time: "00:12", lines: 1 },
+  { speaker: "Speaker B", color: speakerColors.orange, time: "0:12", lines: 2 },
+];
+
+function replicaText(lines: number) {
+  if (lines === 2) {
+    return "Hello Ruth! I hope everything is going wonderfully for you! How have you been lately? Hello Ruth! I hope everything is going wonderfully for you! How have you been lately?";
+  }
+  return LINE.repeat(lines).trimEnd();
+}
+
+function hexToRgba(hex: string, alpha: number) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function ReplicaBlock({ replica }: { replica: Replica }) {
+  return (
+    <div className="flex w-full items-start bg-white p-[8px]">
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-[8px]">
+        <div className="flex items-center gap-[8px]">
+          <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: replica.color }}>
+            {replica.speaker}
+          </span>
+          <span
+            className="pt-px text-[12px] font-normal leading-[normal] tracking-[-0.24px]"
+            style={{ color: hexToRgba(replica.color, 0.64) }}
+          >
+            {replica.time}
+          </span>
+        </div>
+        <p
+          className={`w-[654px] text-[13px] font-normal leading-[16px] tracking-[-0.13px] ${replica.lines === 1 ? "truncate" : ""}`}
+          style={{ color: tokens.black }}
+        >
+          {replicaText(replica.lines)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ChapterAccordion({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children?: React.ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className="flex w-full flex-col gap-[8px]">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className={`flex w-full items-center justify-between rounded-[4px] border border-solid px-[12px] py-[10px] text-left hover:bg-[#F7F7F8] ${pressableClass}`}
+        style={{ borderColor: tokens.border }}
+      >
+        <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          {title}
+        </span>
+        <span
+          className={`flex h-[16px] w-[16px] items-center justify-center transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${expanded ? "rotate-180" : "rotate-0"}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={asset("accordion-chevron.svg")} alt="" className="h-[16px] w-[16px] shrink-0" />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {expanded && children && (
+          <motion.div
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="flex w-full flex-col gap-[8px] overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function TranscriptContent() {
+  const [chapter1Open, setChapter1Open] = useState(false);
+  const [chapter2Open, setChapter2Open] = useState(true);
+
+  return (
+    <div className="flex w-full flex-col gap-[8px]">
+      <ChapterAccordion
+        title="1. Обсуждение ягодного лукошка и ожидание участников"
+        expanded={chapter1Open}
+        onToggle={() => setChapter1Open((value) => !value)}
+      >
+        {chapter1Replicas.map((replica, index) => (
+          <ReplicaBlock key={index} replica={replica} />
+        ))}
+      </ChapterAccordion>
+      <ChapterAccordion
+        title="2. Greetings and start of the meeting"
+        expanded={chapter2Open}
+        onToggle={() => setChapter2Open((value) => !value)}
+      >
+        {chapter2Replicas.map((replica, index) => (
+          <ReplicaBlock key={index} replica={replica} />
+        ))}
+      </ChapterAccordion>
+    </div>
+  );
+}
+
 // Заглушка на время применения отчета (иконка текущего отчета в 48px).
 // Контейнер тянется до низа экрана с отступом 16px, контент отцентрован по высоте
 function GeneratingPlaceholder({ report }: { report: Report }) {
@@ -2311,12 +2542,15 @@ export default function ReportSwitcherPage() {
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Отчеты: примененные, текущий, генерация, дропдаун
+  // Активная вкладка встречи: отчет или транскрипт
+  const [activeTab, setActiveTab] = useState<MeetingTab>("report");
+
+  // Отчеты: примененные, текущий, генерация (по-отчетно), дропдаун
   const [appliedIds, setAppliedIds] = useState<string[]>([articleReport.id]);
   const [currentId, setCurrentId] = useState(articleReport.id);
-  const [generating, setGenerating] = useState(false);
+  const [generatingIds, setGeneratingIds] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const generateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generateTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const tabsAreaRef = useRef<HTMLDivElement>(null);
 
   const applied = appliedIds.flatMap((id) => {
@@ -2324,14 +2558,22 @@ export default function ReportSwitcherPage() {
     return report ? [report] : [];
   });
   const current = allReports.find((report) => report.id === currentId) ?? articleReport;
+  // Заглушка — только если генерируется именно текущий отчет: переключение на
+  // уже готовый отчет во время чужой генерации показывает готовый контент
+  const generating = generatingIds.includes(currentId);
 
-  const startGenerating = () => {
-    setGenerating(true);
-    if (generateTimer.current) clearTimeout(generateTimer.current);
-    generateTimer.current = setTimeout(() => {
-      setGenerating(false);
-      generateTimer.current = null;
-    }, 3000);
+  const startGenerating = (id: string) => {
+    setGeneratingIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    const timers = generateTimers.current;
+    const existing = timers.get(id);
+    if (existing) clearTimeout(existing);
+    timers.set(
+      id,
+      setTimeout(() => {
+        setGeneratingIds((prev) => prev.filter((item) => item !== id));
+        timers.delete(id);
+      }, 3000),
+    );
   };
 
   const handleSelectReport = (report: Report) => {
@@ -2344,12 +2586,17 @@ export default function ReportSwitcherPage() {
     // Новый отчет перемещается в секцию примененных и генерируется
     setAppliedIds((prev) => [report.id, ...prev]);
     setCurrentId(report.id);
-    startGenerating();
+    startGenerating(report.id);
   };
 
   const handleReloadReport = () => {
     setDropdownOpen(false);
-    startGenerating();
+    startGenerating(currentId);
+  };
+
+  const handleSelectTab = (tab: MeetingTab) => {
+    setActiveTab(tab);
+    if (tab !== "report") setDropdownOpen(false);
   };
 
   useEffect(() => {
@@ -2399,14 +2646,14 @@ export default function ReportSwitcherPage() {
     return () => {
       if (copyTimer.current) clearTimeout(copyTimer.current);
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      if (generateTimer.current) clearTimeout(generateTimer.current);
+      generateTimers.current.forEach((timer) => clearTimeout(timer));
     };
   }, []);
 
   const fadeProps = {
-    initial: reduceMotion ? { opacity: 1 } : { opacity: 0 },
-    animate: { opacity: 1 },
-    transition: reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.23, 1, 0.32, 1] as const },
+    initial: reduceMotion ? { opacity: 1 } : { opacity: 0, y: 4 },
+    animate: { opacity: 1, y: 0 },
+    transition: reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.23, 1, 0.32, 1] as const },
   };
 
   return (
@@ -2424,6 +2671,8 @@ export default function ReportSwitcherPage() {
                     current={current}
                     open={dropdownOpen}
                     onToggle={() => setDropdownOpen((value) => !value)}
+                    activeTab={activeTab}
+                    onSelectTab={handleSelectTab}
                     applied={applied}
                     currentId={currentId}
                     onSelect={handleSelectReport}
@@ -2432,8 +2681,18 @@ export default function ReportSwitcherPage() {
                   />
                 </div>
               </div>
-              <motion.div key={generating ? "generating" : `content-${current.id}`} {...fadeProps} className="w-full">
-                {generating ? <GeneratingPlaceholder report={current} /> : <ReportContent report={current} />}
+              <motion.div
+                key={activeTab === "transcript" ? "transcript" : generating ? "generating" : `content-${current.id}`}
+                {...fadeProps}
+                className="w-full"
+              >
+                {activeTab === "transcript" ? (
+                  <TranscriptContent />
+                ) : generating ? (
+                  <GeneratingPlaceholder report={current} />
+                ) : (
+                  <ReportContent report={current} />
+                )}
               </motion.div>
             </div>
           </div>
