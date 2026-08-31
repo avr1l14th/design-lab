@@ -3290,7 +3290,7 @@ function TasksCopyAllButton({
   textRef,
   onCopied,
 }: {
-  textRef: React.MutableRefObject<string>;
+  textRef: React.MutableRefObject<{ text: string; label: string }>;
   onCopied: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -3312,7 +3312,7 @@ function TasksCopyAllButton({
     if (tipTimer.current) clearTimeout(tipTimer.current);
     tipTimer.current = setTimeout(() => {
       tipTimer.current = null;
-      setTip({ text: "Скопировать все задачи", left: rect.left + rect.width / 2, top: rect.top - 8, placement: "top" });
+      setTip({ text: textRef.current.label, left: rect.left + rect.width / 2, top: rect.top - 8, placement: "top" });
       setTipVisible(true);
     }, 350);
   };
@@ -3326,7 +3326,7 @@ function TasksCopyAllButton({
 
   const handleCopy = () => {
     hideOwnTip();
-    navigator.clipboard?.writeText(textRef.current).catch(() => {});
+    navigator.clipboard?.writeText(textRef.current.text).catch(() => {});
     onCopied();
     setCopied(true);
     if (timer.current) clearTimeout(timer.current);
@@ -3371,7 +3371,7 @@ function TasksContent({
   onShowTranscript: () => void;
   onCopied: () => void;
   onDeleted: (undo: () => void) => void;
-  registerCopyText: (text: string) => void;
+  registerCopyText: (text: string, label: string) => void;
 }) {
   const reduceMotion = useReducedMotion();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -3467,14 +3467,28 @@ function TasksContent({
   const activeTasks = visibleTasks.filter((task) => !task.done);
   const doneTasks = visibleTasks.filter((task) => task.done);
 
-  // Актуальный markdown-чеклист для кнопки «скопировать все» в ряду табов
+  // Текст для кнопки копирования в ряду табов: на «Всего» — все задачи,
+  // на вкладке исполнителя — только его
   useEffect(() => {
-    const lines = [...tasks.filter((task) => !task.done), ...tasks.filter((task) => task.done)].map((task) => {
+    const inFilter = (task: Task) =>
+      effectiveFilter === "all"
+        ? true
+        : effectiveFilter === "none"
+          ? task.assigneeId === null
+          : task.assigneeId === effectiveFilter;
+    const subset = tasks.filter(inFilter);
+    const lines = [...subset.filter((task) => !task.done), ...subset.filter((task) => task.done)].map((task) => {
       const meta = [assigneeById(task.assigneeId)?.full, task.time].filter(Boolean).join(", ");
       return `- [${task.done ? "x" : " "}] ${task.text}${meta ? ` (${meta})` : ""}`;
     });
-    registerCopyText(lines.join("\n"));
-  }, [tasks, registerCopyText]);
+    const label =
+      effectiveFilter === "all"
+        ? "Скопировать все задачи"
+        : effectiveFilter === "none"
+          ? "Скопировать задачи: Без исполнителя"
+          : `Скопировать задачи: ${assigneeById(effectiveFilter)?.full ?? ""}`;
+    registerCopyText(lines.join("\n"), label);
+  }, [tasks, effectiveFilter, registerCopyText]);
 
   const rowLayoutTransition = reduceMotion
     ? { duration: 0 }
@@ -3738,7 +3752,7 @@ export default function TaskImprovementsPage() {
     };
   }, [dropdownOpen]);
 
-  const tasksCopyTextRef = useRef("");
+  const tasksCopyTextRef = useRef({ text: "", label: "Скопировать все задачи" });
   const [undoVisible, setUndoVisible] = useState(false);
   const undoActionRef = useRef<(() => void) | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3858,8 +3872,8 @@ export default function TaskImprovementsPage() {
                     onShowTranscript={() => handleSelectTab("transcript")}
                     onCopied={() => showToast("Задача скопирована")}
                     onDeleted={showUndoToast}
-                    registerCopyText={(text) => {
-                      tasksCopyTextRef.current = text;
+                    registerCopyText={(text, label) => {
+                      tasksCopyTextRef.current = { text, label };
                     }}
                   />
                 ) : activeTab === "transcript" ? (
