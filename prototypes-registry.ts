@@ -9,6 +9,13 @@ export type Prototype = {
 
 export const prototypes: Prototype[] = [
   {
+    slug: "task-improvements",
+    title: "Улучшение задач",
+    description: "Вкладка «Задачи» на странице встречи: фильтры по исполнителям, drag&drop, инлайн-создание и редактирование, копирование, удаление с отменой, конфетти при отметке",
+    tags: ["tasks", "tabs", "checkbox", "figma"],
+    updatedAt: "2026-08-31",
+  },
+  {
     slug: "report-switcher",
     title: "Новое применение отчетов",
     description: "Отчеты живут в одной вкладке: дропдаун с примененными, кастомными и предустановленными отчетами, пересоздание и заглушка генерации",
