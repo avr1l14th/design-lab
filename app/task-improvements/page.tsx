@@ -2576,6 +2576,7 @@ type Task = {
   id: string;
   text: string;
   assigneeId: string | null;
+  reporterId: string | null;
   time?: string;
   done: boolean;
 };
@@ -2585,7 +2586,8 @@ const initialTasks: Task[] = [
   {
     id: "signals",
     text: "Передать список признаков и весов для определения пользователей, которым показывать B2B коммуникации (Срок: В течение 2 дней)",
-    assigneeId: null,
+    assigneeId: "andryukha",
+    reporterId: "sanek",
     time: "4:32",
     done: false,
   },
@@ -2593,6 +2595,7 @@ const initialTasks: Task[] = [
     id: "segment-script",
     text: "Разработать и запустить скрипт, который раз в сутки пересчитывает принадлежность пользователей к сегменту и формирует флаг для показа коммуникаций",
     assigneeId: "andryukha",
+    reporterId: "sasha",
     time: "6:58",
     done: false,
   },
@@ -2600,6 +2603,7 @@ const initialTasks: Task[] = [
     id: "tracking",
     text: "Настроить трекинг событий: показы баннеров, клики по баннерам, закрытия, отправки форм и ошибки в формах, обсудить логику перезаписи ошибок при успешной отправке",
     assigneeId: "sasha",
+    reporterId: "andryukha",
     time: "12:02",
     done: false,
   },
@@ -2607,6 +2611,7 @@ const initialTasks: Task[] = [
     id: "sheet-access",
     text: "Обеспечить запись данных пользователей, достигших события form.submit.access, в Google таблицу с логином, временем и заполненными полями формы",
     assigneeId: "andryukha",
+    reporterId: "sasha",
     time: "13:31",
     done: false,
   },
@@ -2614,6 +2619,7 @@ const initialTasks: Task[] = [
     id: "sheet-pricing",
     text: "Создать отдельную Google таблицу для записи данных форм, открываемых через прайсинг и апгрейд, чтобы отделить статистику от баннеров (Срок: Следующая неделя)",
     assigneeId: "andryukha",
+    reporterId: "sasha",
     time: "17:09",
     done: false,
   },
@@ -2621,6 +2627,7 @@ const initialTasks: Task[] = [
     id: "modals-frontend",
     text: "Начать разработку фронтенда модалок, подготовить к интеграции с формулой скоринга и логикой показа коммуникаций",
     assigneeId: "sanek",
+    reporterId: "sasha",
     time: "22:48",
     done: false,
   },
@@ -2628,6 +2635,7 @@ const initialTasks: Task[] = [
     id: "spec-md",
     text: "Скинуть MD-шку с описанием спецификации в DevChat для команды разработки",
     assigneeId: "andryukha",
+    reporterId: "sasha",
     time: "23:37",
     done: false,
   },
@@ -2635,6 +2643,7 @@ const initialTasks: Task[] = [
     id: "tracking-details",
     text: "Обсудить и уточнить технические детали трекинга кликов и событий на фронтенде, включая использование внешних метрик и базы данных",
     assigneeId: "sasha",
+    reporterId: "andryukha",
     time: "24:08",
     done: false,
   },
@@ -2642,6 +2651,7 @@ const initialTasks: Task[] = [
     id: "spec-review",
     text: "Санек изучит спецификацию и при необходимости задаст вопросы Андрюхе по технической части (Срок: Понедельник)",
     assigneeId: "sanek",
+    reporterId: "andryukha",
     time: "27:11",
     done: false,
   },
@@ -2649,6 +2659,7 @@ const initialTasks: Task[] = [
     id: "cooldown",
     text: "Реализовать логику кулдауна на 30 дней для пользователей, которые закрыли баннер крестиком или отправили форму",
     assigneeId: "andryukha",
+    reporterId: "sasha",
     time: "8:19",
     done: true,
   },
@@ -2777,24 +2788,81 @@ function TaskAvatar({ assignee, size = 16 }: { assignee: Assignee; size?: number
 function AssigneePlaceholder() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-      <circle cx="8" cy="8" r="7.25" stroke="#818AA3" strokeWidth="1.5" strokeDasharray="3 3" pathLength={48} />
+      <circle
+        cx="8"
+        cy="8"
+        r="7.25"
+        stroke="#818AA3"
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+        pathLength={48}
+        className="transition-[fill] duration-[120ms] ease-out motion-reduce:transition-none"
+        style={{ fill: "var(--placeholder-fill, #FFFFFF)" }}
+      />
     </svg>
   );
 }
 
-// Меню исполнителя (макет 45046:18074): 210px, «Без исполнителя» первым,
-// у выбранного — серая галочка справа. Общее для строки и композера
-function AssigneeMenu({
-  value,
-  onSelect,
+// Меню «Исполнитель / Постановщик» (макет 45233:789): 210px, две секции
+// с заголовками-аккордеонами как «Ресурсы» в сайдбаре, галочка у выбранных
+function DualMenuSection({ title }: { title: string }) {
+  return (
+    <div className="flex h-[24px] w-full shrink-0 items-end px-[6px] pb-[2px] pt-[6px]">
+      <span className="whitespace-nowrap text-[12px] font-medium leading-[normal] tracking-[-0.24px] text-[#818AA3]">
+        {title}
+      </span>
+    </div>
+  );
+}
+
+function DualMenuItem({
+  assignee,
+  label,
+  checked,
+  onClick,
+}: {
+  assignee: Assignee | null;
+  label: string;
+  checked: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-[32px] w-full shrink-0 items-center justify-between rounded-[2px] px-[6px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+    >
+      <span className="flex items-center gap-[6px]">
+        {assignee ? (
+          <TaskAvatar assignee={assignee} />
+        ) : (
+          <span className="flex">
+            <AssigneePlaceholder />
+          </span>
+        )}
+        <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px] text-[#212833]">{label}</span>
+      </span>
+      {checked && (
+        <span aria-hidden="true" className="h-[16px] w-[16px] shrink-0 bg-[#818AA3]" style={tiMask("fig-check-menu.svg")} />
+      )}
+    </button>
+  );
+}
+
+function DualAssigneeMenu({
+  assigneeId,
+  reporterId,
+  onSelectAssignee,
+  onSelectReporter,
   direction = "down",
 }: {
-  value: string | null;
-  onSelect: (id: string | null) => void;
+  assigneeId: string | null;
+  reporterId: string | null;
+  onSelectAssignee: (id: string | null) => void;
+  onSelectReporter: (id: string | null) => void;
   direction?: "down" | "up";
 }) {
   const reduceMotion = useReducedMotion();
-  // Меню въезжает со стороны триггера: вниз — сверху, вверх — снизу
   const shift = direction === "up" ? 6 : -6;
   const motionProps = {
     initial: reduceMotion ? { opacity: 0 } : { opacity: 0, transform: `translateY(${shift}px) scale(0.965)` },
@@ -2802,10 +2870,6 @@ function AssigneeMenu({
     exit: reduceMotion ? { opacity: 0 } : { opacity: 0, transform: `translateY(${shift / 3}px) scale(0.985)` },
     transition: reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.23, 1, 0.32, 1] as const },
   };
-  const options: { id: string | null; label: string; assignee: Assignee | null }[] = [
-    { id: null, label: "Без исполнителя", assignee: null },
-    ...taskAssignees.map((item) => ({ id: item.id, label: item.full, assignee: item })),
-  ];
   return (
     <motion.div
       {...motionProps}
@@ -2813,29 +2877,27 @@ function AssigneeMenu({
         direction === "up" ? "bottom-[calc(100%+6px)] origin-bottom-right" : "top-[calc(100%+6px)] origin-top-right"
       }`}
     >
-      {options.map((option) => (
-        <button
-          key={option.id ?? "none"}
-          type="button"
-          onClick={() => onSelect(option.id)}
-          className={`flex h-[32px] w-full shrink-0 items-center justify-between rounded-[2px] px-[6px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
-        >
-          <span className="flex items-center gap-[6px]">
-            {option.assignee ? (
-              <TaskAvatar assignee={option.assignee} />
-            ) : (
-              <span className="flex">
-                <AssigneePlaceholder />
-              </span>
-            )}
-            <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px] text-[#212833]">
-              {option.label}
-            </span>
-          </span>
-          {value === option.id && (
-            <span aria-hidden="true" className="h-[16px] w-[16px] shrink-0 bg-[#818AA3]" style={tiMask("fig-check-menu.svg")} />
-          )}
-        </button>
+      <DualMenuSection title="Исполнитель" />
+      <DualMenuItem assignee={null} label="Без исполнителя" checked={assigneeId === null} onClick={() => onSelectAssignee(null)} />
+      {taskAssignees.map((item) => (
+        <DualMenuItem
+          key={item.id}
+          assignee={item}
+          label={item.full}
+          checked={assigneeId === item.id}
+          onClick={() => onSelectAssignee(item.id)}
+        />
+      ))}
+      <DualMenuSection title="Постановщик" />
+      <DualMenuItem assignee={null} label="Без постановщика" checked={reporterId === null} onClick={() => onSelectReporter(null)} />
+      {taskAssignees.map((item) => (
+        <DualMenuItem
+          key={item.id}
+          assignee={item}
+          label={item.full}
+          checked={reporterId === item.id}
+          onClick={() => onSelectReporter(item.id)}
+        />
       ))}
     </motion.div>
   );
@@ -2849,6 +2911,7 @@ function TaskRow({
   onDelete,
   onCopied,
   onAssign,
+  onSetReporter,
   showTip,
   hideTip,
   dragControls,
@@ -2860,11 +2923,13 @@ function TaskRow({
   onDelete: () => void;
   onCopied: () => void;
   onAssign: (assigneeId: string | null) => void;
+  onSetReporter: (reporterId: string | null) => void;
   showTip: (text: string) => (event: React.MouseEvent<HTMLElement>) => void;
   hideTip: () => void;
   dragControls?: DragControls;
 }) {
   const assignee = assigneeById(task.assigneeId);
+  const reporter = assigneeById(task.reporterId);
   const [assigneeMenuOpen, setAssigneeMenuOpen] = useState(false);
   const [assigneeMenuDir, setAssigneeMenuDir] = useState<"down" | "up">("down");
   const assigneeAreaRef = useRef<HTMLDivElement>(null);
@@ -3018,32 +3083,38 @@ function TaskRow({
         </button>
       )}
       <div ref={assigneeAreaRef} className="relative flex h-[16px] shrink-0 items-center">
+        {/* Пара «исполнитель + постановщик» внахлест (макет 45233:816):
+            исполнитель сверху с обводкой под цвет фона строки */}
         <button
           type="button"
-          aria-label="Назначить исполнителя"
+          aria-label="Исполнитель и постановщик"
           aria-expanded={assigneeMenuOpen}
           onClick={() => {
             const rect = assigneeAreaRef.current?.getBoundingClientRect();
-            if (rect) setAssigneeMenuDir(window.innerHeight - rect.bottom < 170 ? "up" : "down");
+            if (rect) setAssigneeMenuDir(window.innerHeight - rect.bottom < 330 ? "up" : "down");
             setAssigneeMenuOpen((value) => !value);
           }}
-          className={`flex rounded-full ${focusRingClass}`}
+          className={`isolate flex items-center rounded-full hover:[--placeholder-fill:#F7F7F8] ${focusRingClass}`}
         >
-          {assignee ? (
-            <TaskAvatar assignee={assignee} />
-          ) : (
-            <span className={`flex text-[#C7C8CA] hover:text-[#818AA3] ${pressableClass}`}>
-              <AssigneePlaceholder />
-            </span>
-          )}
+          <span className="z-[2] mr-[-6px] flex rounded-full shadow-[0_0_0_1.5px_#FFFFFF] transition-[box-shadow] duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/row:shadow-[0_0_0_1.5px_#FAFAFA] motion-reduce:transition-none">
+            {assignee ? <TaskAvatar assignee={assignee} /> : <AssigneePlaceholder />}
+          </span>
+          <span className="z-[1] flex rounded-full">
+            {reporter ? <TaskAvatar assignee={reporter} /> : <AssigneePlaceholder />}
+          </span>
         </button>
         <AnimatePresence>
           {assigneeMenuOpen && (
-            <AssigneeMenu
-              value={task.assigneeId}
+            <DualAssigneeMenu
+              assigneeId={task.assigneeId}
+              reporterId={task.reporterId}
               direction={assigneeMenuDir}
-              onSelect={(id) => {
+              onSelectAssignee={(id) => {
                 onAssign(id);
+                setAssigneeMenuOpen(false);
+              }}
+              onSelectReporter={(id) => {
+                onSetReporter(id);
                 setAssigneeMenuOpen(false);
               }}
             />
@@ -3162,13 +3233,14 @@ function TaskComposer({
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
-  onAdd: (text: string, assigneeId: string | null) => void;
+  onAdd: (text: string, assigneeId: string | null, reporterId: string | null) => void;
   defaultAssigneeId: string | null;
 }) {
   // Композер ремаунтится по key при открытии/закрытии — стейт инициализируется
   // при монтировании, без синхронизации через эффекты
   const [text, setText] = useState("");
   const [assigneeId, setAssigneeId] = useState<string | null>(defaultAssigneeId);
+  const [reporterId, setReporterId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuDir, setMenuDir] = useState<"down" | "up">("down");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -3185,12 +3257,12 @@ function TaskComposer({
       if (!(target instanceof Element)) return;
       if (rootRef.current?.contains(target)) return;
       const trimmed = text.trim();
-      if (trimmed) onAdd(trimmed, assigneeId);
+      if (trimmed) onAdd(trimmed, assigneeId, reporterId);
       onClose();
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open, onClose, onAdd, text, assigneeId]);
+  }, [open, onClose, onAdd, text, assigneeId, reporterId]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -3220,7 +3292,7 @@ function TaskComposer({
   const submit = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    onAdd(trimmed, assigneeId);
+    onAdd(trimmed, assigneeId, reporterId);
     setText("");
     inputRef.current?.focus();
     // Новая строка встает над композером и толкает его вниз — держим его
@@ -3249,30 +3321,35 @@ function TaskComposer({
       <div ref={menuAreaRef} className="relative flex h-[16px] shrink-0 items-center">
         <button
           type="button"
-          aria-label="Выбрать исполнителя"
+          aria-label="Исполнитель и постановщик"
           aria-expanded={menuOpen}
           onClick={() => {
             const rect = menuAreaRef.current?.getBoundingClientRect();
-            if (rect) setMenuDir(window.innerHeight - rect.bottom < 170 ? "up" : "down");
+            if (rect) setMenuDir(window.innerHeight - rect.bottom < 330 ? "up" : "down");
             setMenuOpen((value) => !value);
           }}
-          className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full ${pressableClass} ${focusRingClass}`}
+          className={`isolate flex items-center rounded-full hover:[--placeholder-fill:#F7F7F8] ${focusRingClass}`}
         >
-          {selected ? (
-            <TaskAvatar assignee={selected} />
-          ) : (
-            <span className="flex">
-              <AssigneePlaceholder />
-            </span>
-          )}
+          <span className="z-[2] mr-[-6px] flex rounded-full shadow-[0_0_0_1.5px_#FAFAFA]">
+            {selected ? <TaskAvatar assignee={selected} /> : <AssigneePlaceholder />}
+          </span>
+          <span className="z-[1] flex rounded-full">
+            {reporterId ? <TaskAvatar assignee={assigneeById(reporterId)!} /> : <AssigneePlaceholder />}
+          </span>
         </button>
         <AnimatePresence>
           {menuOpen && (
-            <AssigneeMenu
-              value={assigneeId}
+            <DualAssigneeMenu
+              assigneeId={assigneeId}
+              reporterId={reporterId}
               direction={menuDir}
-              onSelect={(id) => {
+              onSelectAssignee={(id) => {
                 setAssigneeId(id);
+                setMenuOpen(false);
+                inputRef.current?.focus();
+              }}
+              onSelectReporter={(id) => {
+                setReporterId(id);
                 setMenuOpen(false);
                 inputRef.current?.focus();
               }}
@@ -3423,9 +3500,9 @@ function TasksContent({
   const toggleTask = (id: string) =>
     setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, done: !task.done } : task)));
 
-  const addTask = (text: string, assigneeId: string | null) => {
+  const addTask = (text: string, assigneeId: string | null, reporterId: string | null) => {
     newTaskCounter.current += 1;
-    setTasks((prev) => [...prev, { id: `new-${newTaskCounter.current}`, text, assigneeId, done: false }]);
+    setTasks((prev) => [...prev, { id: `new-${newTaskCounter.current}`, text, assigneeId, reporterId, done: false }]);
   };
 
   const editTask = (id: string, text: string) =>
@@ -3433,6 +3510,9 @@ function TasksContent({
 
   const assignTask = (id: string, assigneeId: string | null) =>
     setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, assigneeId } : task)));
+
+  const setTaskReporter = (id: string, reporterId: string | null) =>
+    setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, reporterId } : task)));
 
   // Удаление с возможностью отмены: тост наверху страницы, восстановление
   // возвращает задачу на прежний индекс (если ее не вернули раньше)
@@ -3500,6 +3580,7 @@ function TasksContent({
           onDelete={() => deleteTask(task.id)}
           onCopied={onCopied}
           onAssign={(assigneeId) => assignTask(task.id, assigneeId)}
+          onSetReporter={(reporterId) => setTaskReporter(task.id, reporterId)}
           showTip={showTip}
           hideTip={hideTip}
         />
@@ -3556,6 +3637,7 @@ function TasksContent({
                     onDelete={() => deleteTask(task.id)}
                     onCopied={onCopied}
                     onAssign={(assigneeId) => assignTask(task.id, assigneeId)}
+                    onSetReporter={(reporterId) => setTaskReporter(task.id, reporterId)}
                     showTip={showTip}
                     hideTip={hideTip}
                     dragControls={dragControls}
