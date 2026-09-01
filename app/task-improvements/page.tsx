@@ -3023,10 +3023,13 @@ function TaskRow({
           aria-label="Назначить исполнителя"
           aria-expanded={assigneeMenuOpen}
           onClick={() => {
+            hideTip();
             const rect = assigneeAreaRef.current?.getBoundingClientRect();
             if (rect) setAssigneeMenuDir(window.innerHeight - rect.bottom < 170 ? "up" : "down");
             setAssigneeMenuOpen((value) => !value);
           }}
+          onMouseEnter={showTip(assignee ? `Исполнитель: ${assignee.full}` : "Исполнитель: не назначен")}
+          onMouseLeave={hideTip}
           className={`flex rounded-full ${focusRingClass}`}
         >
           {assignee ? (
