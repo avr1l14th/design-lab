@@ -1370,7 +1370,15 @@ function ReportTabs({
           onClick={() => onSelectTab("tasks")}
           className={`group/tab relative flex items-center justify-center gap-[6px] px-[8px] pb-[12px] pt-[8px] ${pressableClass}`}
         >
-          <TabGlyph file="tab-tasks.svg" active={tasksActive} />
+          <span
+            aria-hidden="true"
+            className={
+              tasksActive
+                ? "h-[16px] w-[16px] shrink-0 bg-[#212833]"
+                : "h-[16px] w-[16px] shrink-0 bg-[#818AA3] transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/tab:bg-[#585E6C] motion-reduce:transition-none"
+            }
+            style={tiMask("fig-tab-tasks.svg")}
+          />
           <span
             className={
               tasksActive
@@ -2604,11 +2612,25 @@ const initialTasks: Task[] = [
     done: false,
   },
   {
+    id: "spec-review",
+    text: "Санек изучит спецификацию и при необходимости задаст вопросы Андрюхе по технической части (Срок: Понедельник)",
+    assigneeId: "sanek",
+    time: "27:11",
+    done: true,
+  },
+  {
     id: "sheet-access",
     text: "Обеспечить запись данных пользователей, достигших события form.submit.access, в Google таблицу с логином, временем и заполненными полями формы",
     assigneeId: "andryukha",
     time: "13:31",
     done: false,
+  },
+  {
+    id: "cooldown",
+    text: "Реализовать логику кулдауна на 30 дней для пользователей, которые закрыли баннер крестиком или отправили форму",
+    assigneeId: "andryukha",
+    time: "8:19",
+    done: true,
   },
   {
     id: "sheet-pricing",
@@ -2638,20 +2660,6 @@ const initialTasks: Task[] = [
     time: "24:08",
     done: false,
   },
-  {
-    id: "spec-review",
-    text: "Санек изучит спецификацию и при необходимости задаст вопросы Андрюхе по технической части (Срок: Понедельник)",
-    assigneeId: "sanek",
-    time: "27:11",
-    done: false,
-  },
-  {
-    id: "cooldown",
-    text: "Реализовать логику кулдауна на 30 дней для пользователей, которые закрыли баннер крестиком или отправили форму",
-    assigneeId: "andryukha",
-    time: "8:19",
-    done: true,
-  },
 ];
 
 // Конфетти при отметке: фиксированный паттерн разлета (углы/размеры/цвета палитры)
@@ -2671,32 +2679,22 @@ function TaskCheckbox({ checked, onToggle, label }: { checked: boolean; onToggle
   const buttonRef = useRef<HTMLButtonElement>(null);
   // Счетчик отметок: key для перезапуска конфетти; только при клике «отметить»
   const [burst, setBurst] = useState(0);
-  // Отметка играет на месте (галочка + конфетти), и только потом задача
-  // улетает вниз — иначе строка ремаунтится в «выполненных» и анимация гибнет
-  const [pending, setPending] = useState(false);
-  const visualChecked = checked || pending;
 
   const handleClick = () => {
-    if (pending) return;
-    if (checked || reduceMotion) {
-      onToggle();
-      return;
+    if (!checked && !reduceMotion) {
+      setBurst((value) => value + 1);
+      // Пружинный поп самого чекбокса — WAAPI, вне main thread и без ремаунта
+      buttonRef.current?.animate(
+        [
+          { transform: "scale(1)" },
+          { transform: "scale(0.8)", offset: 0.3 },
+          { transform: "scale(1.12)", offset: 0.7 },
+          { transform: "scale(1)" },
+        ],
+        { duration: 300, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
+      );
     }
-    setPending(true);
-    setBurst((value) => value + 1);
-    // Пружинный поп самого чекбокса — WAAPI, вне main thread и без ремаунта
-    buttonRef.current?.animate(
-      [
-        { transform: "scale(1)" },
-        { transform: "scale(0.8)", offset: 0.3 },
-        { transform: "scale(1.12)", offset: 0.7 },
-        { transform: "scale(1)" },
-      ],
-      { duration: 300, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
-    );
-    // Не чистим таймер при анмаунте: toggleTask по id безопасен и после него.
-    // 300мс: галочка успевает прорисоваться (180мс) + короткий бит — и отлет
-    setTimeout(() => onToggle(), 300);
+    onToggle();
   };
 
   return (
@@ -2704,14 +2702,14 @@ function TaskCheckbox({ checked, onToggle, label }: { checked: boolean; onToggle
       ref={buttonRef}
       type="button"
       role="checkbox"
-      aria-checked={visualChecked}
+      aria-checked={checked}
       aria-label={label}
       onClick={handleClick}
       className={`relative flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[2px] border border-solid transition-[background-color,border-color] duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${focusRingClass} ${
-        visualChecked ? "border-[#0D9655] bg-[#0D9655]" : "border-[#C7C8CA] bg-transparent hover:border-[#818AA3]"
+        checked ? "border-[#0D9655] bg-[#0D9655]" : "border-[#C7C8CA] bg-transparent hover:border-[#818AA3]"
       }`}
     >
-      {burst > 0 && visualChecked && (
+      {burst > 0 && checked && (
         <span key={burst} aria-hidden="true" className="pointer-events-none absolute inset-0">
           {burstParticles.map((particle, index) => (
             <span
@@ -2742,11 +2740,11 @@ function TaskCheckbox({ checked, onToggle, label }: { checked: boolean; onToggle
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={false}
-          animate={{ pathLength: visualChecked ? 1 : 0, opacity: visualChecked ? 1 : 0 }}
+          animate={{ pathLength: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
           transition={
             reduceMotion
               ? { duration: 0 }
-              : { duration: visualChecked ? 0.18 : 0.1, ease: [0.23, 1, 0.32, 1] }
+              : { duration: checked ? 0.18 : 0.1, ease: [0.23, 1, 0.32, 1] }
           }
         />
       </svg>
@@ -2977,8 +2975,8 @@ function TaskRow({
       ) : (
         <p
           onClick={startEdit}
-          className="min-w-0 flex-1 cursor-text text-[13px] font-normal leading-[16px] tracking-[-0.13px] transition-colors duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
-          style={{ color: task.done ? "#BABBBD" : tokens.black }}
+          className="min-w-0 flex-1 cursor-text text-[13px] font-normal leading-[16px] tracking-[-0.13px]"
+          style={{ color: tokens.black }}
         >
           {task.text}
         </p>
@@ -3149,7 +3147,7 @@ function TaskBadge({
       } ${pressableClass} ${focusRingClass}`}
     >
       <span style={{ color: color ?? tokens.black }}>{label}</span>
-      <span className="text-[#818AA3]">{count}</span>
+      <span style={{ color: color ? hexToRgba(color, 0.64) : "#818AA3" }}>{count}</span>
     </button>
   );
 }
@@ -3467,8 +3465,6 @@ function TasksContent({
       : effectiveFilter === "none"
         ? tasks.filter((task) => task.assigneeId === null)
         : tasks.filter((task) => task.assigneeId === effectiveFilter);
-  const activeTasks = visibleTasks.filter((task) => !task.done);
-  const doneTasks = visibleTasks.filter((task) => task.done);
 
   // Текст для кнопки копирования в ряду табов: на «Всего» — все задачи,
   // на вкладке исполнителя — только его
@@ -3479,8 +3475,7 @@ function TasksContent({
         : effectiveFilter === "none"
           ? task.assigneeId === null
           : task.assigneeId === effectiveFilter;
-    const subset = tasks.filter(inFilter);
-    const lines = [...subset.filter((task) => !task.done), ...subset.filter((task) => task.done)].map((task) => {
+    const lines = tasks.filter(inFilter).map((task) => {
       const meta = [assigneeById(task.assigneeId)?.full, task.time].filter(Boolean).join(", ");
       return `- [${task.done ? "x" : " "}] ${task.text}${meta ? ` (${meta})` : ""}`;
     });
@@ -3497,38 +3492,17 @@ function TasksContent({
     ? { duration: 0 }
     : { duration: 0.24, ease: [0.23, 1, 0.32, 1] as const };
 
-  // Reorder отдает новый порядок активных задач; выполненные — следом.
   // Страховка: при фильтре drag выключен и порядок не трогаем
-  const handleReorder = (nextActive: Task[]) => {
+  const handleReorder = (next: Task[]) => {
     if (effectiveFilter !== "all") return;
-    setTasks((prev) => [...nextActive, ...prev.filter((task) => task.done)]);
+    setTasks(next);
   };
-
-  const renderRow = (task: Task) => (
-    <motion.div key={task.id} layoutId={`task-${effectiveFilter}-${task.id}`} layout transition={rowLayoutTransition}>
-      {/* Вход новой задачи — CSS-анимацией: framer в этой версии
-          замораживает mount-анимации внутри LayoutGroup */}
-      <div className={task.id.startsWith("new-") || task.id === restoredId ? "task-fade-in-fast" : undefined}>
-        <TaskRow
-          task={task}
-          onToggle={() => toggleTask(task.id)}
-          onTimeClick={onShowTranscript}
-          onEdit={(text) => editTask(task.id, text)}
-          onDelete={() => deleteTask(task.id)}
-          onCopied={onCopied}
-          onAssign={(assigneeId) => assignTask(task.id, assigneeId)}
-          showTip={showTip}
-          hideTip={hideTip}
-        />
-      </div>
-    </motion.div>
-  );
 
   return (
     <div className="flex w-full flex-col gap-[12px]">
       {/* Бейджи-фильтры по исполнителям */}
       <div className="flex w-full items-center gap-[4px]">
-        <TaskBadge label="Всего" count={tasks.length} active={effectiveFilter === "all"} onClick={() => setFilter("all")} />
+        <TaskBadge label="Все" count={tasks.length} active={effectiveFilter === "all"} onClick={() => setFilter("all")} />
         {unassignedCount > 0 && (
           <TaskBadge
             label="Без исполнителя"
@@ -3554,8 +3528,8 @@ function TasksContent({
         {/* key={filter}: смена фильтра ремаунтит список целиком — мгновенно,
             без layout-анимаций со старых позиций (иначе строки дергаются) */}
         <div key={effectiveFilter} className="-mx-[8px] flex flex-col">
-          <Reorder.Group axis="y" as="div" values={activeTasks} onReorder={handleReorder} className="flex flex-col">
-            {activeTasks.map((task) => (
+          <Reorder.Group axis="y" as="div" values={visibleTasks} onReorder={handleReorder} className="flex flex-col">
+            {visibleTasks.map((task) => (
               <ActiveTaskItem
                 key={task.id}
                 task={task}
@@ -3589,8 +3563,6 @@ function TasksContent({
             onAdd={addTask}
             defaultAssigneeId={effectiveFilter === "all" || effectiveFilter === "none" ? null : effectiveFilter}
           />
-          {/* Выполненные — внизу, под строкой добавления (как в макете) */}
-          {doneTasks.map(renderRow)}
         </div>
       </LayoutGroup>
       <HeaderTooltip tip={tip} visible={tipVisible} />
