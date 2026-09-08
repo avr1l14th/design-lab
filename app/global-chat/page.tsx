@@ -152,6 +152,20 @@ export default function GlobalChatPage() {
     toast.show(active.pinned ? "Диалог откреплен" : "Диалог закреплен", { icon: "fig-pin" });
   };
 
+  // Меню «…» строки диалога — одно и то же в списке на стартовой и в переключателе в шапке
+  const rowActions = {
+    onPin: (id: string) => {
+      const d = api.dialogs.find((x) => x.id === id);
+      api.togglePin(id);
+      toast.show(d?.pinned ? "Диалог откреплен" : "Диалог закреплен", { icon: "fig-pin" });
+    },
+    onRename: (id: string) => setRenamingRowId(id),
+    onDelete: (id: string) => {
+      const undo = api.deleteDialog(id);
+      toast.show("Диалог удален", { undo });
+    },
+  };
+
   const hasDialogs = api.dialogs.length > 0;
   travel.useArrive(dialogComposerRef, active ? active.id : "");
   travel.useArrive(homeComposerRef, active ? "" : "home");
@@ -173,6 +187,13 @@ export default function GlobalChatPage() {
                 onPin={pinActive}
                 onRename={() => setRenaming(true)}
                 onDelete={deleteActive}
+                rowActions={rowActions}
+                renamingRowId={renamingRowId}
+                onCommitRowRename={(id, t) => {
+                  api.renameDialog(id, t);
+                  setRenamingRowId(null);
+                }}
+                onCancelRowRename={() => setRenamingRowId(null)}
                 renaming={renaming}
                 onCommitRename={(t) => {
                   if (active) api.renameDialog(active.id, t);
@@ -258,18 +279,7 @@ export default function GlobalChatPage() {
                           setRenamingRowId(null);
                         }}
                         onCancelRename={() => setRenamingRowId(null)}
-                        actions={{
-                          onPin: (id) => {
-                            const d = api.dialogs.find((x) => x.id === id);
-                            api.togglePin(id);
-                            toast.show(d?.pinned ? "Диалог откреплен" : "Диалог закреплен", { icon: "fig-pin" });
-                          },
-                          onRename: (id) => setRenamingRowId(id),
-                          onDelete: (id) => {
-                            const undo = api.deleteDialog(id);
-                            toast.show("Диалог удален", { undo });
-                          },
-                        }}
+                        actions={rowActions}
                       />
                     ) : composer.mode === "auto" ? (
                       <SuggestionCards items={SUGGESTIONS.auto} onPick={pickSuggestion} />

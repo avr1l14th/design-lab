@@ -539,25 +539,41 @@ function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog
   );
 }
 
-/** Строка списка предыдущих чатов — по макету 45833:9928: px-8 py-8, радиус 2, ховер grey-20, «…» вместо даты */
-function PreviousChatRow({
+/**
+ * Строка диалога — по макету 45833:9928: px-8 py-8, радиус 2, ховер grey-20, справа дата (или галочка у текущего),
+ * на ховере на ее месте «…» с меню закрепить/переименовать/удалить.
+ * Используется и в списке предыдущих чатов на стартовой, и в переключателе диалогов в шапке
+ */
+export function DialogListRow({
   dialog,
   index,
   actions,
   renaming,
+  active = false,
+  role = "button",
   onOpen,
   onCommitRename,
   onCancelRename,
+  onMenuOpenChange,
 }: {
   dialog: Dialog;
-  index: number;
+  /** Порядок для каскадного появления; без него строка не анимируется */
+  index?: number;
   actions: DialogRowActions;
   renaming: boolean;
+  /** Текущий диалог — справа галочка вместо даты */
+  active?: boolean;
+  role?: "button" | "menuitem";
   onOpen: () => void;
   onCommitRename: (title: string) => void;
   onCancelRename: () => void;
+  onMenuOpenChange?: (open: boolean) => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpenState] = useState(false);
+  const setMenuOpen = (open: boolean) => {
+    setMenuOpenState(open);
+    onMenuOpenChange?.(open);
+  };
   const icon = dialog.pinned ? "fig-pin" : "fig-chat";
   if (renaming) {
     return (
@@ -571,7 +587,7 @@ function PreviousChatRow({
   }
   return (
     <div
-      role="button"
+      role={role}
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => {
@@ -580,8 +596,8 @@ function PreviousChatRow({
           onOpen();
         }
       }}
-      className={`group/row gc-fade-in-up gc-no-fill relative flex w-full cursor-pointer items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
-      style={{ animationDelay: `${Math.min(index, 6) * 30}ms` }}
+      className={`group/row relative flex w-full cursor-pointer items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${index !== undefined ? "gc-fade-in-up gc-no-fill" : ""} ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
+      style={index !== undefined ? { animationDelay: `${Math.min(index, 6) * 30}ms` } : undefined}
     >
       <span className="flex shrink-0" style={{ color: tokens.grey }}>
         <Ic name={icon} />
@@ -589,15 +605,26 @@ function PreviousChatRow({
       <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
         {dialog.title}
       </span>
-      {/* Справа — дата, на ховере на ее месте «…» */}
+      {/* Справа — дата (у текущего диалога галочка), на ховере на ее месте «…».
+          Фокус учитываем только клавиатурный (focus-visible): в Safari клик по кнопке фокусирует саму строку,
+          и на focus-within троеточие залипало бы после действия из меню */}
       <span className="relative flex h-[16px] shrink-0 items-center justify-end">
-        <span
-          className={`text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "opacity-0" : "group-hover/row:opacity-0 group-focus-within/row:opacity-0"}`}
-          style={{ color: tokens.greyDisabled }}
-        >
-          {formatShortDate(dialog.updatedAt)}
-        </span>
-        <span className={`absolute right-0 top-0 transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "" : "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100"}`}>
+        {active ? (
+          <span
+            className={`flex transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "opacity-0" : "group-hover/row:opacity-0 group-focus-visible/row:opacity-0 group-has-[:focus-visible]/row:opacity-0"}`}
+            style={{ color: tokens.grey }}
+          >
+            <Ic name="fig-check" />
+          </span>
+        ) : (
+          <span
+            className={`text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "opacity-0" : "group-hover/row:opacity-0 group-focus-visible/row:opacity-0 group-has-[:focus-visible]/row:opacity-0"}`}
+            style={{ color: tokens.greyDisabled }}
+          >
+            {formatShortDate(dialog.updatedAt)}
+          </span>
+        )}
+        <span className={`absolute right-0 top-0 transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "" : "opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 has-[:focus-visible]:opacity-100"}`}>
           <DialogRowMenu dialog={dialog} actions={actions} open={menuOpen} onOpenChange={setMenuOpen} />
         </span>
       </span>
@@ -624,7 +651,7 @@ export function PreviousChats({
   return (
     <div className="flex w-full flex-col">
       {sorted.map((d, i) => (
-        <PreviousChatRow
+        <DialogListRow
           key={d.id}
           dialog={d}
           index={i}
@@ -998,6 +1025,10 @@ export function DialogHeader({
   renaming,
   onCommitRename,
   onCancelRename,
+  rowActions,
+  renamingRowId,
+  onCommitRowRename,
+  onCancelRowRename,
 }: {
   /** null — стартовая: в шапке только «Чат», остальное не рендерится */
   dialog: Dialog | null;
@@ -1011,8 +1042,15 @@ export function DialogHeader({
   renaming: boolean;
   onCommitRename: (title: string) => void;
   onCancelRename: () => void;
+  /** Меню «…» строк переключателя — те же действия, что у списка на стартовой */
+  rowActions: DialogRowActions;
+  renamingRowId: string | null;
+  onCommitRowRename: (id: string, title: string) => void;
+  onCancelRowRename: () => void;
 }) {
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  // Пока открыто меню строки, список не режет его по overflow
+  const [rowMenuOpen, setRowMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
@@ -1068,34 +1106,23 @@ export function DialogHeader({
           </button>
         )}
         <Popover open={switcherOpen} direction="down" padding={4} style={{ boxShadow: shadow }} className="left-[45px] top-[calc(100%+4px)] w-[320px]">
-          <div role="menu" className="gc-scroll flex max-h-[360px] flex-col overflow-y-auto">
+          <div role="menu" className={`gc-scroll flex max-h-[360px] flex-col ${rowMenuOpen || renamingRowId ? "overflow-visible" : "overflow-y-auto"}`}>
             {others.map((d) => (
-              <button
+              <DialogListRow
                 key={d.id}
-                type="button"
+                dialog={d}
                 role="menuitem"
-                onClick={() => {
+                active={d.id === dialogId}
+                actions={rowActions}
+                renaming={renamingRowId === d.id}
+                onOpen={() => {
                   setSwitcherOpen(false);
                   if (d.id !== dialogId) onSwitch(d.id);
                 }}
-                className={`flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
-              >
-                <span className="shrink-0" style={{ color: tokens.grey }}>
-                  <Ic name={d.pinned ? "fig-pin" : "fig-chat"} />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                  {d.title}
-                </span>
-                {d.id === dialogId ? (
-                  <span className="shrink-0" style={{ color: tokens.grey }}>
-                    <Ic name="fig-check" />
-                  </span>
-                ) : (
-                  <span className="shrink-0 text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.greyDisabled }}>
-                    {formatShortDate(d.updatedAt)}
-                  </span>
-                )}
-              </button>
+                onCommitRename={(t) => onCommitRowRename(d.id, t)}
+                onCancelRename={onCancelRowRename}
+                onMenuOpenChange={setRowMenuOpen}
+              />
             ))}
           </div>
         </Popover>
