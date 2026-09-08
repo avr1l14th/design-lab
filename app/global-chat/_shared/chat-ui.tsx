@@ -332,13 +332,23 @@ export function Composer({
           ))}
         </div>
       )}
-      <div className="px-[4px] pt-[4px]">
+      <div className="relative px-[4px] pt-[4px]">
+        {/* Свой плейсхолдер вместо нативного: во всех браузерах стоит ровно там, где начинается текст,
+            и сдвинут на 1px влево, чтобы курсор ложился поверх первой буквы, а не рядом с ней */}
+        {state.text === "" && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-[4px] top-[4px] -translate-x-[1px] text-[13px] leading-[16px] tracking-[-0.13px] text-[#BABBBD]"
+          >
+            Спроси че хочешь...
+          </span>
+        )}
         <textarea
           ref={ref}
           value={state.text}
           autoFocus={autoFocus}
           rows={3}
-          placeholder="Спроси че хочешь..."
+          aria-label="Спроси че хочешь..."
           onChange={(e) => onChange({ text: e.target.value })}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -346,7 +356,7 @@ export function Composer({
               if (canSend) onSend();
             }
           }}
-          className="gc-scroll block w-full resize-none bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none placeholder:text-[#BABBBD]"
+          className="gc-scroll relative block w-full resize-none bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none"
           style={{ color: tokens.black, caretColor: tokens.black }}
         />
       </div>
@@ -440,21 +450,32 @@ export function SuggestionCards({ items, onPick }: { items: Suggestion[]; onPick
 }
 
 /** Подсказки строками с разделителями и стрелкой — для всех режимов, кроме «Авто» */
+/**
+ * Саджесты для выбранного режима — по макету 45638:9303: строки px-8 py-12, радиус 4, ховер #F7F7F8;
+ * дивайдеры между строками, при ховере строки соседние с ней дивайдеры (сверху и снизу) исчезают
+ */
 export function SuggestionList({ items, onPick }: { items: Suggestion[]; onPick: (s: Suggestion) => void }) {
+  const [hovered, setHovered] = useState<number | null>(null);
   return (
-    <div className="gc-fade-in flex w-full flex-col px-[12px]">
+    <div className="gc-fade-in flex w-full flex-col px-[12px]" onMouseLeave={() => setHovered(null)}>
       {items.map((s, i) => (
         <div key={s.text} className="flex w-full flex-col">
-          {i > 0 && <div className="h-px w-full" style={{ backgroundColor: tokens.border }} />}
+          {i > 0 && (
+            <div
+              className="h-px w-full transition-opacity duration-100"
+              style={{ backgroundColor: tokens.border, opacity: hovered === i || hovered === i - 1 ? 0 : 1 }}
+            />
+          )}
           <button
             type="button"
             onClick={() => onPick(s)}
-            className={`group flex w-full items-center justify-between gap-[8px] rounded-[2px] px-[4px] py-[12px] text-left hover:bg-[#FAFAFA] ${pressableClass} ${focusRingClass}`}
+            onMouseEnter={() => setHovered(i)}
+            className={`flex w-full items-center justify-between gap-[8px] rounded-[4px] px-[8px] py-[12px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
           >
             <span className="min-w-0 flex-1 text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
               {s.text}
             </span>
-            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rotate-90 text-[#818AA3] group-hover:text-[#585E6C]">
+            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rotate-90 text-[#818AA3]">
               <Ic name="fig-arrow-out" />
             </span>
           </button>
