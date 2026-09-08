@@ -35,8 +35,9 @@ export type SendPayload = {
   files: FileAttachment[];
 };
 
-const THINK_MS = 700;
-const LOOK_MS = 1000;
+// Этапы идут друг за другом и не спеша: сначала «Думаю...», потом «Смотрю встречи…», потом текст
+const THINK_MS = 1600;
+const LOOK_MS = 2200;
 const TICK_MS = 26;
 
 export function useDialogs(initialActiveId: string | null = null, initialDialogs: Dialog[] = DIALOGS) {

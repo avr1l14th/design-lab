@@ -277,11 +277,11 @@ body {
 }
 .gc-shimmer-text {
   color: transparent;
-  background: linear-gradient(90deg, #818aa3 0%, #818aa3 35%, #c7c8ca 50%, #818aa3 65%, #818aa3 100%);
-  background-size: 200% 100%;
+  background: linear-gradient(90deg, #818aa3 0%, #818aa3 30%, #dddedf 50%, #818aa3 70%, #818aa3 100%);
+  background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: gc-shimmer-text 1.6s linear infinite;
+  animation: gc-shimmer-text 1.4s linear infinite;
 }
 @keyframes gc-fade-in {
   from { opacity: 0; transform: translateY(2px); }
@@ -317,4 +317,12 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .gc-enter { animation: none; }
+}
+
+/* global-chat — лента диалога скроллится без видимого скроллбара */
+.gc-noscroll {
+  scrollbar-width: none;
+}
+.gc-noscroll::-webkit-scrollbar {
+  display: none;
 }

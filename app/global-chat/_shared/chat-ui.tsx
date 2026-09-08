@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -22,7 +22,7 @@ import {
   type Thumb,
 } from "./data";
 import { Ic } from "./icons";
-import { composerShadow, easeOut, focusRingClass, gcAsset, popoverShadow, pressableClass, sfAsset, shadow, tokens } from "./tokens";
+import { aiAsset, composerShadow, easeOut, focusRingClass, gcAsset, popoverShadow, pressableClass, sfAsset, shadow, tokens } from "./tokens";
 import { Popover, Tip, useOutsideClose } from "./ui";
 import { EMPTY_FILTERS, FilterPopover, filterChatMeetings, hasActiveFilters, type FilterState, type FilterTab } from "./meeting-filters";
 import type { Generation } from "./use-dialogs";
@@ -307,6 +307,18 @@ export function Composer({
   const canSend = state.text.trim().length > 0 && !disabled;
   const allMeetings = useMemo(() => Array.from(new Set([...(contextIds ?? []), ...state.meetingIds])), [contextIds, state.meetingIds]);
 
+  // Высота поля: минимум три строки (48px), при длинном тексте растет до 10 строк, дальше — скролл внутри
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const min = 48;
+    const max = 16 * 10;
+    el.style.height = `${min}px`;
+    const next = Math.min(Math.max(el.scrollHeight, min), max);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
+  }, [state.text, ref]);
+
   return (
     <div
       className="flex w-full flex-col gap-[12px] rounded-[4px] border bg-white p-[12px]"
@@ -334,7 +346,7 @@ export function Composer({
               if (canSend) onSend();
             }
           }}
-          className="gc-scroll block h-[48px] w-full resize-none bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none placeholder:text-[#BABBBD]"
+          className="gc-scroll block w-full resize-none bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none placeholder:text-[#BABBBD]"
           style={{ color: tokens.black, caretColor: tokens.black }}
         />
       </div>
@@ -458,14 +470,16 @@ export type DialogRowActions = {
   onDelete: (id: string) => void;
 };
 
-/** Меню «…» строки диалога — как в шапке: 160px, Закрепить/Открепить · Переименовать · Удалить */
-function DialogRowMenu({ dialog, actions }: { dialog: Dialog; actions: DialogRowActions }) {
-  const [open, setOpen] = useState(false);
+/**
+ * Меню «…» строки диалога — по макету 45896:13503: триггер — иконка 16px на месте даты,
+ * меню 160px (p-4, строки px-6 py-8 gap-6) под правым краем строки
+ */
+function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog; actions: DialogRowActions; open: boolean; onOpenChange: (open: boolean) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   useOutsideClose([ref], open, close);
   const run = (fn: (id: string) => void) => () => {
-    setOpen(false);
+    onOpenChange(false);
     fn(dialog.id);
   };
   const row = (icon: "fig-pin" | "fig-pencil" | "fig-trash", label: string, onClick: () => void, danger?: boolean) => (
@@ -483,18 +497,17 @@ function DialogRowMenu({ dialog, actions }: { dialog: Dialog; actions: DialogRow
     </button>
   );
   return (
-    <div ref={ref} className={`absolute right-[6px] top-1/2 -translate-y-1/2 ${open ? "" : "opacity-0 group-hover/row:opacity-100 focus-within:opacity-100"}`} onClick={(e) => e.stopPropagation()}>
+    <div ref={ref} className="relative flex shrink-0" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         aria-label="Действия"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className={`flex h-[24px] w-[24px] items-center justify-center rounded-[3px] hover:bg-[#EFEFEF] ${open ? "bg-[#EFEFEF]" : ""} ${pressableClass} ${focusRingClass}`}
-        style={{ color: tokens.grey }}
+        onClick={() => onOpenChange(!open)}
+        className={`flex h-[16px] w-[16px] items-center justify-center rounded-[2px] text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
       >
         <Ic name="fig-ellipsis" />
       </button>
-      <Popover open={open} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-[calc(100%+4px)] w-[160px]">
+      <Popover open={open} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-[calc(100%+8px)] w-[160px]">
         <div role="menu" className="flex flex-col">
           {row("fig-pin", dialog.pinned ? "Открепить" : "Закрепить", run(actions.onPin))}
           {row("fig-pencil", "Переименовать", run(actions.onRename))}
@@ -505,10 +518,74 @@ function DialogRowMenu({ dialog, actions }: { dialog: Dialog; actions: DialogRow
   );
 }
 
+/** Строка списка предыдущих чатов — по макету 45833:9928: px-8 py-8, радиус 2, ховер grey-20, «…» вместо даты */
+function PreviousChatRow({
+  dialog,
+  index,
+  actions,
+  renaming,
+  onOpen,
+  onCommitRename,
+  onCancelRename,
+}: {
+  dialog: Dialog;
+  index: number;
+  actions: DialogRowActions;
+  renaming: boolean;
+  onOpen: () => void;
+  onCommitRename: (title: string) => void;
+  onCancelRename: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const icon = dialog.pinned ? "fig-pin" : "fig-chat";
+  if (renaming) {
+    return (
+      <div className="flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[6px]" style={{ backgroundColor: tokens.bgSubtle }}>
+        <span className="flex shrink-0" style={{ color: tokens.grey }}>
+          <Ic name={icon} />
+        </span>
+        <RenameInput title={dialog.title} onCommit={onCommitRename} onCancel={onCancelRename} />
+      </div>
+    );
+  }
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className={`group/row gc-fade-in-up gc-no-fill relative flex w-full cursor-pointer items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
+      style={{ animationDelay: `${Math.min(index, 6) * 30}ms` }}
+    >
+      <span className="flex shrink-0" style={{ color: tokens.grey }}>
+        <Ic name={icon} />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+        {dialog.title}
+      </span>
+      {/* Справа — дата, на ховере на ее месте «…» */}
+      <span className="relative flex h-[16px] shrink-0 items-center justify-end">
+        <span
+          className={`text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "opacity-0" : "group-hover/row:opacity-0 group-focus-within/row:opacity-0"}`}
+          style={{ color: tokens.greyDisabled }}
+        >
+          {formatShortDate(dialog.updatedAt)}
+        </span>
+        <span className={`absolute right-0 top-0 transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "" : "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100"}`}>
+          <DialogRowMenu dialog={dialog} actions={actions} open={menuOpen} onOpenChange={setMenuOpen} />
+        </span>
+      </span>
+    </div>
+  );
+}
+
 export function PreviousChats({
   dialogs,
-  expanded,
-  onToggle,
   onOpen,
   actions,
   renamingId,
@@ -516,8 +593,6 @@ export function PreviousChats({
   onCancelRename,
 }: {
   dialogs: Dialog[];
-  expanded: boolean;
-  onToggle: () => void;
   onOpen: (id: string) => void;
   actions: DialogRowActions;
   renamingId: string | null;
@@ -525,56 +600,20 @@ export function PreviousChats({
   onCancelRename: () => void;
 }) {
   const sorted = sortDialogs(dialogs);
-  const shown = expanded ? sorted : sorted.slice(0, 3);
   return (
-    <div className="flex w-full flex-col gap-[12px]">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.grey }}>
-          Предыдущие чаты
-        </span>
-        {sorted.length > 3 && (
-          <button
-            type="button"
-            onClick={onToggle}
-            className={`rounded-[2px] text-[13px] leading-[normal] tracking-[-0.13px] text-[#818AA3] hover:text-[#212833] ${pressableClass} ${focusRingClass}`}
-          >
-            {expanded ? "Свернуть" : "Показать все"}
-          </button>
-        )}
-      </div>
-      <div className="flex w-full flex-col">
-        {shown.map((d, i) => {
-          const renaming = renamingId === d.id;
-          return (
-            <div key={d.id} className={`group/row relative flex w-full items-center rounded-[2px] hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${pressableClass} gc-fade-in-up gc-no-fill`} style={{ animationDelay: `${Math.min(i, 6) * 30}ms` }}>
-              {renaming ? (
-                <div className="flex w-full items-center gap-[6px] px-[6px] py-[6px]">
-                  <span className="shrink-0" style={{ color: tokens.grey }}>
-                    <Ic name={d.pinned ? "fig-pin" : "fig-chat"} />
-                  </span>
-                  <RenameInput title={d.title} onCommit={(t) => onCommitRename(d.id, t)} onCancel={onCancelRename} />
-                </div>
-              ) : (
-                <>
-                  <button type="button" onClick={() => onOpen(d.id)} className={`flex min-w-0 flex-1 items-center gap-[6px] rounded-[2px] px-[6px] py-[8px] text-left ${focusRingClass}`}>
-                    <span className="shrink-0" style={{ color: tokens.grey }}>
-                      <Ic name={d.pinned ? "fig-pin" : "fig-chat"} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                      {d.title}
-                    </span>
-                    {/* На ховере дата уступает место «…» */}
-                    <span className="shrink-0 text-[12px] leading-[normal] tracking-[-0.24px] group-hover/row:opacity-0" style={{ color: tokens.greyDisabled }}>
-                      {formatShortDate(d.updatedAt)}
-                    </span>
-                  </button>
-                  <DialogRowMenu dialog={d} actions={actions} />
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+    <div className="flex w-full flex-col">
+      {sorted.map((d, i) => (
+        <PreviousChatRow
+          key={d.id}
+          dialog={d}
+          index={i}
+          actions={actions}
+          renaming={renamingId === d.id}
+          onOpen={() => onOpen(d.id)}
+          onCommitRename={(t) => onCommitRename(d.id, t)}
+          onCancelRename={onCancelRename}
+        />
+      ))}
     </div>
   );
 }
@@ -603,16 +642,19 @@ export function MeetingsModal({
   initial,
   onClose,
   onApply,
+  onReset,
 }: {
   open: boolean;
   initial: string[];
   onClose: () => void;
   onApply: (ids: string[]) => void;
+  /** «Сбросить» — снять все выбранные встречи и закрыть модалку */
+  onReset: () => void;
 }) {
-  return <AnimatePresence>{open && <MeetingsModalInner key="meetings-modal" initial={initial} onClose={onClose} onApply={onApply} />}</AnimatePresence>;
+  return <AnimatePresence>{open && <MeetingsModalInner key="meetings-modal" initial={initial} onClose={onClose} onApply={onApply} onReset={onReset} />}</AnimatePresence>;
 }
 
-function MeetingsModalInner({ initial, onClose, onApply }: { initial: string[]; onClose: () => void; onApply: (ids: string[]) => void }) {
+function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: string[]; onClose: () => void; onApply: (ids: string[]) => void; onReset: () => void }) {
   const [selected, setSelected] = useState<string[]>(initial);
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -798,8 +840,19 @@ function MeetingsModalInner({ initial, onClose, onApply }: { initial: string[]; 
           </div>
         </div>
 
-        {/* Футер: кнопка активна только когда что-то выбрано */}
-        <div className="flex shrink-0 items-center justify-end rounded-b-[4px] border-t p-[16px]" style={{ backgroundColor: tokens.bgSubtle, borderColor: tokens.border }}>
+        {/* Футер: «Сбросить» снимает выбор и закрывает; «Добавить» активна только когда что-то выбрано */}
+        <div className="flex shrink-0 items-center justify-end gap-[8px] rounded-b-[4px] border-t p-[16px]" style={{ backgroundColor: tokens.bgSubtle, borderColor: tokens.border }}>
+          {/* «Сбросить» есть только когда есть что сбрасывать — выбрано в модалке или уже добавлено раньше */}
+          {(selected.length > 0 || initial.length > 0) && (
+            <button
+              type="button"
+              onClick={onReset}
+              className={`gc-fade-in flex h-[36px] items-center justify-center rounded-[4px] bg-[#F7F7F8] px-[12px] text-[13px] leading-[normal] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+              style={{ color: tokens.black }}
+            >
+              Сбросить
+            </button>
+          )}
           <button
             type="button"
             disabled={selected.length === 0}
@@ -925,7 +978,8 @@ export function DialogHeader({
   onCommitRename,
   onCancelRename,
 }: {
-  dialog: Dialog;
+  /** null — стартовая: в шапке только «Чат», остальное не рендерится */
+  dialog: Dialog | null;
   dialogs: Dialog[];
   onHome: () => void;
   onSwitch: (id: string) => void;
@@ -950,17 +1004,24 @@ export function DialogHeader({
   useOutsideClose([shareRef], shareOpen, closeShare);
   useOutsideClose([menuRef], menuOpen, closeMenu);
   const others = sortDialogs(dialogs);
+  const dialogId = dialog?.id ?? null;
 
   return (
-    <header className="flex h-[54px] shrink-0 items-center justify-between p-[16px]">
+    // Слева 10px + паддинг чипа 6px = текст «Чат» на тех же 16px, что и на стартовой — не скачет при переходе
+    <header className="flex h-[54px] shrink-0 items-center justify-between py-[16px] pl-[10px] pr-[16px]">
       <div ref={switcherRef} className="relative flex min-w-0 items-center gap-[2px]">
+        {/* «Чат» живет в шапке постоянно: на стартовой черный и некликабельный, в диалоге серый и ведет домой */}
         <button
           type="button"
-          onClick={onHome}
-          className={`shrink-0 rounded-[3px] p-[6px] text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-[#818AA3] hover:bg-[#F7F7F8] hover:text-[#212833] ${pressableClass} ${focusRingClass}`}
+          onClick={dialog ? onHome : undefined}
+          tabIndex={dialog ? 0 : -1}
+          aria-disabled={!dialog}
+          className={`shrink-0 rounded-[3px] p-[6px] text-[13px] font-medium leading-[normal] tracking-[-0.13px] ${dialog ? "cursor-pointer text-[#818AA3] hover:bg-[#F7F7F8] hover:text-[#212833]" : "cursor-default text-[#212833]"} ${pressableClass} ${focusRingClass}`}
         >
           Чат
         </button>
+        {dialog && (
+        <div key={dialog.id} className="gc-enter flex min-w-0 items-center gap-[2px]">
         <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.grey }}>
           /
         </span>
@@ -994,9 +1055,9 @@ export function DialogHeader({
                 role="menuitem"
                 onClick={() => {
                   setSwitcherOpen(false);
-                  if (d.id !== dialog.id) onSwitch(d.id);
+                  if (d.id !== dialogId) onSwitch(d.id);
                 }}
-                className={`flex w-full items-center gap-[6px] rounded-[2px] px-[6px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+                className={`flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
               >
                 <span className="shrink-0" style={{ color: tokens.grey }}>
                   <Ic name={d.pinned ? "fig-pin" : "fig-chat"} />
@@ -1004,7 +1065,7 @@ export function DialogHeader({
                 <span className="min-w-0 flex-1 truncate text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
                   {d.title}
                 </span>
-                {d.id === dialog.id ? (
+                {d.id === dialogId ? (
                   <span className="shrink-0" style={{ color: tokens.grey }}>
                     <Ic name="fig-check" />
                   </span>
@@ -1017,9 +1078,12 @@ export function DialogHeader({
             ))}
           </div>
         </Popover>
+        </div>
+        )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-[8px]">
+      {dialog && (
+      <div key={`actions-${dialog.id}`} className="gc-enter flex shrink-0 items-center gap-[8px]">
         {/* Сплит «Поделиться | ссылка» */}
         <div ref={shareRef} className="relative flex h-[32px] items-center rounded-[3px] border" style={{ borderColor: tokens.border }}>
           <button
@@ -1084,6 +1148,7 @@ export function DialogHeader({
           </Popover>
         </div>
       </div>
+      )}
     </header>
   );
 }
@@ -1288,7 +1353,7 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
         onClick={() => setOpen((v) => !v)}
         className={`group flex w-fit items-center gap-[4px] rounded-[2px] text-left ${pressableClass} ${focusRingClass}`}
       >
-        <span className={`text-[13px] font-medium leading-[normal] tracking-[-0.13px] ${looking ? "gc-shimmer-text" : ""}`} style={{ color: tokens.grey }}>
+        <span className={`text-[14px] leading-[24px] tracking-[-0.14px] ${looking ? "gc-shimmer-text" : ""}`} style={looking ? undefined : { color: tokens.grey }}>
           {step.label}
         </span>
         <span
@@ -1307,11 +1372,9 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
                 key={id}
                 type="button"
                 onClick={() => onOpenMeeting?.(id)}
-                className={`flex w-full items-center gap-[6px] rounded-[2px] px-[6px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+                className={`flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
               >
-                <span className="rounded-[2px] bg-white" style={{ padding: 1.5 }}>
-                  <MeetingThumb thumb={m.thumb} width={23} height={13} radius={1.5} />
-                </span>
+                <MeetingThumb thumb={m.thumb} width={26} height={16} radius={2} plain />
                 <span className="min-w-0 flex-1 truncate text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
                   {m.title}
                 </span>
@@ -1367,8 +1430,8 @@ function ClarifyCards({ clarify, onChoose }: { clarify: NonNullable<Message["cla
   );
 }
 
-/** Иконка действия под ответом: 24px, появляется на ховере ответа */
-function AnswerAction({ icon, label, onClick, active, flip }: { icon: "fig-copy" | "fig-thumb-up"; label: string; onClick: () => void; active?: boolean; flip?: boolean }) {
+/** Иконка действия под ответом: 24px без подложки, на ховере только темнеет */
+function AnswerAction({ icon, label, onClick, active, flip, copied }: { icon: "fig-copy" | "fig-thumb-up"; label: string; onClick: () => void; active?: boolean; flip?: boolean; copied?: boolean }) {
   return (
     <Tip text={label} placement="bottom">
       <button
@@ -1376,12 +1439,25 @@ function AnswerAction({ icon, label, onClick, active, flip }: { icon: "fig-copy"
         aria-label={label}
         aria-pressed={active}
         onClick={onClick}
-        className={`flex h-[24px] w-[24px] items-center justify-center rounded-[3px] hover:bg-[#F7F7F8] hover:text-[#818AA3] ${pressableClass} ${focusRingClass}`}
+        className={`relative flex h-[24px] w-[24px] items-center justify-center rounded-[3px] hover:text-[#818AA3] ${pressableClass} ${focusRingClass}`}
         style={{ color: active ? tokens.black : tokens.greyDisabled }}
       >
-        <span className={flip ? "rotate-180" : ""}>
+        {/* Копирование: иконка морфит в зеленую галочку из шапки, как у «Скопировать ссылку» в других прототипах */}
+        <span
+          className={`flex transition-[opacity,transform] duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${flip ? "rotate-180" : ""}`}
+          style={copied === undefined ? undefined : { opacity: copied ? 0 : 1, transform: copied ? "scale(0.6)" : "scale(1)" }}
+        >
           <Ic name={icon} />
         </span>
+        {copied !== undefined && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={aiAsset("check-circle.svg")}
+            alt=""
+            className="absolute left-[4px] top-[4px] h-[16px] w-[16px] transition-[opacity,transform] duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
+            style={{ opacity: copied ? 1 : 0, transform: copied ? "scale(1)" : "scale(0.6)" }}
+          />
+        )}
       </button>
     </Tip>
   );
@@ -1401,15 +1477,31 @@ export function AssistantBlock({
   onCopy?: (text: string) => void;
 }) {
   const [vote, setVote] = useState<"up" | "down" | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
+  const copy = () => {
+    onCopy?.(message.text);
+    setCopied(true);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), 2000);
+  };
   const mine = generation?.messageId === message.id ? generation.phase : null;
-  const thinking = mine === "thinking";
+  // Шиммер на серых статусах — пока модель думает и смотрит встречи; с первым словом ответа гаснет
+  const generating = mine === "thinking" || mine === "looking";
   const looking = mine === "looking";
   const streaming = mine === "streaming";
   const awaitingChoice = message.clarify && message.clarify.chosen === undefined;
   const done = mine === null && message.text.length > 0 && !awaitingChoice;
   return (
     <div className="gc-enter group/answer flex w-full flex-col items-start gap-[16px]">
-      <span className={`text-[13px] font-medium leading-[normal] tracking-[-0.13px] ${thinking ? "gc-shimmer-text" : ""}`} style={{ color: tokens.grey }}>
+      {/* inline color перебивал бы color: transparent у шиммера — ставим цвет только в статике */}
+      <span className={`text-[14px] leading-[24px] tracking-[-0.14px] ${generating ? "gc-shimmer-text" : ""}`} style={generating ? undefined : { color: tokens.grey }}>
         Думаю...
       </span>
       {message.clarify && (
@@ -1428,7 +1520,7 @@ export function AssistantBlock({
       {(message.text || streaming) && !awaitingChoice && <AnswerText text={message.text} sources={message.sources} streaming={streaming} />}
       {done && (
         <div className="-ml-[4px] flex items-center gap-[4px] opacity-0 transition-opacity duration-[120ms] group-hover/answer:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
-          <AnswerAction icon="fig-copy" label="Скопировать ответ" onClick={() => onCopy?.(message.text)} />
+          <AnswerAction icon="fig-copy" label={copied ? "Скопировано" : "Скопировать ответ"} onClick={copy} copied={copied} />
           <AnswerAction icon="fig-thumb-up" label="Полезно" active={vote === "up"} onClick={() => setVote((v) => (v === "up" ? null : "up"))} />
           <AnswerAction icon="fig-thumb-up" label="Не полезно" flip active={vote === "down"} onClick={() => setVote((v) => (v === "down" ? null : "down"))} />
         </div>
