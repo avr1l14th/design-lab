@@ -21,7 +21,7 @@ export type ModeDef = {
 export const MODES: ModeDef[] = [
   { id: "auto", label: "Авто", description: "Подберем режим под вопрос", icon: "fig-sparkles", color: tokens.blue, title: "Чем могу помочь?" },
   { id: "ask", label: "Спросить", description: "Быстрые ответы на вопросы", icon: "fig-bolt", color: tokens.orange, title: "Что спросить у встреч?" },
-  { id: "analytics", label: "Аналитика", description: "Глубокий и подробный анализ", icon: "fig-chart", color: tokens.black, title: "Что проанализировать?" },
+  { id: "analytics", label: "Аналитика", description: "Глубокий и подробный анализ", icon: "fig-chart", color: tokens.purple, title: "Что проанализировать?" },
   { id: "kb", label: "База знаний", description: "Помощь по работе сервиса", icon: "fig-globe16", color: tokens.green, title: "Что хотите узнать про mymeet.ai?" },
 ];
 
@@ -386,7 +386,7 @@ export function sortDialogs(dialogs: Dialog[]) {
 
 export type Suggestion = { text: string; mode: Mode };
 
-/** Подсказки под композером: у «Авто» — три карточки, у остальных режимов — строки */
+/** Подсказки под композером — строки; у «Авто» по одной на каждый режим (с иконкой режима), клик включает этот режим */
 export const SUGGESTIONS: Record<Mode, Suggestion[]> = {
   auto: [
     { text: "Что решили на ретро и что уже сделано?", mode: "ask" },
@@ -483,13 +483,14 @@ ${n > 2 ? "  - Больше всего времени уходит на прио
 }
 
 /** Заголовок нового диалога по первому вопросу */
+/** Заголовок диалога — вопрос целиком; режем только совсем длинные, в строках списка текст сам уходит в троеточие по ширине */
 export function titleFromQuestion(q: string) {
   const clean = q.replace(/[?!.]+$/g, "").trim();
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  if (clean.length <= 42) return cap(clean);
-  const cut = clean.slice(0, 42);
+  if (clean.length <= 120) return cap(clean);
+  const cut = clean.slice(0, 120);
   const lastSpace = cut.lastIndexOf(" ");
-  return cap(`${cut.slice(0, lastSpace > 20 ? lastSpace : 42)}…`);
+  return cap(`${cut.slice(0, lastSpace > 60 ? lastSpace : 120)}…`);
 }
 
 /** Мок-timestamp «сейчас» в контексте прототипа */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type SetStateAction } from "react";
 import {
   DIALOGS,
   clarifyOptions,
@@ -40,8 +40,98 @@ const THINK_MS = 1600;
 const LOOK_MS = 2200;
 const TICK_MS = 26;
 
-export function useDialogs(initialActiveId: string | null = null, initialDialogs: Dialog[] = DIALOGS) {
-  const [dialogs, setDialogs] = useState<Dialog[]>(initialDialogs);
+// ─────────────────────────────────────────────────────────────────────────────
+// Хранилище диалогов в localStorage: прошлые чаты переживают перезагрузку страницы.
+// Внешний стор через useSyncExternalStore: на сервере и при гидрации — пустой список,
+// на клиенте сразу после гидрации — сохраненный, без мигания стартового экрана
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EMPTY: Dialog[] = [];
+const SAVE_DELAY_MS = 150;
+
+type Store = { value: Dialog[]; listeners: Set<() => void>; saveTimer?: ReturnType<typeof setTimeout> };
+const stores = new Map<string, Store>();
+
+/** Убираем хвосты прерванной генерации: пустой ответ ассистента вместе с вопросом перед ним, диалоги без сообщений */
+function sanitize(dialogs: Dialog[]): Dialog[] {
+  return dialogs
+    .map((d) => {
+      const messages: Message[] = [];
+      for (const m of d.messages) {
+        const interrupted = m.role === "assistant" && m.text.length === 0 && !m.clarify;
+        if (interrupted) {
+          if (messages[messages.length - 1]?.role === "user") messages.pop();
+          continue;
+        }
+        messages.push(m);
+      }
+      return { ...d, messages };
+    })
+    .filter((d) => d.messages.length > 0);
+}
+
+function readStorage(key: string): Dialog[] {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return EMPTY;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? sanitize(parsed as Dialog[]) : EMPTY;
+  } catch {
+    return EMPTY;
+  }
+}
+
+function getStore(key: string): Store {
+  let store = stores.get(key);
+  if (!store) {
+    store = { value: readStorage(key), listeners: new Set() };
+    stores.set(key, store);
+  }
+  return store;
+}
+
+function updateStore(key: string, action: SetStateAction<Dialog[]>) {
+  const store = getStore(key);
+  const next = typeof action === "function" ? action(store.value) : action;
+  if (next === store.value) return;
+  store.value = next;
+  store.listeners.forEach((l) => l());
+  // Стрим пишет каждые ~26мс — сохраняем с задержкой, последний тик все равно попадет в storage
+  if (store.saveTimer) clearTimeout(store.saveTimer);
+  store.saveTimer = setTimeout(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(store.value));
+    } catch {
+      // storage недоступен (приватный режим, квота) — прототип продолжает работать в памяти
+    }
+  }, SAVE_DELAY_MS);
+}
+
+/** Состояние списка диалогов: с ключом — в localStorage, без ключа — обычный useState */
+function useDialogsState(storageKey: string | null, initial: Dialog[]): [Dialog[], (action: SetStateAction<Dialog[]>) => void] {
+  const [local, setLocal] = useState<Dialog[]>(initial);
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      if (!storageKey) return () => {};
+      const store = getStore(storageKey);
+      store.listeners.add(listener);
+      return () => store.listeners.delete(listener);
+    },
+    [storageKey],
+  );
+  const stored = useSyncExternalStore(
+    subscribe,
+    () => (storageKey ? getStore(storageKey).value : EMPTY),
+    () => EMPTY,
+  );
+  const setStored = useCallback((action: SetStateAction<Dialog[]>) => {
+    if (storageKey) updateStore(storageKey, action);
+  }, [storageKey]);
+  return storageKey ? [stored, setStored] : [local, setLocal];
+}
+
+export function useDialogs(initialActiveId: string | null = null, initialDialogs: Dialog[] = DIALOGS, storageKey: string | null = null) {
+  const [dialogs, setDialogs] = useDialogsState(storageKey, initialDialogs);
   const [activeId, setActiveId] = useState<string | null>(initialActiveId);
   const [generation, setGeneration] = useState<Generation | null>(null);
   const timers = useRef<{ think?: ReturnType<typeof setTimeout>; look?: ReturnType<typeof setTimeout>; tick?: ReturnType<typeof setInterval> }>({});
@@ -59,7 +149,7 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
 
   const patchDialog = useCallback((id: string, patch: Partial<Dialog> | ((d: Dialog) => Partial<Dialog>)) => {
     setDialogs((prev) => prev.map((d) => (d.id === id ? { ...d, ...(typeof patch === "function" ? patch(d) : patch) } : d)));
-  }, []);
+  }, [setDialogs]);
 
   const patchMessage = useCallback(
     (dialogId: string, messageId: string, patch: Partial<Message> | ((m: Message) => Partial<Message>)) => {
@@ -106,7 +196,7 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
         return next;
       });
     };
-  }, []);
+  }, [setDialogs]);
 
   /** Шаг «Смотрю встречи…», затем стрим текста */
   const lookAndStream = useCallback(
@@ -192,7 +282,7 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
 
       return dialogId;
     },
-    [activeId, dialogs, patchDialog, patchMessage, lookAndStream],
+    [activeId, dialogs, patchDialog, patchMessage, lookAndStream, setDialogs],
   );
 
   /** Пользователь выбрал режим в уточнении — продолжаем ответ в этом режиме */

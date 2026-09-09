@@ -2,6 +2,7 @@
 
 import { Inter } from "next/font/google";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AssistantBlock,
   Composer,
@@ -9,7 +10,6 @@ import {
   HomeTitle,
   MeetingsModal,
   PreviousChats,
-  SuggestionCards,
   SuggestionList,
   UserBubble,
   type ComposerState,
@@ -36,6 +36,8 @@ const TRAVEL_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 const TRAVEL_MS = 340;
 /** Остальное содержимое экрана догоняет поле с этой задержкой (≈ треть переезда) */
 const TRAVEL_FOLLOW_DELAY = "110ms";
+// Схлопывание списка подсказок: та же «ящичная» кривая, что у переезда поля
+const SUGGEST_COLLAPSE = { duration: 0.26, ease: [0.32, 0.72, 0, 1] as const };
 
 /**
  * FLIP-переезд композера: перед сменой экрана запоминаем top поля, после рендера нового экрана
@@ -67,7 +69,8 @@ function useComposerTravel() {
 
 export default function GlobalChatPage() {
   // Стартуем с пустой историей — так виден дефолт «нет предыдущих диалогов»
-  const api = useDialogs(null, []);
+  // Диалоги живут в localStorage — прошлые чаты остаются после перезагрузки
+  const api = useDialogs(null, [], "gc:dialogs:v1");
   const toast = useToast();
   const [composer, setComposer] = useState<ComposerState>(EMPTY_COMPOSER);
   const [meetingsOpen, setMeetingsOpen] = useState(false);
@@ -245,15 +248,14 @@ export default function GlobalChatPage() {
             </>
           ) : (
             <>
-              {/* Центрируется блок как в макете дефолта: заголовок + поле + слот под карточки (100px).
-                  Слот фиксированной высоты, поэтому строки-подсказки или список чатов (они выше карточек)
-                  выходят за него вниз и не сдвигают поле по вертикали */}
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-[24px]">
-                <div className="flex w-[640px] max-w-full flex-col items-center gap-[24px]">
-                  <div className="flex w-full flex-col items-center gap-[24px]">
-                    <div className="gc-enter" style={enterDelay}>
-                      <HomeTitle mode={composer.mode} />
-                    </div>
+              {/* Стартовая по макетам 46115:7175 и 46151:6029: блок 640 прибит к верху (64px под шапкой), внутри заголовок,
+                  поле и через 16px строки-подсказки, ниже через 64px «Предыдущие чаты». Если не влезает — скроллится весь экран */}
+              <div className="gc-noscroll flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-[24px] pb-[40px] pt-[64px]">
+                <div className="flex w-[640px] max-w-full shrink-0 flex-col items-center gap-[24px]">
+                  <div className="gc-enter" style={enterDelay}>
+                    <HomeTitle mode={composer.mode} />
+                  </div>
+                  <div className="flex w-full flex-col">
                     <div ref={homeComposerRef} className="relative z-10 w-full will-change-transform">
                       <Composer
                         state={composer}
@@ -266,10 +268,26 @@ export default function GlobalChatPage() {
                         textareaRef={textareaRef}
                       />
                     </div>
+                    {/* Подсказки нужны, пока поле пустое: выбрал саджест или начал печатать — список сворачивается.
+                        Высота и отступ 16px схлопываются вместе, содержимое гаснет первым — без рывка */}
+                    <AnimatePresence initial={false}>
+                      {composer.text.trim() === "" && (
+                        <motion.div
+                          key="suggestions"
+                          className="w-full overflow-hidden"
+                          initial={{ height: 0, marginTop: 0, opacity: 0 }}
+                          animate={{ height: "auto", marginTop: 16, opacity: 1, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.16, delay: 0.08 } } }}
+                          exit={{ height: 0, marginTop: 0, opacity: 0, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.12 } } }}
+                        >
+                          <div className="gc-enter w-full" style={enterDelay}>
+                            <SuggestionList key={composer.mode} items={SUGGESTIONS[composer.mode]} onPick={pickSuggestion} withModeIcons={composer.mode === "auto"} />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <div className={`gc-enter relative h-[100px] w-full ${hasDialogs ? "mt-[16px]" : ""}`} style={enterDelay}>
-                    <div className="absolute left-0 right-0 top-0 flex flex-col items-center">
-                    {hasDialogs ? (
+                  {hasDialogs && (
+                    <div className="gc-enter mt-[40px] w-full" style={enterDelay}>
                       <PreviousChats
                         dialogs={api.dialogs}
                         onOpen={openDialog}
@@ -281,13 +299,8 @@ export default function GlobalChatPage() {
                         onCancelRename={() => setRenamingRowId(null)}
                         actions={rowActions}
                       />
-                    ) : composer.mode === "auto" ? (
-                      <SuggestionCards items={SUGGESTIONS.auto} onPick={pickSuggestion} />
-                    ) : (
-                      <SuggestionList key={composer.mode} items={SUGGESTIONS[composer.mode]} onPick={pickSuggestion} />
-                    )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </>

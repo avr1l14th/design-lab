@@ -137,6 +137,7 @@ function ToolButton({
   active,
   square,
   ariaExpanded,
+  borderless = false,
   className = "",
 }: {
   children: ReactNode;
@@ -145,6 +146,8 @@ function ToolButton({
   active?: boolean;
   square?: boolean;
   ariaExpanded?: boolean;
+  /** Без обводки (пикер режима) — рамка прозрачная, чтобы размеры совпадали с остальными кнопками */
+  borderless?: boolean;
   className?: string;
 }) {
   const btn = (
@@ -154,7 +157,7 @@ function ToolButton({
       aria-expanded={ariaExpanded}
       onClick={onClick}
       className={`group/tool flex h-[32px] shrink-0 items-center justify-center gap-[6px] rounded-[4px] border bg-white hover:bg-[#F7F7F8] ${square ? "w-[32px]" : "px-[8px]"} ${pressableClass} ${focusRingClass} ${className}`}
-      style={{ borderColor: tokens.border, backgroundColor: active ? tokens.bgSubtle : undefined }}
+      style={{ borderColor: borderless ? "transparent" : tokens.border, backgroundColor: active ? tokens.bgSubtle : undefined }}
     >
       {children}
     </button>
@@ -177,7 +180,7 @@ export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; o
   const m = modeById(mode);
   return (
     <div ref={ref} className="relative">
-      <ToolButton onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
+      <ToolButton borderless onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
         <span key={m.id} className="gc-fade-in flex items-center gap-[6px]">
           <span className="flex" style={{ color: m.color }}>
             <Ic name={m.icon} />
@@ -321,8 +324,8 @@ export function Composer({
 
   return (
     <div
-      className="flex w-full flex-col gap-[12px] rounded-[4px] border bg-white p-[12px]"
-      style={{ borderColor: tokens.border, boxShadow: composerShadow }}
+      className="flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
+      style={{ boxShadow: `inset 0 0 0 1px ${tokens.border}, ${composerShadow}` }}
       onClick={() => ref.current?.focus()}
     >
       {state.files.length > 0 && (
@@ -451,36 +454,36 @@ export function SuggestionCards({ items, onPick }: { items: Suggestion[]; onPick
 
 /** Подсказки строками с разделителями и стрелкой — для всех режимов, кроме «Авто» */
 /**
- * Саджесты для выбранного режима — по макету 45638:9303: строки px-8 py-12, радиус 4, ховер #F7F7F8;
- * дивайдеры между строками, при ховере строки соседние с ней дивайдеры (сверху и снизу) исчезают
+ * Саджесты под полем — по макетам 46151:6148 (Авто) и 46155:7050 (режим): строки 36px как у диалогов (px-8, gap 6), радиус 4, без дивайдеров,
+ * на ховере заливка #F7F7F8 и шеврон справа. В Авто слева иконка режима: серая, на ховере в цвет режима
  */
-export function SuggestionList({ items, onPick }: { items: Suggestion[]; onPick: (s: Suggestion) => void }) {
-  const [hovered, setHovered] = useState<number | null>(null);
+export function SuggestionList({ items, onPick, withModeIcons = false }: { items: Suggestion[]; onPick: (s: Suggestion) => void; withModeIcons?: boolean }) {
   return (
-    <div className="gc-fade-in flex w-full flex-col px-[12px]" onMouseLeave={() => setHovered(null)}>
-      {items.map((s, i) => (
-        <div key={s.text} className="flex w-full flex-col">
-          {i > 0 && (
-            <div
-              className="h-px w-full transition-opacity duration-100"
-              style={{ backgroundColor: tokens.border, opacity: hovered === i || hovered === i - 1 ? 0 : 1 }}
-            />
-          )}
+    <div className="gc-fade-in flex w-full flex-col px-[12px]">
+      {items.map((s) => {
+        const m = MODES.find((x) => x.id === s.mode) ?? MODES[0];
+        return (
           <button
+            key={s.text}
             type="button"
             onClick={() => onPick(s)}
-            onMouseEnter={() => setHovered(i)}
-            className={`flex w-full items-center justify-between gap-[8px] rounded-[4px] px-[8px] py-[12px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+            className={`group/sugg flex h-[36px] w-full items-center gap-[6px] rounded-[4px] px-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+            style={{ ["--mode-color" as string]: m.color }}
           >
+            {withModeIcons && (
+              <span className={`flex shrink-0 text-[#818AA3] group-hover/sugg:text-(--mode-color) ${pressableClass}`}>
+                <Ic name={m.icon} />
+              </span>
+            )}
             <span className="min-w-0 flex-1 text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
               {s.text}
             </span>
-            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rotate-90 text-[#818AA3]">
-              <Ic name="fig-arrow-out" />
+            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center text-[#818AA3] opacity-0 transition-opacity duration-[120ms] group-hover/sugg:opacity-100 group-focus-visible/sugg:opacity-100 motion-reduce:transition-none">
+              <Ic name="chevron-right" />
             </span>
           </button>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -551,6 +554,7 @@ export function DialogListRow({
   renaming,
   active = false,
   role = "button",
+  tall = false,
   onOpen,
   onCommitRename,
   onCancelRename,
@@ -564,6 +568,8 @@ export function DialogListRow({
   /** Текущий диалог — справа галочка вместо даты */
   active?: boolean;
   role?: "button" | "menuitem";
+  /** Строка 36px (список на стартовой по 46115:7093) вместо 32px в переключателе */
+  tall?: boolean;
   onOpen: () => void;
   onCommitRename: (title: string) => void;
   onCancelRename: () => void;
@@ -577,7 +583,7 @@ export function DialogListRow({
   const icon = dialog.pinned ? "fig-pin" : "fig-chat";
   if (renaming) {
     return (
-      <div className="flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[6px]" style={{ backgroundColor: tokens.bgSubtle }}>
+      <div className={`flex w-full items-center gap-[6px] rounded-[2px] px-[8px] ${tall ? "h-[36px]" : "py-[6px]"}`} style={{ backgroundColor: tokens.bgSubtle }}>
         <span className="flex shrink-0" style={{ color: tokens.grey }}>
           <Ic name={icon} />
         </span>
@@ -596,7 +602,7 @@ export function DialogListRow({
           onOpen();
         }
       }}
-      className={`group/row relative flex w-full cursor-pointer items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${index !== undefined ? "gc-fade-in-up gc-no-fill" : ""} ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
+      className={`group/row relative flex w-full cursor-pointer items-center gap-[6px] rounded-[2px] px-[8px] ${tall ? "h-[36px]" : "py-[8px]"} hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${index !== undefined ? "gc-fade-in-up gc-no-fill" : ""} ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
       style={index !== undefined ? { animationDelay: `${Math.min(index, 6) * 30}ms` } : undefined}
     >
       <span className="flex shrink-0" style={{ color: tokens.grey }}>
@@ -632,6 +638,13 @@ export function DialogListRow({
   );
 }
 
+/** Сколько диалогов видно в свернутом списке — по макетам 46115:6954 / 46115:6747 */
+const PREVIOUS_COLLAPSED = 3;
+
+/**
+ * Блок «Предыдущие чаты» на стартовой — по макету 46115:7088: заголовок серым (px-8), через 12px список строк 36px.
+ * Если диалогов больше трех — показываем три и ссылку «Показать все», в раскрытом виде — «Свернуть»
+ */
 export function PreviousChats({
   dialogs,
   onOpen,
@@ -647,21 +660,40 @@ export function PreviousChats({
   onCommitRename: (id: string, title: string) => void;
   onCancelRename: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const sorted = sortDialogs(dialogs);
+  const collapsible = sorted.length > PREVIOUS_COLLAPSED;
+  const visible = collapsible && !expanded ? sorted.slice(0, PREVIOUS_COLLAPSED) : sorted;
   return (
-    <div className="flex w-full flex-col">
-      {sorted.map((d, i) => (
-        <DialogListRow
-          key={d.id}
-          dialog={d}
-          index={i}
-          actions={actions}
-          renaming={renamingId === d.id}
-          onOpen={() => onOpen(d.id)}
-          onCommitRename={(t) => onCommitRename(d.id, t)}
-          onCancelRename={onCancelRename}
-        />
-      ))}
+    <div className="flex w-full flex-col gap-[12px] px-[12px]">
+      <div className="flex h-[16px] w-full items-center justify-between px-[8px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+        <span>Предыдущие чаты</span>
+        {collapsible && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            className={`rounded-[2px] text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
+          >
+            {expanded ? "Свернуть" : "Показать все"}
+          </button>
+        )}
+      </div>
+      <div className="flex w-full flex-col">
+        {visible.map((d, i) => (
+          <DialogListRow
+            key={d.id}
+            dialog={d}
+            index={i}
+            tall
+            actions={actions}
+            renaming={renamingId === d.id}
+            onOpen={() => onOpen(d.id)}
+            onCommitRename={(t) => onCommitRename(d.id, t)}
+            onCancelRename={onCancelRename}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -1233,7 +1265,7 @@ function RenameInput({ title, onCommit, onCancel }: { title: string; onCommit: (
 export function UserBubble({ message }: { message: Message }) {
   return (
     <div className="gc-enter flex w-full justify-end">
-      <div className="max-w-[560px] whitespace-pre-wrap rounded-[4px] p-[8px] text-[14px] leading-[1.35] tracking-[-0.28px]" style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}>
+      <div className="max-w-[560px] whitespace-pre-wrap rounded-[4px] p-[8px] text-[13px] leading-[20px] tracking-[-0.13px]" style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}>
         {message.text}
       </div>
     </div>
@@ -1383,9 +1415,9 @@ export function AnswerText({ text, sources = [], streaming }: { text: string; so
   });
   flush(lines.length);
   return (
-    <div className="w-full text-[14px] leading-[24px] tracking-[-0.14px]" style={{ color: tokens.black }}>
+    <div className="w-full text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
       {blocks}
-      {streaming && <span className="gc-caret ml-[2px] inline-block h-[14px] w-[6px] translate-y-[2px] rounded-[1px]" style={{ backgroundColor: tokens.black }} />}
+      {streaming && <span className="gc-caret ml-[2px] inline-block h-[13px] w-[6px] translate-y-[2px] rounded-[1px]" style={{ backgroundColor: tokens.black }} />}
     </div>
   );
 }
@@ -1393,21 +1425,33 @@ export function AnswerText({ text, sources = [], streaming }: { text: string; so
 /** Шаг «Смотрю встречи…»: клик раскрывает список просмотренных встреч */
 function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["step"]>; looking: boolean; onOpenMeeting?: (id: string) => void }) {
   const [open, setOpen] = useState(false);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [labelWidth, setLabelWidth] = useState<number | null>(null);
+  // Ширина текста нужна шиммеру, чтобы блик шел по тексту и шеврону как по одному элементу
+  useLayoutEffect(() => {
+    if (!looking) return;
+    const el = labelRef.current;
+    if (el) setLabelWidth(el.getBoundingClientRect().width);
+  }, [looking, step.label]);
+  const shimmer = looking && labelWidth !== null;
   return (
     <div className="flex w-full flex-col gap-[16px]">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`group flex w-fit items-center gap-[4px] rounded-[2px] text-left ${pressableClass} ${focusRingClass}`}
+        className={`group flex w-fit items-center gap-[4px] rounded-[2px] text-left ${shimmer ? "gc-shimmer-row" : ""} ${pressableClass} ${focusRingClass}`}
+        style={shimmer ? ({ ["--gc-shim-w" as string]: `${labelWidth}px` } as React.CSSProperties) : undefined}
       >
-        <span className={`text-[14px] leading-[24px] tracking-[-0.14px] ${looking ? "gc-shimmer-text" : ""}`} style={looking ? undefined : { color: tokens.grey }}>
+        {/* цвет классами, не inline: инлайновый перебивал бы group-hover */}
+        <span ref={labelRef} className={`text-[13px] leading-[20px] tracking-[-0.13px] ${shimmer ? "gc-shimmer-run-text" : "text-[#818AA3] group-hover:text-[#585E6C]"} ${pressableClass}`}>
           {step.label}
         </span>
         <span
-          className={`flex h-[16px] w-[16px] items-center justify-center text-[#818AA3] transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:text-[#585E6C] motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+          className={`flex h-[16px] w-[16px] translate-y-[1px] items-center justify-center text-[#818AA3] transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:text-[#585E6C] motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
         >
-          <Ic name="chevron-right" />
+          {/* шеврон на 1px ниже центра строки — оптически по центру текста 13/20 */}
+          <Ic name="chevron-right" color={shimmer ? "transparent" : undefined} className={shimmer ? "gc-shimmer-run-icon" : ""} />
         </span>
       </button>
       {open && (
@@ -1549,12 +1593,12 @@ export function AssistantBlock({
   return (
     <div className="gc-enter group/answer flex w-full flex-col items-start gap-[16px]">
       {/* inline color перебивал бы color: transparent у шиммера — ставим цвет только в статике */}
-      <span className={`text-[14px] leading-[24px] tracking-[-0.14px] ${generating ? "gc-shimmer-text" : ""}`} style={generating ? undefined : { color: tokens.grey }}>
+      <span className={`text-[13px] leading-[20px] tracking-[-0.13px] ${generating ? "gc-shimmer-text" : ""}`} style={generating ? undefined : { color: tokens.grey }}>
         Думаю...
       </span>
       {message.clarify && (
         <>
-          <p className="gc-enter text-[14px] leading-[24px] tracking-[-0.14px]" style={{ color: tokens.black }}>
+          <p className="gc-enter text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
             Не очень понял вопрос, уточните пожалуйста, что вы имеете в виду?
           </p>
           <ClarifyCards clarify={message.clarify} onChoose={onChoose} />

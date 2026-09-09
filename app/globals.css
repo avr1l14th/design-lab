@@ -299,9 +299,32 @@ body {
 }
 .gc-scroll::-webkit-scrollbar { width: 4px; }
 .gc-scroll::-webkit-scrollbar-thumb { background: #dddedf; border-radius: 2px; }
+/* global-chat — шиммер на строке «текст + иконка»: градиент один на оба элемента.
+   Размер градиента задается в px от ширины текста (--gc-shim-w), иконка сдвигает фон
+   на свою позицию (--gc-shim-shift), поэтому блик идет по тексту и шеврону непрерывно */
+@keyframes gc-shimmer-run {
+  0%   { background-position: calc(var(--gc-shim-shift, 0px) - var(--gc-shim-w) * 2.4) 0; }
+  100% { background-position: calc(var(--gc-shim-shift, 0px) + var(--gc-shim-w) * 2.4) 0; }
+}
+.gc-shimmer-row { --gc-shim-w: 240px; }
+.gc-shimmer-row .gc-shimmer-run-text,
+.gc-shimmer-row .gc-shimmer-run-icon {
+  background-image: linear-gradient(90deg, #818aa3 0%, #818aa3 30%, #dddedf 50%, #818aa3 70%, #818aa3 100%);
+  background-size: calc(var(--gc-shim-w) * 2.2) 100%;
+  animation: gc-shimmer-run 1.4s linear infinite;
+}
+.gc-shimmer-row .gc-shimmer-run-text {
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.gc-shimmer-row .gc-shimmer-run-icon {
+  --gc-shim-shift: calc(-1 * (var(--gc-shim-w) + 4px));
+}
 @media (prefers-reduced-motion: reduce) {
-  .gc-caret, .gc-breathe, .gc-shimmer-text, .gc-fade-in, .gc-fade-in-up { animation: none; }
-  .gc-shimmer-text { color: #818aa3; background: none; }
+  .gc-caret, .gc-breathe, .gc-shimmer-text, .gc-fade-in, .gc-fade-in-up, .gc-shimmer-run-text, .gc-shimmer-run-icon { animation: none; }
+  .gc-shimmer-text, .gc-shimmer-row .gc-shimmer-run-text { color: #818aa3; background: none; }
+  .gc-shimmer-row .gc-shimmer-run-icon { background: #818aa3; }
 }
 
 /* global-chat — вариант fade-in без fill-mode both: после анимации transform снимается,
