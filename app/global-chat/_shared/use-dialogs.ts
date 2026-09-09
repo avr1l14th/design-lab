@@ -65,7 +65,10 @@ function sanitize(dialogs: Dialog[]): Dialog[] {
         }
         messages.push(m);
       }
-      return { ...d, messages };
+      // Старые сохраненные диалоги получили заголовок, обрезанный до 42 символов — пересобираем из вопроса
+      const firstQuestion = messages.find((m) => m.role === "user")?.text;
+      const title = d.title.endsWith("…") && firstQuestion ? titleFromQuestion(firstQuestion) : d.title;
+      return { ...d, title, messages };
     })
     .filter((d) => d.messages.length > 0);
 }

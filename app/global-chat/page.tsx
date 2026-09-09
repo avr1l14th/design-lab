@@ -249,7 +249,7 @@ export default function GlobalChatPage() {
           ) : (
             <>
               {/* Стартовая по макетам 46115:7175 и 46151:6029: блок 640 прибит к верху (64px под шапкой), внутри заголовок,
-                  поле и через 16px строки-подсказки, ниже через 64px «Предыдущие чаты». Если не влезает — скроллится весь экран */}
+                  поле и через 12px строки-подсказки, ниже через 64px «Предыдущие чаты». Если не влезает — скроллится весь экран */}
               <div className="gc-noscroll flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-[24px] pb-[40px] pt-[64px]">
                 <div className="flex w-[640px] max-w-full shrink-0 flex-col items-center gap-[24px]">
                   <div className="gc-enter" style={enterDelay}>
@@ -269,14 +269,14 @@ export default function GlobalChatPage() {
                       />
                     </div>
                     {/* Подсказки нужны, пока поле пустое: выбрал саджест или начал печатать — список сворачивается.
-                        Высота и отступ 16px схлопываются вместе, содержимое гаснет первым — без рывка */}
+                        Высота и отступ 12px схлопываются вместе, содержимое гаснет первым — без рывка */}
                     <AnimatePresence initial={false}>
                       {composer.text.trim() === "" && (
                         <motion.div
                           key="suggestions"
                           className="w-full overflow-hidden"
                           initial={{ height: 0, marginTop: 0, opacity: 0 }}
-                          animate={{ height: "auto", marginTop: 16, opacity: 1, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.16, delay: 0.08 } } }}
+                          animate={{ height: "auto", marginTop: 12, opacity: 1, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.16, delay: 0.08 } } }}
                           exit={{ height: 0, marginTop: 0, opacity: 0, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.12 } } }}
                         >
                           <div className="gc-enter w-full" style={enterDelay}>
