@@ -2,7 +2,6 @@
 
 import { Inter } from "next/font/google";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   AssistantBlock,
   Composer,
@@ -36,8 +35,6 @@ const TRAVEL_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 const TRAVEL_MS = 340;
 /** Остальное содержимое экрана догоняет поле с этой задержкой (≈ треть переезда) */
 const TRAVEL_FOLLOW_DELAY = "110ms";
-// Схлопывание списка подсказок: та же «ящичная» кривая, что у переезда поля
-const SUGGEST_COLLAPSE = { duration: 0.26, ease: [0.32, 0.72, 0, 1] as const };
 
 /**
  * FLIP-переезд композера: перед сменой экрана запоминаем top поля, после рендера нового экрана
@@ -85,11 +82,19 @@ export default function GlobalChatPage() {
   const patch = (p: Partial<ComposerState>) => setComposer((c) => ({ ...c, ...p }));
   const active = api.active;
 
-  // Автоскролл ленты к последнему сообщению во время генерации
+  // Автоскролл ленты: к новому сообщению едем плавно, во время стрима и при смене диалога — сразу
   const lastText = active?.messages[active.messages.length - 1]?.text;
+  const scrollMemo = useRef<{ id: string | null; count: number }>({ id: null, count: 0 });
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    const id = active?.id ?? null;
+    const count = active?.messages.length ?? 0;
+    const prev = scrollMemo.current;
+    scrollMemo.current = { id, count };
+    if (!el) return;
+    const newMessage = id === prev.id && count > prev.count;
+    const smooth = newMessage && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
   }, [active?.id, active?.messages.length, lastText, api.generation?.phase]);
 
   const send = () => {
@@ -248,8 +253,8 @@ export default function GlobalChatPage() {
             </>
           ) : (
             <>
-              {/* Стартовая по макетам 46115:7175 и 46151:6029: блок 640 прибит к верху (64px под шапкой), внутри заголовок,
-                  поле и через 12px строки-подсказки, ниже через 64px «Предыдущие чаты». Если не влезает — скроллится весь экран */}
+              {/* Стартовая по макету 46115:7175: блок 640 прибит к верху (64px под шапкой), внутри заголовок,
+                  поле и через 24px строки-подсказки, ниже через 40px «Предыдущие чаты». Если не влезает — скроллится весь экран */}
               <div className="gc-noscroll flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-[24px] pb-[40px] pt-[64px]">
                 <div className="flex w-[640px] max-w-full shrink-0 flex-col items-center gap-[24px]">
                   <div className="gc-enter" style={enterDelay}>
@@ -268,26 +273,12 @@ export default function GlobalChatPage() {
                         textareaRef={textareaRef}
                       />
                     </div>
-                    {/* Подсказки нужны, пока поле пустое: выбрал саджест или начал печатать — список сворачивается.
-                        Высота и отступ 12px схлопываются вместе, содержимое гаснет первым — без рывка */}
-                    <AnimatePresence initial={false}>
-                      {composer.text.trim() === "" && (
-                        <motion.div
-                          key="suggestions"
-                          className="w-full overflow-hidden"
-                          initial={{ height: 0, marginTop: 0, opacity: 0 }}
-                          animate={{ height: "auto", marginTop: 12, opacity: 1, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.16, delay: 0.08 } } }}
-                          exit={{ height: 0, marginTop: 0, opacity: 0, transition: { height: SUGGEST_COLLAPSE, marginTop: SUGGEST_COLLAPSE, opacity: { duration: 0.12 } } }}
-                        >
-                          <div className="gc-enter w-full" style={enterDelay}>
-                            <SuggestionList key={composer.mode} items={SUGGESTIONS[composer.mode]} onPick={pickSuggestion} withModeIcons={composer.mode === "auto"} />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <div className="gc-enter mt-[24px] w-full" style={enterDelay}>
+                      <SuggestionList items={SUGGESTIONS[composer.mode]} onPick={pickSuggestion} />
+                    </div>
                   </div>
                   {hasDialogs && (
-                    <div className="gc-enter mt-[40px] w-full" style={enterDelay}>
+                    <div className="gc-enter mt-[16px] w-full" style={enterDelay}>
                       <PreviousChats
                         dialogs={api.dialogs}
                         onOpen={openDialog}

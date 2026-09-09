@@ -180,9 +180,9 @@ export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; o
   const m = modeById(mode);
   return (
     <div ref={ref} className="relative">
-      <ToolButton borderless onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
+      <ToolButton onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
         <span key={m.id} className="gc-fade-in flex items-center gap-[6px]">
-          <span className="flex" style={{ color: m.color }}>
+          <span data-mode-icon className="flex" style={{ color: m.color }}>
             <Ic name={m.icon} />
           </span>
           <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
@@ -308,6 +308,42 @@ export function Composer({
   const innerRef = useRef<HTMLTextAreaElement>(null);
   const ref = textareaRef ?? innerRef;
   const canSend = state.text.trim().length > 0 && !disabled;
+
+  // Смена режима: контур в цвете режима стартует с рамки пикера, расширяется до рамки поля и растворяется на ней
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const prevMode = useRef(state.mode);
+  const [spell, setSpell] = useState<{ id: number; color: string; from: { x: number; y: number; w: number; h: number }; to: { w: number; h: number } } | null>(null);
+  useLayoutEffect(() => {
+    if (prevMode.current === state.mode) return;
+    prevMode.current = state.mode;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const root = rootRef.current?.getBoundingClientRect();
+    const picker = pickerRef.current?.getBoundingClientRect();
+    if (!root || !picker) return;
+    setSpell({
+      id: Date.now(),
+      color: modeById(state.mode).color,
+      from: { x: picker.left - root.left, y: picker.top - root.top, w: picker.width, h: picker.height },
+      to: { w: root.width, h: root.height },
+    });
+  }, [state.mode]);
+  // Контур летит на ease-out: быстро отрывается от пикера и мягко «садится» на рамку поля.
+  // Прозрачность отдельным треком: полная до 55% пути, потом растворяется ровно к прибытию
+  const runRing = (el: HTMLSpanElement | null) => {
+    if (!el || !spell || el.getAnimations().length) return;
+    const { from, to } = spell;
+    const move = el.animate(
+      [
+        { left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px`, height: `${from.h}px` },
+        { left: "0px", top: "0px", width: `${to.w}px`, height: `${to.h}px` },
+      ],
+      { duration: 560, easing: "cubic-bezier(0.23, 1, 0.32, 1)", fill: "forwards" },
+    );
+    el.animate([{ opacity: 0.85 }, { opacity: 0.85, offset: 0.55 }, { opacity: 0 }], { duration: 560, easing: "linear", fill: "forwards" });
+    move.onfinish = () => setSpell(null);
+  };
+
   const allMeetings = useMemo(() => Array.from(new Set([...(contextIds ?? []), ...state.meetingIds])), [contextIds, state.meetingIds]);
 
   // Высота поля: минимум три строки (48px), при длинном тексте растет до 10 строк, дальше — скролл внутри
@@ -324,10 +360,30 @@ export function Composer({
 
   return (
     <div
-      className="flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
+      ref={rootRef}
+      className="relative isolate flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
       style={{ boxShadow: `inset 0 0 0 1px ${tokens.border}, ${composerShadow}` }}
       onClick={() => ref.current?.focus()}
     >
+      {spell && (
+        <div key={spell.id} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10">
+          {/* Контур поверх содержимого: тонкая линия цвета режима и едва заметная заливка внутри нее */}
+          <span
+            ref={runRing}
+            className="absolute block rounded-[4px] will-change-[left,top,width,height,opacity]"
+            style={{
+              left: spell.from.x,
+              top: spell.from.y,
+              width: spell.from.w,
+              height: spell.from.h,
+              opacity: 0,
+              // Линия 1px как у рамки поля плюс мягкое свечение внутрь от нее: контур не сухой, цвет тает к центру
+              boxShadow: `inset 0 0 0 1px ${spell.color}d9, inset 0 0 28px 2px ${spell.color}2e, 0 0 12px ${spell.color}1f`,
+              backgroundColor: `${spell.color}0a`,
+            }}
+          />
+        </div>
+      )}
       {state.files.length > 0 && (
         <div className="flex flex-wrap gap-[8px]">
           {state.files.map((f) => (
@@ -394,7 +450,9 @@ export function Composer({
           </ToolButton>
         </div>
         <div className="flex items-center gap-[8px]">
-          <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} />
+          <div ref={pickerRef} className="flex">
+            <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} />
+          </div>
           <Tip text="Отправить · Enter" placement="top" disabled={!canSend}>
             <button
               type="button"
@@ -454,36 +512,37 @@ export function SuggestionCards({ items, onPick }: { items: Suggestion[]; onPick
 
 /** Подсказки строками с разделителями и стрелкой — для всех режимов, кроме «Авто» */
 /**
- * Саджесты под полем — по макетам 46151:6148 (Авто) и 46155:7050 (режим): строки 36px как у диалогов (px-8, gap 6), радиус 4, без дивайдеров,
- * на ховере заливка #F7F7F8 и шеврон справа. В Авто слева иконка режима: серая, на ховере в цвет режима
+ * Саджесты под полем — по макету 46115:7175: строки px-8 py-12, радиус 4, ховер #F7F7F8, справа стрелка;
+ * между строками дивайдеры, при ховере строки соседние с ней (сверху и снизу) исчезают
  */
-export function SuggestionList({ items, onPick, withModeIcons = false }: { items: Suggestion[]; onPick: (s: Suggestion) => void; withModeIcons?: boolean }) {
+export function SuggestionList({ items, onPick }: { items: Suggestion[]; onPick: (s: Suggestion) => void }) {
+  const [hovered, setHovered] = useState<number | null>(null);
   return (
-    <div className="gc-fade-in flex w-full flex-col px-[12px]">
-      {items.map((s) => {
-        const m = MODES.find((x) => x.id === s.mode) ?? MODES[0];
-        return (
+    // Без анимации и без key по режиму: при смене режима строки стоят на месте, меняется только текст
+    <div className="flex w-full flex-col px-[12px]" onMouseLeave={() => setHovered(null)}>
+      {items.map((s, i) => (
+        <div key={i} className="flex w-full flex-col">
+          {i > 0 && (
+            <div
+              className="-mb-px h-px w-full transition-opacity duration-100"
+              style={{ backgroundColor: tokens.border, opacity: hovered === i || hovered === i - 1 ? 0 : 1 }}
+            />
+          )}
           <button
-            key={s.text}
             type="button"
             onClick={() => onPick(s)}
-            className={`group/sugg flex h-[36px] w-full items-center gap-[6px] rounded-[4px] px-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
-            style={{ ["--mode-color" as string]: m.color }}
+            onMouseEnter={() => setHovered(i)}
+            className={`flex w-full items-center justify-between gap-[8px] rounded-[4px] px-[8px] py-[12px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
           >
-            {withModeIcons && (
-              <span className={`flex shrink-0 text-[#818AA3] group-hover/sugg:text-(--mode-color) ${pressableClass}`}>
-                <Ic name={m.icon} />
-              </span>
-            )}
             <span className="min-w-0 flex-1 text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
               {s.text}
             </span>
-            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center text-[#818AA3] opacity-0 transition-opacity duration-[120ms] group-hover/sugg:opacity-100 group-focus-visible/sugg:opacity-100 motion-reduce:transition-none">
-              <Ic name="chevron-right" />
+            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rotate-90 text-[#818AA3]">
+              <Ic name="fig-arrow-out" />
             </span>
           </button>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -641,6 +700,11 @@ export function DialogListRow({
 /** Сколько диалогов видно в свернутом списке — по макетам 46115:6954 / 46115:6747 */
 const PREVIOUS_COLLAPSED = 3;
 
+// Строки списков: вход раскрывается по высоте, выход быстрее входа; переезд при закреплении — через layout
+const ROW_IN = { duration: 0.22, ease: easeOut };
+const ROW_OUT = { duration: 0.16, ease: easeOut };
+const ROW_STAGGER = 0.025;
+
 /**
  * Блок «Предыдущие чаты» на стартовой — по макету 46115:7088: заголовок серым (px-8), через 12px список строк 36px.
  * Если диалогов больше трех — показываем три и ссылку «Показать все», в раскрытом виде — «Свернуть»
@@ -661,9 +725,16 @@ export function PreviousChats({
   onCancelRename: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // Строки, у которых закончился вход: до этого они обрезаны по высоте, после — overflow снова видимый (меню «…» выходит за строку)
+  const [settled, setSettled] = useState<Set<string>>(() => new Set());
+  const reduce = useReducedMotion();
   const sorted = sortDialogs(dialogs);
   const collapsible = sorted.length > PREVIOUS_COLLAPSED;
   const visible = collapsible && !expanded ? sorted.slice(0, PREVIOUS_COLLAPSED) : sorted;
+  const toggleExpanded = () => {
+    setExpanded((v) => !v);
+    setSettled(new Set());
+  };
   return (
     <div className="flex w-full flex-col gap-[12px] px-[12px]">
       <div className="flex h-[16px] w-full items-center justify-between px-[8px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
@@ -672,7 +743,7 @@ export function PreviousChats({
           <button
             type="button"
             aria-expanded={expanded}
-            onClick={() => setExpanded((v) => !v)}
+            onClick={toggleExpanded}
             className={`rounded-[2px] text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
           >
             {expanded ? "Свернуть" : "Показать все"}
@@ -680,19 +751,45 @@ export function PreviousChats({
         )}
       </div>
       <div className="flex w-full flex-col">
-        {visible.map((d, i) => (
-          <DialogListRow
-            key={d.id}
-            dialog={d}
-            index={i}
-            tall
-            actions={actions}
-            renaming={renamingId === d.id}
-            onOpen={() => onOpen(d.id)}
-            onCommitRename={(t) => onCommitRename(d.id, t)}
-            onCancelRename={onCancelRename}
-          />
-        ))}
+        {/* Строки за пределами первых трех появляются по «Показать все» — раскрываются по высоте каскадом,
+            сворачиваются быстро и разом; удаленная строка схлопывается, закрепленная переезжает наверх через layout.
+            overflow hidden только на время движения, иначе он резал бы меню «…» */}
+        <AnimatePresence initial={false}>
+          {visible.map((d, i) => {
+            const extra = i >= PREVIOUS_COLLAPSED;
+            const delay = extra ? Math.min(i - PREVIOUS_COLLAPSED, 8) * ROW_STAGGER : 0;
+            const entering = extra && !reduce && !settled.has(d.id);
+            return (
+              <motion.div
+                key={d.id}
+                layout={reduce ? false : "position"}
+                initial={reduce ? false : { height: 0, opacity: 0 }}
+                animate={{
+                  height: "auto",
+                  opacity: 1,
+                  transition: reduce ? { duration: 0 } : { height: { ...ROW_IN, delay }, opacity: { duration: 0.16, delay: delay + 0.06 }, layout: ROW_IN },
+                }}
+                exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { height: 0, opacity: 0, overflow: "hidden", transition: { height: ROW_OUT, opacity: { duration: 0.1 } } }}
+                onAnimationComplete={() => {
+                  if (entering) setSettled((prev) => new Set(prev).add(d.id));
+                }}
+                className="w-full"
+                style={{ overflow: entering ? "hidden" : "visible" }}
+              >
+                <DialogListRow
+                  dialog={d}
+                  index={extra ? undefined : i}
+                  tall
+                  actions={actions}
+                  renaming={renamingId === d.id}
+                  onOpen={() => onOpen(d.id)}
+                  onCommitRename={(t) => onCommitRename(d.id, t)}
+                  onCancelRename={onCancelRename}
+                />
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -1081,6 +1178,7 @@ export function DialogHeader({
   onCancelRowRename: () => void;
 }) {
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   // Пока открыто меню строки, список не режет его по overflow
   const [rowMenuOpen, setRowMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -1140,21 +1238,22 @@ export function DialogHeader({
         <Popover open={switcherOpen} direction="down" padding={4} style={{ boxShadow: shadow }} className="left-[45px] top-[calc(100%+4px)] w-[320px]">
           <div role="menu" className={`gc-scroll flex max-h-[360px] flex-col ${rowMenuOpen || renamingRowId ? "overflow-visible" : "overflow-y-auto"}`}>
             {others.map((d) => (
-              <DialogListRow
-                key={d.id}
-                dialog={d}
-                role="menuitem"
-                active={d.id === dialogId}
-                actions={rowActions}
-                renaming={renamingRowId === d.id}
-                onOpen={() => {
-                  setSwitcherOpen(false);
-                  if (d.id !== dialogId) onSwitch(d.id);
-                }}
-                onCommitRename={(t) => onCommitRowRename(d.id, t)}
-                onCancelRename={onCancelRowRename}
-                onMenuOpenChange={setRowMenuOpen}
-              />
+              <motion.div key={d.id} layout={reduceMotion ? false : "position"} transition={ROW_IN} className="w-full">
+                <DialogListRow
+                  dialog={d}
+                  role="menuitem"
+                  active={d.id === dialogId}
+                  actions={rowActions}
+                  renaming={renamingRowId === d.id}
+                  onOpen={() => {
+                    setSwitcherOpen(false);
+                    if (d.id !== dialogId) onSwitch(d.id);
+                  }}
+                  onCommitRename={(t) => onCommitRowRename(d.id, t)}
+                  onCancelRename={onCancelRowRename}
+                  onMenuOpenChange={setRowMenuOpen}
+                />
+              </motion.div>
             ))}
           </div>
         </Popover>
@@ -1484,17 +1583,26 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
 
 /** Уточнение режима: две карточки, склеенные в стек (верхняя без нижней рамки) */
 function ClarifyCards({ clarify, onChoose }: { clarify: NonNullable<Message["clarify"]>; onChoose?: (mode: Mode) => void }) {
+  const reduce = useReducedMotion();
   const options = clarify.chosen ? clarify.options.filter((o) => o.mode === clarify.chosen) : clarify.options;
   return (
     <div className="flex w-[560px] max-w-full flex-col">
+      {/* После выбора невыбранная карточка схлопывается, выбранная остается на месте с галочкой */}
+      <AnimatePresence initial={false}>
       {options.map((o, i) => {
         const m = modeById(o.mode);
         const first = i === 0;
         const last = i === options.length - 1;
         const done = clarify.chosen !== undefined;
         return (
-          <button
+          <motion.div
             key={o.mode}
+            layout={reduce ? false : "position"}
+            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { height: 0, opacity: 0, overflow: "hidden", transition: { height: ROW_OUT, opacity: { duration: 0.1 } } }}
+            transition={ROW_IN}
+            className="w-full"
+          >
+          <button
             type="button"
             disabled={done}
             onClick={() => onChoose?.(o.mode)}
@@ -1516,8 +1624,10 @@ function ClarifyCards({ clarify, onChoose }: { clarify: NonNullable<Message["cla
               <Ic name={done ? "fig-check" : "chevron-right"} size={done ? 16 : 20} />
             </span>
           </button>
+          </motion.div>
         );
       })}
+      </AnimatePresence>
     </div>
   );
 }
