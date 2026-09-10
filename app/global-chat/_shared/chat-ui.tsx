@@ -22,6 +22,7 @@ import {
   type Thumb,
 } from "./data";
 import { Ic } from "./icons";
+import { MODE_AVATAR_ART } from "./mode-avatar-art";
 import { aiAsset, composerShadow, easeOut, focusRingClass, gcAsset, popoverShadow, pressableClass, sfAsset, shadow, tokens } from "./tokens";
 import { Popover, Tip, useOutsideClose } from "./ui";
 import { EMPTY_FILTERS, FilterPopover, filterChatMeetings, hasActiveFilters, type FilterState, type FilterTab } from "./meeting-filters";
@@ -106,16 +107,253 @@ export function ThumbStack({ ids }: { ids: string[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Аватар режима — по макету 46256:7700: плашка с заливкой цвета режима на 16%, внутри рисунок-персонаж
+// (SVG дизайнера из Figma). 32px в меню режимов (аватар 20), 24px в заголовке стартовой (аватар ~14)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Автопроигрывание мимики в заголовке — один раз за загрузку страницы, не при каждой смене режима
+let titleAutoplayed = false;
+
+export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mode; size?: 24 | 32; autoplayOnce?: boolean }) {
+  const m = modeById(mode);
+  const art = MODE_AVATAR_ART[mode];
+  const [, , vw, vh] = art.viewBox.split(" ").map(Number);
+  const w = Math.round(size * 0.625);
+  const h = (w * vh) / vw;
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const eyesRef = useRef<SVGGElement>(null);
+  const eyeARef = useRef<SVGGElement>(null);
+  const eyeBRef = useRef<SVGGElement>(null);
+  const bodyRef = useRef<SVGGElement>(null);
+  // Глаза оживают на ховере: сама плашка или ближайший предок с data-avatar-hover (строка меню).
+  // У каждого режима своя мимика, все через WAAPI на слое глаз, повторный ховер перезапускает без рывка
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const target = (root.closest("[data-avatar-hover]") as HTMLElement | null) ?? root;
+    const play = () => {
+      const eyes = eyesRef.current;
+      const a = eyeARef.current;
+      const b = eyeBRef.current;
+      const body = bodyRef.current;
+      if (!eyes || !a || !b || !body || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      [eyes, a, b, body].forEach((el) => el.getAnimations().forEach((an) => an.cancel()));
+      const u = vw * 0.07; // шаг взгляда в единицах рисунка
+      const soft = "cubic-bezier(0.45, 0, 0.55, 1)";
+      const out = "cubic-bezier(0.23, 1, 0.32, 1)";
+      const snap = "cubic-bezier(0.34, 1.56, 0.64, 1)"; // с перелетом — для «прыжков» и «ага»
+      const linear = { easing: "linear" as const };
+      // какой глаз левый — по геометрии, порядок путей в файле не гарантирован
+      const [left, right] = a.getBBox().x <= b.getBBox().x ? [a, b] : [b, a];
+      // Каждая сценка в несколько тактов: завязка, развитие, финальный «акцент», возврат
+      switch (mode) {
+        case "auto": {
+          // Авто: осматривается влево-вправо, находит ответ — довольно щурится и чуть надувается
+          const D = 1700;
+          body.animate(
+            [
+              { transform: "none", easing: soft },
+              { transform: "rotate(-7deg) scale(1.04)", offset: 0.14, easing: soft },
+              { transform: "rotate(-7deg) scale(1.04)", offset: 0.26, easing: soft },
+              { transform: "rotate(7deg) scale(1.04)", offset: 0.42, easing: soft },
+              { transform: "rotate(7deg) scale(1.04)", offset: 0.54, easing: out },
+              { transform: "none", offset: 0.64, easing: soft },
+              { transform: "scale(1.06)", offset: 0.76, easing: soft }, // довольно надувается
+              { transform: "scale(1.06)", offset: 0.88, easing: soft },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          eyes.animate(
+            [
+              { transform: "none", easing: soft },
+              { transform: `translateX(${-u}px)`, offset: 0.14, easing: soft },
+              { transform: `translateX(${-u}px)`, offset: 0.26, easing: soft },
+              { transform: `translateX(${u}px)`, offset: 0.42, easing: soft },
+              { transform: `translateX(${u}px)`, offset: 0.54, easing: out },
+              { transform: "none", offset: 0.64, easing: soft },
+              { transform: "scaleY(0.45)", offset: 0.72, easing: soft }, // довольный прищур
+              { transform: "scaleY(0.45)", offset: 0.9, easing: soft },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          break;
+        }
+        case "ask": {
+          // Спросить: «хм?» набок в одну сторону, потом в другую, и вдруг «ага!» — широко открытые глаза
+          const D = 1800;
+          body.animate(
+            [
+              { transform: "none", easing: out },
+              { transform: `rotate(14deg) translateY(${-u * 0.3}px)`, offset: 0.16, easing: soft },
+              { transform: `rotate(14deg) translateY(${-u * 0.3}px)`, offset: 0.34, easing: soft },
+              { transform: `rotate(-12deg) translateY(${-u * 0.3}px)`, offset: 0.5, easing: soft },
+              { transform: `rotate(-12deg) translateY(${-u * 0.3}px)`, offset: 0.64, easing: out },
+              { transform: "none", offset: 0.72, easing: out },
+              { transform: "scale(1.1)", offset: 0.8, easing: soft }, // ага!
+              { transform: "scale(1.1)", offset: 0.9, easing: out },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          eyes.animate(
+            [
+              { transform: "none", easing: out },
+              { transform: "rotate(-9deg)", offset: 0.16, easing: soft },
+              { transform: "rotate(-9deg)", offset: 0.34, easing: soft },
+              { transform: "rotate(8deg)", offset: 0.5, easing: soft },
+              { transform: "rotate(8deg)", offset: 0.64, easing: out },
+              { transform: "none", offset: 0.72, easing: out },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          // один глаз шире, второй прищурен — и меняются местами на втором наклоне; на «ага» оба широкие
+          right.animate(
+            [
+              { transform: "none", easing: out },
+              { transform: "scale(1.4)", offset: 0.16, easing: soft },
+              { transform: "scale(1.4)", offset: 0.34, easing: soft },
+              { transform: "scaleY(0.7)", offset: 0.5, easing: soft },
+              { transform: "scaleY(0.7)", offset: 0.64, easing: out },
+              { transform: "none", offset: 0.72, easing: out },
+              { transform: "scale(1.45)", offset: 0.8, easing: snap },
+              { transform: "scale(1.45)", offset: 0.9, easing: out },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          left.animate(
+            [
+              { transform: "none", easing: out },
+              { transform: "scaleY(0.7)", offset: 0.16, easing: soft },
+              { transform: "scaleY(0.7)", offset: 0.34, easing: soft },
+              { transform: "scale(1.4)", offset: 0.5, easing: soft },
+              { transform: "scale(1.4)", offset: 0.64, easing: out },
+              { transform: "none", offset: 0.72, easing: out },
+              { transform: "scale(1.45)", offset: 0.8, easing: snap },
+              { transform: "scale(1.45)", offset: 0.9, easing: out },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          break;
+        }
+        case "analytics": {
+          // Аналитика: наклоняется к данным и щурится, взгляд медленно сканирует график слева направо, тело
+          // покачивается вслед за взглядом, как стрелка весов; в конце вывод — глаза широко, спокойный кивок
+          const D = 1900;
+          body.style.transformOrigin = "center";
+          body.animate(
+            [
+              { transform: "none", easing: soft },
+              { transform: "rotate(-6deg) scale(1.03)", offset: 0.18, easing: soft },
+              { transform: "rotate(-6deg) scale(1.03)", offset: 0.3, easing: soft },
+              { transform: "rotate(6deg) scale(1.03)", offset: 0.62, easing: soft }, // качнулся за взглядом
+              { transform: "rotate(6deg) scale(1.03)", offset: 0.7, easing: out },
+              { transform: `rotate(0deg) translateY(${u * 0.35}px)`, offset: 0.82, easing: soft }, // кивок: понял
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          eyes.animate(
+            [
+              { transform: "none", easing: soft },
+              { transform: `scaleY(0.35) translateX(${-u * 0.9}px)`, offset: 0.18, easing: soft }, // прищур, взгляд в начало графика
+              { transform: `scaleY(0.35) translateX(${-u * 0.9}px)`, offset: 0.3, easing: "linear" },
+              { transform: `scaleY(0.35) translateX(${u * 0.9}px)`, offset: 0.62, easing: soft }, // сканирует до конца
+              { transform: `scaleY(0.35) translateX(${u * 0.9}px)`, offset: 0.7, easing: out },
+              { transform: "scaleY(1.2)", offset: 0.78, easing: soft }, // вывод
+              { transform: "scaleY(1.2)", offset: 0.88, easing: soft },
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          break;
+        }
+        case "kb": {
+          // База знаний: читает первую строчку, перескакивает на вторую, находит — глаза вверх и «о!», книжка мягко захлопывается
+          const D = 2100;
+          body.animate(
+            [
+              { transform: "none", easing: soft },
+              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px)`, offset: 0.14, easing: "linear" },
+              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px) rotate(2deg)`, offset: 0.4, easing: soft },
+              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px) rotate(-2deg)`, offset: 0.48, easing: "linear" },
+              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px) rotate(2deg)`, offset: 0.7, easing: out },
+              { transform: "scale(1.06)", offset: 0.8, easing: soft }, // о!
+              { transform: "scaleX(0.96) scaleY(1.03)", offset: 0.9, easing: soft }, // захлопнулась
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          eyes.animate(
+            [
+              { transform: "none", easing: soft },
+              { transform: `translate(${-u * 0.9}px, ${u * 0.4}px)`, offset: 0.14, easing: "linear" },
+              { transform: `translate(${u * 0.9}px, ${u * 0.4}px)`, offset: 0.4, easing: soft }, // первая строчка
+              { transform: `translate(${-u * 0.9}px, ${u * 0.7}px)`, offset: 0.48, easing: "linear" }, // перескок на вторую
+              { transform: `translate(${u * 0.9}px, ${u * 0.7}px)`, offset: 0.7, easing: out },
+              { transform: `translateY(${-u * 0.3}px) scale(1.3)`, offset: 0.8, easing: snap }, // нашел!
+              { transform: `translateY(${-u * 0.3}px) scale(1.3)`, offset: 0.86, easing: soft },
+              { transform: "scaleY(0.1)", offset: 0.92, easing: soft }, // моргнул
+              { transform: "none" },
+            ],
+            { duration: D, ...linear },
+          );
+          break;
+        }
+      }
+    };
+    target.addEventListener("mouseenter", play);
+    // Первый заход: персонаж сам здоровается, когда заголовок уже появился
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (autoplayOnce && !titleAutoplayed) {
+      titleAutoplayed = true;
+      timer = setTimeout(play, 500);
+    }
+    return () => {
+      target.removeEventListener("mouseenter", play);
+      if (timer) clearTimeout(timer);
+    };
+  }, [vw, mode, autoplayOnce]);
+  return (
+    <span
+      ref={rootRef}
+      className={`flex shrink-0 items-center justify-center overflow-hidden ${size === 24 ? "rounded-[3px]" : "rounded-[4px]"}`}
+      style={{ width: size, height: size, backgroundColor: `${m.color}29` }}
+      aria-hidden="true"
+    >
+      {/* overflow visible: во время анимации тело выходит за рамку рисунка, но остается внутри плашки */}
+      <svg width={w} height={h} viewBox={art.viewBox} fill="none" xmlns="http://www.w3.org/2000/svg" className="block overflow-visible" overflow="visible">
+        {/* тело и глаза в одной группе: глаза едут вместе с телом, а своя мимика накладывается поверх */}
+        <g ref={bodyRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+          <path d={art.body} fill={m.color} />
+        <g ref={eyesRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+          <g ref={eyeARef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+            <path d={art.eyes[0]} fill="#fff" />
+          </g>
+          <g ref={eyeBRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+            <path d={art.eyes[1]} fill="#fff" />
+          </g>
+        </g>
+        </g>
+      </svg>
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Стартовая: заголовок
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function HomeTitle({ mode }: { mode: Mode }) {
   const m = modeById(mode);
   return (
-    <div key={mode} className="gc-fade-in flex items-center gap-[8px]">
-      <span style={{ color: m.color }}>
-        <Ic name={mode === "kb" ? "fig-globe" : m.icon} size={20} />
-      </span>
+    // data-avatar-hover: мимика запускается с ховера всего заголовка, не только плашки
+    <div key={mode} data-avatar-hover className="gc-fade-in flex items-center gap-[8px]">
+      <ModeAvatar mode={mode} size={32} autoplayOnce />
       <h1 className="whitespace-nowrap text-center text-[24px] font-medium leading-[normal] tracking-[-0.48px]" style={{ color: tokens.black }}>
         <span style={{ color: m.color }}>Салют!</span> {m.title}
       </h1>
@@ -181,13 +419,8 @@ export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; o
   return (
     <div ref={ref} className="relative">
       <ToolButton onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
-        <span key={m.id} className="gc-fade-in flex items-center gap-[6px]">
-          <span data-mode-icon className="flex" style={{ color: m.color }}>
-            <Ic name={m.icon} />
-          </span>
-          <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-            {m.label}
-          </span>
+        <span key={m.id} className="gc-fade-in text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+          {m.label}
         </span>
         <span
           className={`transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
@@ -201,7 +434,7 @@ export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; o
         direction={direction}
         padding={4}
         style={{ boxShadow: popoverShadow }}
-        className={`left-0 w-[290px] ${direction === "down" ? "top-[calc(100%+6px)]" : "bottom-[calc(100%+6px)]"}`}
+        className={`right-0 w-[290px] ${direction === "down" ? "top-[calc(100%+6px)]" : "bottom-[calc(100%+6px)]"}`}
       >
         <div role="menu" className="flex flex-col">
           {MODES.map((x) => {
@@ -216,15 +449,10 @@ export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; o
                   onChange(x.id);
                   setOpen(false);
                 }}
+                data-avatar-hover
                 className={`group/mode flex w-full items-center gap-[12px] rounded-[4px] p-[8px] text-left hover:bg-[#FAFAFA] ${pressableClass} ${focusRingClass}`}
-                style={{ ["--mode-color" as string]: x.color }}
               >
-                <span
-                  className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] text-(--mode-rest) group-hover/mode:text-(--mode-color) ${pressableClass}`}
-                  style={{ backgroundColor: tokens.bgSubtle, ["--mode-rest" as string]: selected ? x.color : tokens.grey }}
-                >
-                  <Ic name={x.icon} />
-                </span>
+                <ModeAvatar mode={x.id} size={32} />
                 <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
                   <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
                     {x.label}
@@ -309,41 +537,6 @@ export function Composer({
   const ref = textareaRef ?? innerRef;
   const canSend = state.text.trim().length > 0 && !disabled;
 
-  // Смена режима: контур в цвете режима стартует с рамки пикера, расширяется до рамки поля и растворяется на ней
-  const rootRef = useRef<HTMLDivElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const prevMode = useRef(state.mode);
-  const [spell, setSpell] = useState<{ id: number; color: string; from: { x: number; y: number; w: number; h: number }; to: { w: number; h: number } } | null>(null);
-  useLayoutEffect(() => {
-    if (prevMode.current === state.mode) return;
-    prevMode.current = state.mode;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const root = rootRef.current?.getBoundingClientRect();
-    const picker = pickerRef.current?.getBoundingClientRect();
-    if (!root || !picker) return;
-    setSpell({
-      id: Date.now(),
-      color: modeById(state.mode).color,
-      from: { x: picker.left - root.left, y: picker.top - root.top, w: picker.width, h: picker.height },
-      to: { w: root.width, h: root.height },
-    });
-  }, [state.mode]);
-  // Контур летит на ease-out: быстро отрывается от пикера и мягко «садится» на рамку поля.
-  // Прозрачность отдельным треком: полная до 55% пути, потом растворяется ровно к прибытию
-  const runRing = (el: HTMLSpanElement | null) => {
-    if (!el || !spell || el.getAnimations().length) return;
-    const { from, to } = spell;
-    const move = el.animate(
-      [
-        { left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px`, height: `${from.h}px` },
-        { left: "0px", top: "0px", width: `${to.w}px`, height: `${to.h}px` },
-      ],
-      { duration: 560, easing: "cubic-bezier(0.23, 1, 0.32, 1)", fill: "forwards" },
-    );
-    el.animate([{ opacity: 0.85 }, { opacity: 0.85, offset: 0.55 }, { opacity: 0 }], { duration: 560, easing: "linear", fill: "forwards" });
-    move.onfinish = () => setSpell(null);
-  };
-
   const allMeetings = useMemo(() => Array.from(new Set([...(contextIds ?? []), ...state.meetingIds])), [contextIds, state.meetingIds]);
 
   // Высота поля: минимум три строки (48px), при длинном тексте растет до 10 строк, дальше — скролл внутри
@@ -360,30 +553,10 @@ export function Composer({
 
   return (
     <div
-      ref={rootRef}
-      className="relative isolate flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
+      className="flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
       style={{ boxShadow: `inset 0 0 0 1px ${tokens.border}, ${composerShadow}` }}
       onClick={() => ref.current?.focus()}
     >
-      {spell && (
-        <div key={spell.id} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10">
-          {/* Контур поверх содержимого: тонкая линия цвета режима и едва заметная заливка внутри нее */}
-          <span
-            ref={runRing}
-            className="absolute block rounded-[4px] will-change-[left,top,width,height,opacity]"
-            style={{
-              left: spell.from.x,
-              top: spell.from.y,
-              width: spell.from.w,
-              height: spell.from.h,
-              opacity: 0,
-              // Линия 1px как у рамки поля плюс мягкое свечение внутрь от нее: контур не сухой, цвет тает к центру
-              boxShadow: `inset 0 0 0 1px ${spell.color}d9, inset 0 0 28px 2px ${spell.color}2e, 0 0 12px ${spell.color}1f`,
-              backgroundColor: `${spell.color}0a`,
-            }}
-          />
-        </div>
-      )}
       {state.files.length > 0 && (
         <div className="flex flex-wrap gap-[8px]">
           {state.files.map((f) => (
@@ -450,9 +623,7 @@ export function Composer({
           </ToolButton>
         </div>
         <div className="flex items-center gap-[8px]">
-          <div ref={pickerRef} className="flex">
-            <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} />
-          </div>
+          <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} />
           <Tip text="Отправить · Enter" placement="top" disabled={!canSend}>
             <button
               type="button"

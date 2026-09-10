@@ -21,7 +21,7 @@ export type ModeDef = {
 export const MODES: ModeDef[] = [
   { id: "auto", label: "Авто", description: "Подберем режим под вопрос", icon: "fig-sparkles", color: tokens.blue, title: "Чем могу помочь?" },
   { id: "ask", label: "Спросить", description: "Быстрые ответы на вопросы", icon: "fig-bolt", color: tokens.orange, title: "Что спросить у встреч?" },
-  { id: "analytics", label: "Аналитика", description: "Глубокий и подробный анализ", icon: "fig-chart", color: tokens.purple, title: "Что проанализировать?" },
+  { id: "analytics", label: "Аналитика", description: "Глубокий и подробный анализ", icon: "fig-chart", color: tokens.purple, title: "Что надо проанализировать?" },
   { id: "kb", label: "База знаний", description: "Помощь по работе сервиса", icon: "fig-globe16", color: tokens.green, title: "Что хотите узнать про mymeet.ai?" },
 ];
 
