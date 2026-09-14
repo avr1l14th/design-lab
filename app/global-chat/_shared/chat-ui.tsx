@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   MEETINGS,
@@ -22,7 +23,7 @@ import {
   type Thumb,
 } from "./data";
 import { Ic } from "./icons";
-import { MODE_AVATAR_ART } from "./mode-avatar-art";
+import { MODE_AVATAR_ART, MODE_GLYPH_16 } from "./mode-avatar-art";
 import { aiAsset, composerShadow, easeOut, focusRingClass, gcAsset, popoverShadow, pressableClass, sfAsset, shadow, tokens } from "./tokens";
 import { Popover, Tip, useOutsideClose } from "./ui";
 import { EMPTY_FILTERS, FilterPopover, filterChatMeetings, hasActiveFilters, type FilterState, type FilterTab } from "./meeting-filters";
@@ -114,7 +115,21 @@ export function ThumbStack({ ids }: { ids: string[] }) {
 // Автопроигрывание мимики в заголовке — один раз за загрузку страницы, не при каждой смене режима
 let titleAutoplayed = false;
 
-export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mode; size?: 24 | 32; autoplayOnce?: boolean }) {
+/** Статичная поправка формы глаза: одна на оба глаза или своя для левого и правого */
+const eyeTransform = (t: string | [string, string] | undefined, i: number) => (Array.isArray(t) ? t[i] : t);
+
+export function ModeAvatar({
+  mode,
+  size = 32,
+  autoplayOnce = false,
+  lookAt = null,
+}: {
+  mode: Mode;
+  size?: 24 | 32;
+  autoplayOnce?: boolean;
+  /** Точка во viewport, за которой следят глаза (каретка в поле ввода); null — смотрят прямо */
+  lookAt?: { x: number; y: number } | null;
+}) {
   const m = modeById(mode);
   const art = MODE_AVATAR_ART[mode];
   const [, , vw, vh] = art.viewBox.split(" ").map(Number);
@@ -148,7 +163,7 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
       // Каждая сценка в несколько тактов: завязка, развитие, финальный «акцент», возврат
       switch (mode) {
         case "auto": {
-          // Авто: осматривается влево-вправо, находит ответ — довольно щурится и чуть надувается
+          // Авто: осматривается влево-вправо, находит ответ — глаза широко и чуть надувается
           const D = 1700;
           body.animate(
             [
@@ -171,9 +186,9 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
               { transform: `translateX(${-u}px)`, offset: 0.26, easing: soft },
               { transform: `translateX(${u}px)`, offset: 0.42, easing: soft },
               { transform: `translateX(${u}px)`, offset: 0.54, easing: out },
-              { transform: "none", offset: 0.64, easing: soft },
-              { transform: "scaleY(0.45)", offset: 0.72, easing: soft }, // довольный прищур
-              { transform: "scaleY(0.45)", offset: 0.9, easing: soft },
+              { transform: "none", offset: 0.64, easing: snap },
+              { transform: "scale(1.2)", offset: 0.72, easing: soft }, // нашел — глаза широко
+              { transform: "scale(1.2)", offset: 0.9, easing: out },
               { transform: "none" },
             ],
             { duration: D, ...linear },
@@ -251,8 +266,9 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
               { transform: "rotate(-6deg) scale(1.03)", offset: 0.18, easing: soft },
               { transform: "rotate(-6deg) scale(1.03)", offset: 0.3, easing: soft },
               { transform: "rotate(6deg) scale(1.03)", offset: 0.62, easing: soft }, // качнулся за взглядом
-              { transform: "rotate(6deg) scale(1.03)", offset: 0.7, easing: out },
-              { transform: `rotate(0deg) translateY(${u * 0.35}px)`, offset: 0.82, easing: soft }, // кивок: понял
+              { transform: "rotate(6deg) scale(1.03)", offset: 0.7, easing: snap },
+              { transform: `rotate(0deg) scale(1.1) translateY(${u * 0.2}px)`, offset: 0.8, easing: soft }, // вывод: «ага!» — надувается с кивком, как у остальных
+              { transform: `rotate(0deg) scale(1.1) translateY(${u * 0.2}px)`, offset: 0.9, easing: out },
               { transform: "none" },
             ],
             { duration: D, ...linear },
@@ -264,8 +280,9 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
               { transform: `scaleY(0.35) translateX(${-u * 0.9}px)`, offset: 0.3, easing: "linear" },
               { transform: `scaleY(0.35) translateX(${u * 0.9}px)`, offset: 0.62, easing: soft }, // сканирует до конца
               { transform: `scaleY(0.35) translateX(${u * 0.9}px)`, offset: 0.7, easing: out },
-              { transform: "scaleY(1.2)", offset: 0.78, easing: soft }, // вывод
-              { transform: "scaleY(1.2)", offset: 0.88, easing: soft },
+              { transform: "none", offset: 0.76, easing: snap },
+              { transform: "scale(1.2)", offset: 0.82, easing: soft }, // глаза широко на «ага!» (умеренно — глаза уже сдвинуты от кромки тела)
+              { transform: "scale(1.2)", offset: 0.9, easing: out },
               { transform: "none" },
             ],
             { duration: D, ...linear },
@@ -318,6 +335,26 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
       if (timer) clearTimeout(timer);
     };
   }, [vw, mode, autoplayOnce]);
+  // Слежение за кареткой: глаза смещаются к точке по горизонтали (и чуть вниз — поле ниже заголовка),
+  // переход мягкий через CSS transition; ховерные сценки на WAAPI перекрывают это на время проигрывания
+  useEffect(() => {
+    const eyes = eyesRef.current;
+    const root = rootRef.current;
+    if (!eyes || !root) return;
+    eyes.style.transition = "transform 160ms cubic-bezier(0.23, 1, 0.32, 1)";
+    if (!lookAt || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      eyes.style.transform = "";
+      return;
+    }
+    const r = root.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    // По горизонтали — полный ход на половине ширины композера (320px), по вертикали — до половины хода
+    const gx = Math.max(-1, Math.min(1, (lookAt.x - cx) / 320));
+    const gy = Math.max(0, Math.min(1, (lookAt.y - cy) / 200)) * 0.5;
+    const u = vw * 0.1;
+    eyes.style.transform = `translate(${(gx * u).toFixed(2)}px, ${(gy * u).toFixed(2)}px)`;
+  }, [lookAt, vw]);
   return (
     <span
       ref={rootRef}
@@ -331,11 +368,17 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
         <g ref={bodyRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
           <path d={art.body} fill={m.color} />
         <g ref={eyesRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+          {/* eyeTransform — статичная поправка формы глаз от дизайнера (выше/меньше), отдельной группой,
+              чтобы не мешать анимациям на внешних группах */}
           <g ref={eyeARef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
-            <path d={art.eyes[0]} fill="#fff" />
+            <g style={{ transformBox: "fill-box", transformOrigin: "center", transform: eyeTransform(art.eyeTransform, 0) }}>
+              <path d={art.eyes[0]} fill="#fff" />
+            </g>
           </g>
           <g ref={eyeBRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
-            <path d={art.eyes[1]} fill="#fff" />
+            <g style={{ transformBox: "fill-box", transformOrigin: "center", transform: eyeTransform(art.eyeTransform, 1) }}>
+              <path d={art.eyes[1]} fill="#fff" />
+            </g>
           </g>
         </g>
         </g>
@@ -344,21 +387,187 @@ export function ModeAvatar({ mode, size = 32, autoplayOnce = false }: { mode: Mo
   );
 }
 
+/** Иконка режима 16×16 для пикера (46377:6013) и ответа в диалоге: тот же персонаж без плашки, тело цветом режима,
+ *  глаза белые. thinking — сценка ожидания: медленное дыхание тела, блуждающий взгляд и редкое моргание, по кругу */
+export function ModeGlyph({ mode, thinking = false }: { mode: Mode; thinking?: boolean }) {
+  const m = modeById(mode);
+  const art = MODE_AVATAR_ART[mode];
+  const { w, h } = MODE_GLYPH_16[mode];
+  const [, , vw] = art.viewBox.split(" ").map(Number);
+  const bodyRef = useRef<SVGGElement>(null);
+  const eyesRef = useRef<SVGGElement>(null);
+  useEffect(() => {
+    const body = bodyRef.current;
+    const eyes = eyesRef.current;
+    if (!body || !eyes) return;
+    const out = "cubic-bezier(0.23, 1, 0.32, 1)";
+    const stop = () => {
+      // Доезжаем из текущей позы в покой, а не обрываем на полукадре
+      [body, eyes].forEach((el) => {
+        const from = getComputedStyle(el).transform;
+        el.getAnimations().forEach((an) => an.cancel());
+        if (from && from !== "none") el.animate([{ transform: from }, { transform: "none" }], { duration: 320, easing: out });
+      });
+    };
+    if (!thinking || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      stop();
+      return;
+    }
+    const u = vw * 0.08;
+    const soft = "cubic-bezier(0.45, 0, 0.55, 1)";
+    // Дыхание: 3.2с туда-обратно, едва заметно
+    body.animate([{ transform: "none" }, { transform: "scale(1.05) translateY(-0.2px)", offset: 0.5 }, { transform: "none" }], {
+      duration: 3200,
+      iterations: Infinity,
+      easing: soft,
+    });
+    // Взгляд: медленно уходит влево, задерживается, переходит вправо, моргает, возвращается; цикл 5.6с
+    eyes.animate(
+      [
+        { transform: "none", easing: soft },
+        { transform: `translateX(${-u}px)`, offset: 0.18, easing: soft },
+        { transform: `translateX(${-u}px)`, offset: 0.36, easing: soft },
+        { transform: `translateX(${u * 0.8}px) translateY(${u * 0.25}px)`, offset: 0.54, easing: soft },
+        { transform: `translateX(${u * 0.8}px) translateY(${u * 0.25}px)`, offset: 0.7, easing: soft },
+        { transform: `translateX(${u * 0.8}px) translateY(${u * 0.25}px) scaleY(0.1)`, offset: 0.73, easing: soft }, // моргнул
+        { transform: `translateX(${u * 0.8}px) translateY(${u * 0.25}px)`, offset: 0.76, easing: soft },
+        { transform: "none", offset: 0.9, easing: soft },
+        { transform: "none" },
+      ],
+      { duration: 5600, iterations: Infinity, easing: "linear" },
+    );
+    return stop;
+  }, [thinking, vw, mode]);
+  return (
+    <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center" aria-hidden="true">
+      <svg width={w} height={h} viewBox={art.viewBox} fill="none" xmlns="http://www.w3.org/2000/svg" className="block overflow-visible" overflow="visible">
+        <g ref={bodyRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+          <path d={art.body} fill={m.color} />
+          <g ref={eyesRef} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+            {art.eyes.map((d, i) => (
+              <g key={i} style={{ transformBox: "fill-box", transformOrigin: "center", transform: eyeTransform(art.eyeTransform, i) }}>
+                <path d={d} fill="#fff" />
+              </g>
+            ))}
+          </g>
+        </g>
+      </svg>
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Каретка в поле ввода → точка во viewport, чтобы аватар мог за ней следить
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Позиция каретки в textarea: текст до каретки кладется в скрытый «зеркальный» блок с тем же шрифтом
+ * и шириной, в конец ставится маркер — его координаты и есть каретка. Пересчет при вводе и смене выделения
+ */
+export function useCaretPoint(ref: React.RefObject<HTMLTextAreaElement | null>, text: string, enabled: boolean) {
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    const measure = () => {
+      const ta = ref.current;
+      if (!ta || ta.value === "") {
+        setPoint(null);
+        return;
+      }
+      let mirror = mirrorRef.current;
+      if (!mirror) {
+        mirror = document.createElement("div");
+        mirror.setAttribute("aria-hidden", "true");
+        Object.assign(mirror.style, { position: "fixed", top: "-9999px", left: "0", visibility: "hidden", whiteSpace: "pre-wrap", overflowWrap: "break-word", pointerEvents: "none" } as CSSStyleDeclaration);
+        document.body.appendChild(mirror);
+        mirrorRef.current = mirror;
+      }
+      const cs = getComputedStyle(ta);
+      Object.assign(mirror.style, { font: cs.font, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, width: `${ta.clientWidth}px`, padding: cs.padding });
+      const caretAt = ta.selectionEnd ?? ta.value.length;
+      // Маркер несет следующий за кареткой символ, а за ним идет остаток текста — так переносы строк
+      // в зеркале совпадают с textarea, и каретка в начале перенесенной строки не «уезжает» на конец предыдущей
+      mirror.textContent = ta.value.slice(0, caretAt);
+      const marker = document.createElement("span");
+      marker.textContent = ta.value.charAt(caretAt) || "\u200b";
+      mirror.appendChild(marker);
+      mirror.appendChild(document.createTextNode(ta.value.slice(caretAt + 1)));
+      const r = ta.getBoundingClientRect();
+      const lineH = parseFloat(cs.lineHeight) || 16;
+      setPoint({ x: r.left + marker.offsetLeft, y: r.top + marker.offsetTop - ta.scrollTop + lineH / 2 });
+    };
+    measure();
+    const onSel = () => {
+      if (document.activeElement === ref.current) measure();
+    };
+    document.addEventListener("selectionchange", onSel);
+    return () => document.removeEventListener("selectionchange", onSel);
+  }, [ref, text, enabled]);
+  useEffect(
+    () => () => {
+      mirrorRef.current?.remove();
+      mirrorRef.current = null;
+    },
+    [],
+  );
+  return enabled ? point : null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Стартовая: заголовок
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function HomeTitle({ mode }: { mode: Mode }) {
+export function HomeTitle({ mode, lookAt = null }: { mode: Mode; lookAt?: { x: number; y: number } | null }) {
   const m = modeById(mode);
   return (
     // data-avatar-hover: мимика запускается с ховера всего заголовка, не только плашки
     <div key={mode} data-avatar-hover className="gc-fade-in flex items-center gap-[8px]">
-      <ModeAvatar mode={mode} size={32} autoplayOnce />
+      <ModeAvatar mode={mode} size={32} autoplayOnce lookAt={lookAt} />
       <h1 className="whitespace-nowrap text-center text-[24px] font-medium leading-[normal] tracking-[-0.48px]" style={{ color: tokens.black }}>
         <span style={{ color: m.color }}>Салют!</span> {m.title}
       </h1>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Цвет кнопки отправки под режим: картина-заливка нарисована синей (tokens.blue), для остальных режимов
+// она поворачивается по оттенку к цвету режима, а оверлей и ховер считаются от цвета режима так же,
+// как синий оверлей rgba(1,56,199,.6) и ховер rgba(0,44,156,.6) считаются от tokens.blue
+// ─────────────────────────────────────────────────────────────────────────────
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgba(hex: string, a: number, k = 1) {
+  const [r, g, b] = hexToRgb(hex).map((c) => Math.round(c * k));
+  return `rgba(${r},${g},${b},${a})`;
+}
+/** Оттенок и светлота цвета (HSL), чтобы подогнать синюю картину под цвет режима */
+function hsl(hex: string) {
+  const [r, g, b] = hexToRgb(hex).map((c) => c / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  const l = (max + min) / 2;
+  if (d === 0) return { h: 0, l };
+  const h = 60 * (max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4);
+  return { h, l };
+}
+/** Стили кнопки отправки для режима: подложка, оверлей 60%, ховер (темнее на 22%, как blue → blueHover),
+ *  поворот картины по оттенку и подтяжка яркости — светлые режимы (оранжевый) иначе выходят бурыми */
+function sendPalette(color: string) {
+  const mode = hsl(color);
+  const base = hsl(tokens.blue);
+  const rot = Math.round(mode.h - base.h);
+  const bright = Math.min(1.3, Math.max(0.9, mode.l / base.l));
+  return {
+    "--send-c": rgba(color, 0.6),
+    "--send-h": rgba(color, 0.6, 0.78),
+    "--send-filter": `hue-rotate(${rot}deg) brightness(${bright.toFixed(2)})`,
+  } as React.CSSProperties;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -410,8 +619,28 @@ function ToolButton({
 }
 
 /** Дропдаун режима: 290px, строки с плашкой-иконкой 36px, галочка у выбранного */
-export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; onChange: (m: Mode) => void; direction?: "down" | "up" }) {
+export function ModeMenu({
+  mode,
+  onChange,
+  direction = "down",
+  showIcon = true,
+}: {
+  mode: Mode;
+  onChange: (m: Mode) => void;
+  direction?: "down" | "up";
+  /** Иконка режима слева от названия: есть на стартовой, в диалоге остается только текст */
+  showIcon?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  // Иконка всегда монтируется видимой и уже потом схлопывается, если ее не должно быть:
+  // композер диалога — новый экземпляр, и без этого иконка бы просто пропадала рывком
+  const [iconVisible, setIconVisible] = useState(true);
+  useEffect(() => {
+    // Схлопывание стартует через 110мс — как и остальной контент диалога догоняет переезд композера
+    const t = setTimeout(() => setIconVisible(showIcon), showIcon || reduceMotion ? 0 : 110);
+    return () => clearTimeout(t);
+  }, [showIcon, reduceMotion]);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useOutsideClose([ref], open, close);
@@ -419,6 +648,18 @@ export function ModeMenu({ mode, onChange, direction = "down" }: { mode: Mode; o
   return (
     <div ref={ref} className="relative">
       <ToolButton onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
+        {/* Иконка уезжает в ноль по ширине вместе со своим отступом, текст подтягивается влево без скачка */}
+        <motion.span
+          className="flex shrink-0 items-center overflow-hidden"
+          initial={false}
+          animate={{ width: iconVisible ? 16 : 0, marginRight: iconVisible ? 0 : -6, opacity: iconVisible ? 1 : 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
+          aria-hidden="true"
+        >
+          <span key={m.id} className="gc-fade-in flex">
+            <ModeGlyph mode={m.id} />
+          </span>
+        </motion.span>
         <span key={m.id} className="gc-fade-in text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
           {m.label}
         </span>
@@ -519,6 +760,7 @@ export function Composer({
   autoFocus,
   textareaRef,
   menuDirection = "down",
+  modeIcon = true,
 }: {
   state: ComposerState;
   onChange: (patch: Partial<ComposerState>) => void;
@@ -532,18 +774,21 @@ export function Composer({
   autoFocus?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   menuDirection?: "down" | "up";
+  /** Иконка режима в пикере (на стартовой есть, в диалоге — только текст) */
+  modeIcon?: boolean;
 }) {
   const innerRef = useRef<HTMLTextAreaElement>(null);
   const ref = textareaRef ?? innerRef;
   const canSend = state.text.trim().length > 0 && !disabled;
+  const modeColor = modeById(state.mode).color;
 
   const allMeetings = useMemo(() => Array.from(new Set([...(contextIds ?? []), ...state.meetingIds])), [contextIds, state.meetingIds]);
 
-  // Высота поля: минимум три строки (48px), при длинном тексте растет до 10 строк, дальше — скролл внутри
+  // Высота поля: минимум две строки (32px), при длинном тексте растет до 10 строк, дальше — скролл внутри
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const min = 48;
+    const min = 32;
     const max = 16 * 10;
     el.style.height = `${min}px`;
     const next = Math.min(Math.max(el.scrollHeight, min), max);
@@ -579,7 +824,7 @@ export function Composer({
           ref={ref}
           value={state.text}
           autoFocus={autoFocus}
-          rows={3}
+          rows={2}
           aria-label="Спроси че хочешь..."
           onChange={(e) => onChange({ text: e.target.value })}
           onKeyDown={(e) => {
@@ -593,52 +838,68 @@ export function Composer({
         />
       </div>
       <div className="flex items-end justify-between">
-        <div className="flex items-center gap-[8px]">
-          <ToolButton square label="Прикрепить файл" onClick={onAddFile}>
-            <span style={{ color: tokens.grey }}>
-              <Ic name="fig-paperclip" />
-            </span>
-          </ToolButton>
-          <ToolButton onClick={onOpenMeetings} label="Добавить встречи">
-            {allMeetings.length === 0 ? (
-              <>
+        {/* В «Базе знаний» вопросы про сервис, встречи и файлы как контекст не нужны — кнопки гаснут и возвращаются
+            при смене режима. Правая группа стоит на месте: justify-between, ширина левой не влияет */}
+        <AnimatePresence initial={false}>
+          {state.mode !== "kb" && (
+            <motion.div
+              key="context-tools"
+              className="flex items-center gap-[8px]"
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -4 }}
+              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <ToolButton square label="Прикрепить файл" onClick={onAddFile}>
                 <span style={{ color: tokens.grey }}>
-                  <Ic name="fig-plus" />
+                  <Ic name="fig-paperclip" />
                 </span>
-                <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-                  Встречи
-                </span>
-              </>
-            ) : (
-              <span key="stack" className="gc-enter flex items-center gap-[6px]">
-                <ThumbStack ids={allMeetings} />
-                <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-                  {pluralMeetings(allMeetings.length)}
-                </span>
-                <span className="flex" style={{ color: tokens.grey }}>
-                  <Ic name="chevron-down" />
-                </span>
-              </span>
-            )}
-          </ToolButton>
-        </div>
-        <div className="flex items-center gap-[8px]">
-          <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} />
+              </ToolButton>
+              <ToolButton onClick={onOpenMeetings} label="Добавить встречи">
+                {allMeetings.length === 0 ? (
+                  <>
+                    <span style={{ color: tokens.grey }}>
+                      <Ic name="fig-plus" />
+                    </span>
+                    <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+                      Встречи
+                    </span>
+                  </>
+                ) : (
+                  <span key="stack" className="gc-enter flex items-center gap-[6px]">
+                    <ThumbStack ids={allMeetings} />
+                    <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+                      {pluralMeetings(allMeetings.length)}
+                    </span>
+                    <span className="flex" style={{ color: tokens.grey }}>
+                      <Ic name="chevron-down" />
+                    </span>
+                  </span>
+                )}
+              </ToolButton>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="ml-auto flex items-center gap-[8px]">
+          <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} showIcon={modeIcon} />
           <Tip text="Отправить · Enter" placement="top" disabled={!canSend}>
             <button
               type="button"
               aria-label="Отправить"
               disabled={!canSend}
               onClick={onSend}
-              className={`group/send relative flex h-[32px] w-[32px] shrink-0 items-center justify-center overflow-hidden rounded-[4px] disabled:cursor-not-allowed ${pressableClass} ${focusRingClass}`}
-              style={{ backgroundColor: canSend ? tokens.blue : tokens.bgSubtle, color: canSend ? "#FFFFFF" : tokens.greyDisabled }}
+              className={`group/send relative flex h-[32px] w-[32px] shrink-0 items-center justify-center overflow-hidden rounded-[4px] transition-colors duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] disabled:cursor-not-allowed motion-reduce:transition-none ${pressableClass} ${focusRingClass}`}
+              style={{ backgroundColor: canSend ? modeColor : tokens.bgSubtle, color: canSend ? "#FFFFFF" : tokens.greyDisabled, ...sendPalette(modeColor) }}
             >
-              {/* Заливка активной кнопки — картинка + синий оверлей 60%, как у «Добавить встречу».
-                  Слои всегда в DOM и проявляются кроссфейдом, а не появляются рывком */}
+              {/* Заливка активной кнопки — картина + оверлей 60% в цвете режима, как у «Добавить встречу».
+                  Слои всегда в DOM и проявляются кроссфейдом, а не появляются рывком; при смене режима
+                  картина перекрашивается с fade поверх плоской подложки того же цвета */}
               <span className="absolute inset-0 transition-opacity duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none" style={{ opacity: canSend ? 1 : 0 }} aria-hidden="true">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={gcAsset("send-bg.png")} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <span className={`absolute inset-0 group-hover/send:bg-[rgba(0,44,156,0.6)] ${pressableClass}`} style={{ backgroundColor: "rgba(1,56,199,0.6)" }} />
+                <span key={state.mode} className="gc-fade-in absolute inset-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={gcAsset("send-bg.png")} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ filter: "var(--send-filter)" }} />
+                  <span className={`absolute inset-0 bg-[var(--send-c)] group-hover/send:bg-[var(--send-h)] ${pressableClass}`} />
+                </span>
               </span>
               <span className={`relative ${pressableClass}`}>
                 <Ic name="fig-arrow-up" />
@@ -736,7 +997,7 @@ function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog
     onOpenChange(false);
     fn(dialog.id);
   };
-  const row = (icon: "fig-pin" | "fig-pencil" | "fig-trash", label: string, onClick: () => void, danger?: boolean) => (
+  const row = (icon: "fig-pin" | "fig-pin-off" | "fig-pencil" | "fig-trash", label: string, onClick: () => void, danger?: boolean) => (
     <button
       type="button"
       role="menuitem"
@@ -763,7 +1024,7 @@ function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog
       </button>
       <Popover open={open} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-[calc(100%+8px)] w-[160px]">
         <div role="menu" className="flex flex-col">
-          {row("fig-pin", dialog.pinned ? "Открепить" : "Закрепить", run(actions.onPin))}
+          {row(dialog.pinned ? "fig-pin-off" : "fig-pin", dialog.pinned ? "Открепить" : "Закрепить", run(actions.onPin))}
           {row("fig-pencil", "Переименовать", run(actions.onRename))}
           {row("fig-trash", "Удалить", run(actions.onDelete), true)}
         </div>
@@ -875,6 +1136,8 @@ const PREVIOUS_COLLAPSED = 3;
 const ROW_IN = { duration: 0.22, ease: easeOut };
 const ROW_OUT = { duration: 0.16, ease: easeOut };
 const ROW_STAGGER = 0.025;
+/** Сколько аватар ответа стоит напротив готового ответа перед тем, как исчезнуть */
+const AVATAR_LINGER_MS = 5000;
 
 /**
  * Блок «Предыдущие чаты» на стартовой — по макету 46115:7088: заголовок серым (px-8), через 12px список строк 36px.
@@ -915,7 +1178,7 @@ export function PreviousChats({
             type="button"
             aria-expanded={expanded}
             onClick={toggleExpanded}
-            className={`rounded-[2px] text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
+            className={`rounded-[2px] text-[#818AA3] ${pressableClass} ${focusRingClass}`}
           >
             {expanded ? "Свернуть" : "Показать все"}
           </button>
@@ -1220,13 +1483,29 @@ function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: s
 // Шапка диалога: «Чат / Название ▾» + Поделиться | 🔗 + пин + «…»
 // ─────────────────────────────────────────────────────────────────────────────
 
-function HeaderIconButton({ icon, label, onClick, active, ariaExpanded }: { icon: "fig-pin" | "fig-ellipsis"; label: string; onClick: () => void; active?: boolean; ariaExpanded?: boolean }) {
+function HeaderIconButton({
+  icon,
+  label,
+  onClick,
+  active,
+  pressed,
+  ariaExpanded,
+}: {
+  icon: "fig-pin" | "fig-pin-off" | "fig-ellipsis";
+  label: string;
+  onClick: () => void;
+  /** визуально нажатая (заливка grey-20, черная иконка) — открытое меню */
+  active?: boolean;
+  /** состояние тоггла только для aria — закрепленный диалог выглядит как обычная кнопка, меняется лишь иконка */
+  pressed?: boolean;
+  ariaExpanded?: boolean;
+}) {
   return (
     <Tip text={label} placement="bottom">
       <button
         type="button"
         aria-label={label}
-        aria-pressed={icon === "fig-pin" ? active : undefined}
+        aria-pressed={pressed}
         aria-expanded={ariaExpanded}
         onClick={onClick}
         className={`flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[4px] border hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
@@ -1460,7 +1739,8 @@ export function DialogHeader({
             <SharePopoverPanel onCopied={onCopyLink} />
           </Popover>
         </div>
-        <HeaderIconButton icon="fig-pin" label={dialog.pinned ? "Открепить" : "Закрепить"} active={dialog.pinned} onClick={onPin} />
+        {/* Закрепленный диалог: кнопка показывает действие «открепить» — пин с перечеркиванием (46402:7460) */}
+        <HeaderIconButton icon={dialog.pinned ? "fig-pin-off" : "fig-pin"} label={dialog.pinned ? "Открепить" : "Закрепить"} pressed={dialog.pinned} onClick={onPin} />
         <div ref={menuRef} className="relative">
           <HeaderIconButton icon="fig-ellipsis" label="Действия" active={menuOpen} ariaExpanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} />
           <Popover open={menuOpen} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-[calc(100%+4px)] w-[160px]">
@@ -1542,9 +1822,25 @@ export function UserBubble({ message }: { message: Message }) {
   );
 }
 
-/** Значок цитаты [n] с поповером источника на ховере */
+/** Кружок цитаты по 46382:6582: 16×16 (две цифры — 22×16), рамка grey-40, цифра Semi Bold 10 grey, по центру
+ *  по кап-высоте (text-box trim), в строке 13/20 стоит по вертикальному центру */
+function CitationDot({ n, hover }: { n: number; hover?: boolean }) {
+  return (
+    <span
+      className={`inline-flex h-[16px] shrink-0 items-center justify-center rounded-full border px-[4px] text-[10px] font-semibold leading-none tracking-[-0.2px] whitespace-nowrap ${n >= 10 ? "w-[22px]" : "w-[16px]"} ${pressableClass}`}
+      style={{ borderColor: tokens.border, color: tokens.grey, backgroundColor: hover ? tokens.bgSubtle : "transparent" }}
+    >
+      {/* обрезка по кап-высоте на самом тексте — тогда flex центрирует именно цифру, а не строку с ее выносами */}
+      <span className="block [text-box:trim-both_cap_alphabetic]">{n}</span>
+    </span>
+  );
+}
+
+/** Значок цитаты [n] с карточкой источника на ховере (46382:7400): шапка — миниатюра, название и дата,
+ *  на ховере карточки дата уступает место стрелке; клик по карточке ведет на страницу встречи */
 function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
   const [hover, setHover] = useState(false);
+  const [cardHover, setCardHover] = useState(false);
   const [alignRight, setAlignRight] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -1554,49 +1850,71 @@ function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
     [],
   );
   const meeting = meetingId ? meetingById(meetingId) : undefined;
+  const CARD_W = 340;
   return (
     <span
-      className="relative inline-block align-middle"
+      className="relative mt-[2px] inline-flex h-[16px] align-top"
       onMouseEnter={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setAlignRight(rect.left + 327 > window.innerWidth - 24);
-        // Небольшая задержка: проход мышью по тексту не должен мигать поповерами
         if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        // Вернулись до закрытия (с кружка на карточку через зазор) — просто остаемся открытыми
+        if (hover) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        setAlignRight(rect.left + CARD_W > window.innerWidth - 24);
+        // Небольшая задержка: проход мышью по тексту не должен мигать поповерами
         hoverTimer.current = setTimeout(() => setHover(true), 120);
       }}
       onMouseLeave={() => {
         if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        setHover(false);
+        // Пауза перед закрытием: между кружком и карточкой 4px, курсор проходит их не мгновенно
+        hoverTimer.current = setTimeout(() => {
+          setHover(false);
+          setCardHover(false);
+        }, 160);
       }}
     >
-      <span
-        className={`ml-[4px] inline-flex h-[16px] w-[16px] items-center justify-center rounded-full border text-[12px] font-medium leading-none tracking-[-0.24px] ${pressableClass}`}
-        style={{ borderColor: tokens.border, color: tokens.grey, backgroundColor: hover ? tokens.bgSubtle : "transparent", cursor: "default" }}
-      >
-        {n}
+      {/* К пробелам из текста добавляем по 2px с обеих сторон — так кружок не липнет ни к точке, ни к следующему слову */}
+      <span className="mx-[2px] inline-flex">
+        <CitationDot n={n} hover={hover} />
       </span>
       {meeting && (
-        <Popover open={hover} direction="down" padding={8} style={{ boxShadow: popoverShadow }} className={`top-[22px] z-50 w-[327px] ${alignRight ? "right-0" : "left-0"}`}>
-          <div className="flex w-full flex-col gap-[8px]">
-            <div className="flex items-center justify-between gap-[8px]">
-              <span className="flex min-w-0 items-center gap-[6px]">
-                <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border text-[12px] font-medium leading-none tracking-[-0.24px]" style={{ borderColor: tokens.border, color: tokens.grey }}>
-                  {n}
+        <Popover open={hover} direction="down" padding={0} style={{ boxShadow: "0 0 4px rgba(0,0,0,0.2)" }} className={`top-[20px] z-50 w-[340px] overflow-hidden ${alignRight ? "right-0" : "left-0"}`}>
+          {/* В прототипе страница встречи одна — ведем на нее */}
+          <Link
+            href="/ai-export-sharing"
+            className={`flex w-full flex-col text-left ${focusRingClass}`}
+            aria-label={`Открыть встречу «${meeting.title}»`}
+            onMouseEnter={() => setCardHover(true)}
+            onMouseLeave={() => setCardHover(false)}
+          >
+            <span className="flex w-full items-center gap-[6px] border-b p-[8px]" style={{ borderColor: tokens.border }}>
+              <MeetingThumb thumb={meeting.thumb} width={26} height={16} radius={2} plain />
+              <span className="min-w-0 flex-1 truncate text-[12px] leading-[normal] tracking-[-0.12px]" style={{ color: tokens.black }}>
+                {meeting.title}
+              </span>
+              {/* Дата и стрелка стоят на одном месте: на ховере карточки дата гаснет, стрелка проявляется */}
+              <span className="relative flex h-[16px] shrink-0 items-center justify-end">
+                <span
+                  className="whitespace-nowrap text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
+                  style={{ color: tokens.greyDisabled, opacity: cardHover ? 0 : 1 }}
+                >
+                  {formatLongDate(meeting.date)}
                 </span>
-                <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                  {meeting.title}
+                <span
+                  className="absolute right-0 flex rotate-90 transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
+                  style={{ color: tokens.grey, opacity: cardHover ? 1 : 0 }}
+                  aria-hidden="true"
+                >
+                  {/* в макете стрелка «наружу» повернута на 90° — смотрит вправо-вверх */}
+                  <Ic name="fig-arrow-out" />
                 </span>
               </span>
-              <span className="shrink-0 text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.greyDisabled }}>
-                {formatLongDate(meeting.date)}
-              </span>
-            </div>
-            <div className="px-[4px] text-[12px] leading-[18px] tracking-[-0.24px]" style={{ color: tokens.grey, fontFeatureSettings: '"lnum" 1, "tnum" 1' }}>
-              {meeting.summary.map((s) => (
-                <p key={s}>- {s}</p>
+            </span>
+            <span className="flex w-full flex-col p-[8px] text-[12px] leading-[18px] tracking-[-0.24px]" style={{ color: tokens.black, fontFeatureSettings: '"lnum" 1, "tnum" 1' }}>
+              {meeting.summary.map((t) => (
+                <span key={t}>{t}</span>
               ))}
-            </div>
-          </div>
+            </span>
+          </Link>
         </Popover>
       )}
     </span>
@@ -1710,7 +2028,7 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`group flex w-fit items-center gap-[4px] rounded-[2px] text-left ${shimmer ? "gc-shimmer-row" : ""} ${pressableClass} ${focusRingClass}`}
+        className={`group flex w-fit items-center gap-[2px] rounded-[2px] text-left ${shimmer ? "gc-shimmer-row" : ""} ${pressableClass} ${focusRingClass}`}
         style={shimmer ? ({ ["--gc-shim-w" as string]: `${labelWidth}px` } as React.CSSProperties) : undefined}
       >
         {/* цвет классами, не inline: инлайновый перебивал бы group-hover */}
@@ -1849,7 +2167,6 @@ export function AssistantBlock({
   onOpenMeeting?: (id: string) => void;
   onCopy?: (text: string) => void;
 }) {
-  const [vote, setVote] = useState<"up" | "down" | null>(null);
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -1871,10 +2188,68 @@ export function AssistantBlock({
   const streaming = mine === "streaming";
   const awaitingChoice = message.clarify && message.clarify.chosen === undefined;
   const done = mine === null && message.text.length > 0 && !awaitingChoice;
+  // Аватар режима: режим, в котором отвечали (после уточнения — выбранный), иконка 16 как в пикере.
+  // Живет снаружи колонки слева (left −24: 16 иконка + 8 отступ), поэтому текст статусов и ответа стоит
+  // на одной вертикали и не сдвигается, когда аватар исчезает. Едет вниз вслед за этапом: «Думаю...» →
+  // «Смотрю встречи…» → первая строка ответа; через 5с после конца ответа гаснет. У старых ответов его нет
+  const answerMode: Mode = message.clarify?.chosen ?? message.mode ?? "auto";
+  const thinkRef = useRef<HTMLSpanElement>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
+  const answerRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLSpanElement>(null);
+  const avatarY = useRef<number | null>(null);
+  const [avatarShown, setAvatarShown] = useState(mine !== null);
+  useEffect(() => {
+    if (mine !== null) {
+      const t = setTimeout(() => setAvatarShown(true), 0);
+      return () => clearTimeout(t);
+    }
+    if (!avatarShown) return;
+    const t = setTimeout(() => setAvatarShown(false), AVATAR_LINGER_MS);
+    return () => clearTimeout(t);
+  }, [mine, avatarShown]);
+  const stage = streaming || (mine === null && message.text.length > 0) ? "answer" : looking ? "step" : "think";
+  useLayoutEffect(() => {
+    const el = avatarRef.current;
+    const target = stage === "answer" ? answerRef.current : stage === "step" ? stepRef.current : thinkRef.current;
+    if (!el || !target) return;
+    // offsetTop относительно блока (он relative); +2 — иконка 16 по центру строки 13/20
+    const y = target.offsetTop + 2;
+    const first = avatarY.current === null;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = first ? y : avatarY.current;
+    avatarY.current = y;
+    el.getAnimations().forEach((an) => an.cancel());
+    el.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${y}px)` }], {
+      duration: first || reduce ? 0 : 360,
+      easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+      fill: "forwards",
+    });
+  }, [stage, avatarShown, message.step, awaitingChoice]);
   return (
-    <div className="gc-enter group/answer flex w-full flex-col items-start gap-[16px]">
+    <div className="gc-enter group/answer relative flex w-full flex-col items-start gap-[16px]">
+      <AnimatePresence>
+        {avatarShown && (
+          <motion.span
+            key="avatar"
+            className="absolute left-[-24px] top-0 flex"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            // Исчезновение: плавно тает за 400мс, без движения (позиция сидит на вложенном слое)
+            exit={{ opacity: 0, transition: { duration: 0.4, ease: easeOut } }}
+            transition={{ duration: 0.18, ease: easeOut }}
+            aria-hidden="true"
+          >
+            <span ref={avatarRef} className="flex">
+              <span key={answerMode} className="gc-fade-in flex">
+                <ModeGlyph mode={answerMode} thinking={generating} />
+              </span>
+            </span>
+          </motion.span>
+        )}
+      </AnimatePresence>
       {/* inline color перебивал бы color: transparent у шиммера — ставим цвет только в статике */}
-      <span className={`text-[13px] leading-[20px] tracking-[-0.13px] ${generating ? "gc-shimmer-text" : ""}`} style={generating ? undefined : { color: tokens.grey }}>
+      <span ref={thinkRef} className={`text-[13px] leading-[20px] tracking-[-0.13px] ${generating ? "gc-shimmer-text" : ""}`} style={generating ? undefined : { color: tokens.grey }}>
         Думаю...
       </span>
       {message.clarify && (
@@ -1886,16 +2261,18 @@ export function AssistantBlock({
         </>
       )}
       {message.step && !awaitingChoice && (
-        <div className="gc-enter w-full">
+        <div ref={stepRef} className="gc-enter w-full">
           <StepRow step={message.step} looking={looking} onOpenMeeting={onOpenMeeting} />
         </div>
       )}
-      {(message.text || streaming) && !awaitingChoice && <AnswerText text={message.text} sources={message.sources} streaming={streaming} />}
+      {(message.text || streaming) && !awaitingChoice && (
+        <div ref={answerRef} className="w-full">
+          <AnswerText text={message.text} sources={message.sources} streaming={streaming} />
+        </div>
+      )}
       {done && (
         <div className="-ml-[4px] flex items-center gap-[4px] opacity-0 transition-opacity duration-[120ms] group-hover/answer:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
           <AnswerAction icon="fig-copy" label={copied ? "Скопировано" : "Скопировать ответ"} onClick={copy} copied={copied} />
-          <AnswerAction icon="fig-thumb-up" label="Полезно" active={vote === "up"} onClick={() => setVote((v) => (v === "up" ? null : "up"))} />
-          <AnswerAction icon="fig-thumb-up" label="Не полезно" flip active={vote === "down"} onClick={() => setVote((v) => (v === "down" ? null : "down"))} />
         </div>
       )}
     </div>

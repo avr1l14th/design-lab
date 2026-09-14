@@ -7,6 +7,7 @@ import {
   Composer,
   DialogHeader,
   HomeTitle,
+  useCaretPoint,
   MeetingsModal,
   PreviousChats,
   SuggestionList,
@@ -154,19 +155,15 @@ export default function GlobalChatPage() {
     toast.show("Диалог удален", { undo });
   };
 
+  // Закрепление без тоста: результат виден по иконке кнопки и по порядку в списке
   const pinActive = () => {
     if (!active) return;
     api.togglePin(active.id);
-    toast.show(active.pinned ? "Диалог откреплен" : "Диалог закреплен", { icon: "fig-pin" });
   };
 
   // Меню «…» строки диалога — одно и то же в списке на стартовой и в переключателе в шапке
   const rowActions = {
-    onPin: (id: string) => {
-      const d = api.dialogs.find((x) => x.id === id);
-      api.togglePin(id);
-      toast.show(d?.pinned ? "Диалог откреплен" : "Диалог закреплен", { icon: "fig-pin" });
-    },
+    onPin: (id: string) => api.togglePin(id),
     onRename: (id: string) => setRenamingRowId(id),
     onDelete: (id: string) => {
       const undo = api.deleteDialog(id);
@@ -177,6 +174,8 @@ export default function GlobalChatPage() {
   const hasDialogs = api.dialogs.length > 0;
   travel.useArrive(dialogComposerRef, active ? active.id : "");
   travel.useArrive(homeComposerRef, active ? "" : "home");
+  // На стартовой аватар в заголовке следит глазами за кареткой, пока набирается первый вопрос
+  const caret = useCaretPoint(textareaRef, composer.text, !active);
   // Остальное содержимое экрана появляется чуть позже композера — при переезде движение читается первым
   const enterDelay = { animationDelay: TRAVEL_FOLLOW_DELAY };
 
@@ -213,7 +212,9 @@ export default function GlobalChatPage() {
             <>
               <div key={active.id} className="flex min-h-0 flex-1 flex-col items-center">
                 <div className="flex min-h-0 w-[640px] max-w-full flex-1 flex-col justify-between pb-[16px]">
-                  <div ref={scrollRef} className="gc-enter gc-noscroll min-h-0 flex-1 overflow-y-auto" style={enterDelay}>
+                  {/* Лента шире колонки на 24px с каждой стороны (отрицательные поля + такой же padding): overflow-y: auto
+                      режет и по горизонтали, а аватар ответа стоит слева за пределами колонки */}
+                  <div ref={scrollRef} className="gc-enter gc-noscroll -mx-[24px] min-h-0 flex-1 overflow-y-auto px-[24px]" style={enterDelay}>
                     <div className="flex w-full flex-col items-end gap-[40px] pb-[40px] pt-[40px]">
                       {active.messages.map((m) =>
                         m.role === "user" ? (
@@ -246,6 +247,7 @@ export default function GlobalChatPage() {
                       disabled={api.isGenerating}
                       textareaRef={textareaRef}
                       menuDirection="up"
+                      modeIcon={false}
                     />
                   </div>
                 </div>
@@ -258,7 +260,7 @@ export default function GlobalChatPage() {
               <div className="gc-noscroll flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-[24px] pb-[40px] pt-[64px]">
                 <div className="flex w-[640px] max-w-full shrink-0 flex-col items-center gap-[24px]">
                   <div className="gc-enter" style={enterDelay}>
-                    <HomeTitle mode={composer.mode} />
+                    <HomeTitle mode={composer.mode} lookAt={caret} />
                   </div>
                   <div className="flex w-full flex-col">
                     <div ref={homeComposerRef} className="relative z-10 w-full will-change-transform">

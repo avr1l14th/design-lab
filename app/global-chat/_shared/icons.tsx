@@ -55,6 +55,7 @@ export type IconName =
   // Иконки из макета чата (Figma, секции «Чат» и «Диалог»)
   | "fig-link"
   | "fig-pin"
+  | "fig-pin-off"
   | "fig-ellipsis"
   | "fig-filter"
   | "fig-search"

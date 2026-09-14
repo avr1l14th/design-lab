@@ -319,7 +319,7 @@ body {
   background-clip: text;
 }
 .gc-shimmer-row .gc-shimmer-run-icon {
-  --gc-shim-shift: calc(-1 * (var(--gc-shim-w) + 4px));
+  --gc-shim-shift: calc(-1 * (var(--gc-shim-w) + 2px));
 }
 @media (prefers-reduced-motion: reduce) {
   .gc-caret, .gc-breathe, .gc-shimmer-text, .gc-fade-in, .gc-fade-in-up, .gc-shimmer-run-text, .gc-shimmer-run-icon { animation: none; }
