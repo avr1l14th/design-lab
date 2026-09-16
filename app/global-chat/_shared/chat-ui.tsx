@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   MEETINGS,
-  MODES,
 
   formatLongDate,
   formatShortDate,
@@ -19,12 +18,14 @@ import {
   type FileAttachment,
   type Message,
   type Mode,
+  type WebSource,
+  type AnswerTable,
   type Suggestion,
   type Thumb,
 } from "./data";
-import { Ic } from "./icons";
+import { Ic, type IconName } from "./icons";
 import { MODE_AVATAR_ART, MODE_GLYPH_16 } from "./mode-avatar-art";
-import { aiAsset, composerShadow, easeOut, focusRingClass, gcAsset, popoverShadow, pressableClass, sfAsset, shadow, tokens } from "./tokens";
+import { aiAsset, composerShadow, ctaAsset, easeOut, focusRingClass, gcAsset, popoverShadow, pressableClass, sfAsset, shadow, tokens } from "./tokens";
 import { Popover, Tip, useOutsideClose } from "./ui";
 import { EMPTY_FILTERS, FilterPopover, filterChatMeetings, hasActiveFilters, type FilterState, type FilterTab } from "./meeting-filters";
 import type { Generation } from "./use-dialogs";
@@ -98,7 +99,7 @@ export function ThumbStack({ ids }: { ids: string[] }) {
       ))}
       {extra > 0 && (
         <span className={`${tileClass} bg-[#F3F3F3]`} style={{ zIndex: shown.length + 1 }}>
-          <span className="text-[10px] font-medium leading-[normal] tracking-[-0.3px]" style={{ color: tokens.placeholder, fontFeatureSettings: '"tnum" 1' }}>
+          <span className="text-[10px] font-medium leading-[normal] tracking-[-0.3px]" style={{ color: tokens.placeholder }}>
             +{extra}
           </span>
         </span>
@@ -289,38 +290,6 @@ export function ModeAvatar({
           );
           break;
         }
-        case "kb": {
-          // База знаний: читает первую строчку, перескакивает на вторую, находит — глаза вверх и «о!», книжка мягко захлопывается
-          const D = 2100;
-          body.animate(
-            [
-              { transform: "none", easing: soft },
-              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px)`, offset: 0.14, easing: "linear" },
-              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px) rotate(2deg)`, offset: 0.4, easing: soft },
-              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px) rotate(-2deg)`, offset: 0.48, easing: "linear" },
-              { transform: `scaleX(1.12) scaleY(0.94) translateY(${-u * 0.25}px) rotate(2deg)`, offset: 0.7, easing: out },
-              { transform: "scale(1.06)", offset: 0.8, easing: soft }, // о!
-              { transform: "scaleX(0.96) scaleY(1.03)", offset: 0.9, easing: soft }, // захлопнулась
-              { transform: "none" },
-            ],
-            { duration: D, ...linear },
-          );
-          eyes.animate(
-            [
-              { transform: "none", easing: soft },
-              { transform: `translate(${-u * 0.9}px, ${u * 0.4}px)`, offset: 0.14, easing: "linear" },
-              { transform: `translate(${u * 0.9}px, ${u * 0.4}px)`, offset: 0.4, easing: soft }, // первая строчка
-              { transform: `translate(${-u * 0.9}px, ${u * 0.7}px)`, offset: 0.48, easing: "linear" }, // перескок на вторую
-              { transform: `translate(${u * 0.9}px, ${u * 0.7}px)`, offset: 0.7, easing: out },
-              { transform: `translateY(${-u * 0.3}px) scale(1.3)`, offset: 0.8, easing: snap }, // нашел!
-              { transform: `translateY(${-u * 0.3}px) scale(1.3)`, offset: 0.86, easing: soft },
-              { transform: "scaleY(0.1)", offset: 0.92, easing: soft }, // моргнул
-              { transform: "none" },
-            ],
-            { duration: D, ...linear },
-          );
-          break;
-        }
       }
     };
     target.addEventListener("mouseenter", play);
@@ -387,7 +356,7 @@ export function ModeAvatar({
   );
 }
 
-/** Иконка режима 16×16 для пикера (46377:6013) и ответа в диалоге: тот же персонаж без плашки, тело цветом режима,
+/** Иконка-персонаж 16×16 для ответа в диалоге (46377:6013): тот же персонаж без плашки, тело цветом,
  *  глаза белые. thinking — сценка ожидания: медленное дыхание тела, блуждающий взгляд и редкое моргание, по кругу */
 export function ModeGlyph({ mode, thinking = false }: { mode: Mode; thinking?: boolean }) {
   const m = modeById(mode);
@@ -456,6 +425,7 @@ export function ModeGlyph({ mode, thinking = false }: { mode: Mode; thinking?: b
   );
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Каретка в поле ввода → точка во viewport, чтобы аватар мог за ней следить
 // ─────────────────────────────────────────────────────────────────────────────
@@ -518,14 +488,104 @@ export function useCaretPoint(ref: React.RefObject<HTMLTextAreaElement | null>, 
 // Стартовая: заголовок
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function HomeTitle({ mode, lookAt = null }: { mode: Mode; lookAt?: { x: number; y: number } | null }) {
-  const m = modeById(mode);
+/**
+ * Перелет персонажа со стартовой к первому ответу нового диалога: плашка 32 с глифом 20 из заголовка «Салют!»
+ * летит к месту аватара ответа (глиф 16 слева от «Думаю…»). Корень едет по translate, плашка внутри сжимается
+ * и тает, глиф ужимается с 20 до 16. Настоящий аватар ответа на время полета скрыт, на посадке проявляется
+ */
+export function AvatarFlight({ from, to, getTarget, duration, easing, reverse = false, onDone }: { from: DOMRect; to: DOMRect; /** Текущее положение цели: контент диалога сам въезжает (gc-enter, автоскролл), поэтому точку посадки уточняем каждый кадр */ getTarget?: () => DOMRect | null; duration: number; easing: string; /** Обратный полет: из ответа (глиф 16) на стартовую (плашка 32 с глифом 20) — плашка проявляется, глиф растет */ reverse?: boolean; onDone: () => void }) {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const plaqueRef = useRef<HTMLSpanElement>(null);
+  const glyphRef = useRef<HTMLSpanElement>(null);
+  const m = modeById("auto");
+  const art = MODE_AVATAR_ART.auto;
+  const [, , vw, vh] = art.viewBox.split(" ").map(Number);
+  // Глиф на стартовой: 0.625 × 32 = 20 по ширине (как в ModeAvatar); в ответе — MODE_GLYPH_16
+  const homeGlyphW = Math.round(32 * 0.625);
+  const { w: g16w } = MODE_GLYPH_16.auto;
+  const startScale = homeGlyphW / g16w;
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const plaque = plaqueRef.current;
+    const glyph = glyphRef.current;
+    if (!root || !plaque || !glyph) return;
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      onDone();
+      return;
+    }
+    const move = root.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], { duration, easing, fill: "forwards" });
+    if (reverse) {
+      // Обратно: плашка проявляется на последней трети пути, глиф подрастает до 20 к посадке
+      plaque.animate(
+        [{ transform: "scale(0.5)", opacity: 0 }, { transform: "scale(0.6)", opacity: 0, offset: 0.34 }, { transform: "scale(1)", opacity: 1 }],
+        { duration, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "forwards" },
+      );
+      glyph.animate([{ transform: "scale(1)" }, { transform: `scale(${startScale})` }], { duration, easing, fill: "forwards" });
+    } else {
+      // Плашка тает по дороге ровным ходом (не кривой полета — та почти весь путь проходит в первой трети времени)
+      // и к двум третям пути исчезает: персонаж прилетает уже «голым», как в ответе
+      plaque.animate(
+        [{ transform: "scale(1)", opacity: 1 }, { transform: "scale(0.6)", opacity: 0, offset: 0.66 }, { transform: "scale(0.5)", opacity: 0 }],
+        { duration, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "forwards" },
+      );
+      glyph.animate([{ transform: `scale(${startScale})` }, { transform: "scale(1)" }], { duration, easing, fill: "forwards" });
+    }
+    // На посадке призрак гасим сразу, в том же кадре, где проявляется настоящий аватар: иначе кадр-два обе плашки
+    // лежат друг на друге и полупрозрачная заливка на миг темнеет
+    move.onfinish = () => {
+      root.style.visibility = "hidden";
+      onDone();
+    };
+    // Следим за целью до посадки: корень стоит в текущем центре цели, translate доводит остаток пути
+    let raf = 0;
+    const follow = () => {
+      const r = getTarget?.();
+      if (r) {
+        root.style.left = `${r.left + r.width / 2 - 8}px`;
+        root.style.top = `${r.top + r.height / 2 - 8}px`;
+      }
+      raf = requestAnimationFrame(follow);
+    };
+    raf = requestAnimationFrame(follow);
+    return () => {
+      move.cancel();
+      cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <span
+      ref={rootRef}
+      aria-hidden="true"
+      className="pointer-events-none fixed z-[60] flex h-[16px] w-[16px] items-center justify-center"
+      style={{ left: to.left + to.width / 2 - 8, top: to.top + to.height / 2 - 8 }}
+    >
+      <span ref={plaqueRef} className="absolute left-1/2 top-1/2 h-[32px] w-[32px] -translate-x-1/2 -translate-y-1/2 rounded-[4px]" style={{ backgroundColor: `${m.color}29` }} />
+      <span ref={glyphRef} className="relative flex" style={{ transformOrigin: "50% 50%", width: g16w, height: (g16w * vh) / vw }}>
+        <svg width={g16w} height={(g16w * vh) / vw} viewBox={art.viewBox} fill="none" xmlns="http://www.w3.org/2000/svg" className="block overflow-visible" overflow="visible">
+          <path d={art.body} fill={m.color} />
+          {art.eyes.map((d, i) => (
+            <path key={i} d={d} fill="#fff" />
+          ))}
+        </svg>
+      </span>
+    </span>
+  );
+}
+
+export function HomeTitle({ lookAt = null }: { lookAt?: { x: number; y: number } | null }) {
   return (
     // data-avatar-hover: мимика запускается с ховера всего заголовка, не только плашки
-    <div key={mode} data-avatar-hover className="gc-fade-in flex items-center gap-[8px]">
-      <ModeAvatar mode={mode} size={32} autoplayOnce lookAt={lookAt} />
+    <div data-avatar-hover className="gc-fade-in flex items-center gap-[8px]">
+      {/* data-gc-home-avatar: отсюда персонаж «перелетает» к первому ответу нового диалога (AvatarFlight) */}
+      <span data-gc-home-avatar className="flex shrink-0">
+        <ModeAvatar mode="auto" size={32} autoplayOnce lookAt={lookAt} />
+      </span>
       <h1 className="whitespace-nowrap text-center text-[24px] font-medium leading-[normal] tracking-[-0.48px]" style={{ color: tokens.black }}>
-        <span style={{ color: m.color }}>Салют!</span> {m.title}
+        <span style={{ color: tokens.blue }}>Салют!</span> Чем могу помочь?
       </h1>
     </div>
   );
@@ -568,6 +628,19 @@ function sendPalette(color: string) {
     "--send-h": rgba(color, 0.6, 0.78),
     "--send-filter": `hue-rotate(${rot}deg) brightness(${bright.toFixed(2)})`,
   } as React.CSSProperties;
+}
+
+/** Цвета шиммера статусов ответа: базовый — цвет режима, блик — он же на 40% */
+function shimmerVars(color: string) {
+  return { "--gc-shim-a": color, "--gc-shim-b": `${color}66` } as React.CSSProperties;
+}
+
+/** Мок таймкода тезиса: тезисы равномерно по длительности встречи, секунды детерминированы по номеру */
+function mockTimecode(durationMin: number, i: number, n: number) {
+  const totalSec = Math.round((durationMin * 60 * (i + 1)) / (n + 1)) + ((i * 17) % 53);
+  const mm = Math.floor(totalSec / 60);
+  const ss = totalSec % 60;
+  return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -618,112 +691,22 @@ function ToolButton({
   );
 }
 
-/** Дропдаун режима: 290px, строки с плашкой-иконкой 36px, галочка у выбранного */
-export function ModeMenu({
-  mode,
-  onChange,
-  direction = "down",
-  showIcon = true,
-}: {
-  mode: Mode;
-  onChange: (m: Mode) => void;
-  direction?: "down" | "up";
-  /** Иконка режима слева от названия: есть на стартовой, в диалоге остается только текст */
-  showIcon?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const reduceMotion = useReducedMotion();
-  // Иконка всегда монтируется видимой и уже потом схлопывается, если ее не должно быть:
-  // композер диалога — новый экземпляр, и без этого иконка бы просто пропадала рывком
-  const [iconVisible, setIconVisible] = useState(true);
-  useEffect(() => {
-    // Схлопывание стартует через 110мс — как и остальной контент диалога догоняет переезд композера
-    const t = setTimeout(() => setIconVisible(showIcon), showIcon || reduceMotion ? 0 : 110);
-    return () => clearTimeout(t);
-  }, [showIcon, reduceMotion]);
-  const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  useOutsideClose([ref], open, close);
-  const m = modeById(mode);
-  return (
-    <div ref={ref} className="relative">
-      <ToolButton onClick={() => setOpen((v) => !v)} active={open} ariaExpanded={open} label="Режим ответа">
-        {/* Иконка уезжает в ноль по ширине вместе со своим отступом, текст подтягивается влево без скачка */}
-        <motion.span
-          className="flex shrink-0 items-center overflow-hidden"
-          initial={false}
-          animate={{ width: iconVisible ? 16 : 0, marginRight: iconVisible ? 0 : -6, opacity: iconVisible ? 1 : 0 }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
-          aria-hidden="true"
-        >
-          <span key={m.id} className="gc-fade-in flex">
-            <ModeGlyph mode={m.id} />
-          </span>
-        </motion.span>
-        <span key={m.id} className="gc-fade-in text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-          {m.label}
-        </span>
-        <span
-          className={`transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
-          style={{ color: tokens.grey }}
-        >
-          <Ic name="chevron-down" />
-        </span>
-      </ToolButton>
-      <Popover
-        open={open}
-        direction={direction}
-        padding={4}
-        style={{ boxShadow: popoverShadow }}
-        className={`right-0 w-[290px] ${direction === "down" ? "top-[calc(100%+6px)]" : "bottom-[calc(100%+6px)]"}`}
-      >
-        <div role="menu" className="flex flex-col">
-          {MODES.map((x) => {
-            const selected = x.id === mode;
-            return (
-              <button
-                key={x.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={selected}
-                onClick={() => {
-                  onChange(x.id);
-                  setOpen(false);
-                }}
-                data-avatar-hover
-                className={`group/mode flex w-full items-center gap-[12px] rounded-[4px] p-[8px] text-left hover:bg-[#FAFAFA] ${pressableClass} ${focusRingClass}`}
-              >
-                <ModeAvatar mode={x.id} size={32} />
-                <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                  <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                    {x.label}
-                  </span>
-                  <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-                    {x.description}
-                  </span>
-                </span>
-                {selected && (
-                  <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center" style={{ color: tokens.grey }}>
-                    <Ic name="fig-check" />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </Popover>
-    </div>
-  );
-}
-
-/** Чип файла внутри композера (по макету: плашка grey-20, красная иконка PDF) */
 export function FileChip({ file, onRemove }: { file: FileAttachment; onRemove?: () => void }) {
   return (
-    <div className="gc-enter group/file relative flex h-[48px] items-center gap-[8px] rounded-[4px] p-[8px]" style={{ backgroundColor: tokens.bgSubtle }}>
-      <span className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[4px] text-white" style={{ backgroundColor: tokens.red }}>
-        <Ic name="document-text" size={14} />
+    <div className="gc-enter group/file relative flex h-[48px] w-[240px] items-center gap-[8px] rounded-[4px] p-[8px]" style={{ backgroundColor: tokens.bgSubtle }}>
+      {/* Плашка типа файла: картина-текстура, перекрашенная в цвет типа (PDF красная, DOCX синяя), сверху 8% черного и белый глиф */}
+      <span className="relative isolate flex h-[32px] w-[32px] shrink-0 items-center justify-center overflow-hidden rounded-[4px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={gcAsset(file.ext === "PDF" ? "file-tex-red.png" : "file-tex-blue.png")} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {/* PDF: картина перекрашивается в красный через blend color, как в макете */}
+        {file.ext === "PDF" && <span className="absolute inset-0" style={{ backgroundColor: tokens.red, mixBlendMode: "color" }} />}
+        <span className="absolute inset-0" style={{ backgroundColor: "rgba(0,0,0,0.08)" }} />
+        <span
+          className="relative block bg-white"
+          style={{ width: 11.2, height: 12.8, WebkitMaskImage: `url(${gcAsset("fig-file.svg")})`, maskImage: `url(${gcAsset("fig-file.svg")})`, WebkitMaskSize: "100% 100%", maskSize: "100% 100%" }}
+        />
       </span>
-      <span className="flex w-[180px] flex-col gap-[2px]">
+      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
         <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
           {file.name}
         </span>
@@ -738,10 +721,11 @@ export function FileChip({ file, onRemove }: { file: FileAttachment; onRemove?: 
           type="button"
           aria-label="Убрать файл"
           onClick={onRemove}
-          className={`absolute -right-[6px] -top-[6px] flex h-[16px] w-[16px] items-center justify-center rounded-full border bg-white opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 ${pressableClass} ${focusRingClass}`}
-          style={{ borderColor: tokens.border, color: tokens.grey }}
+          className={`absolute -right-[6px] -top-[6px] flex h-[16px] w-[16px] items-center justify-center rounded-full opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
+          style={{ backgroundColor: tokens.bgSubtle, color: tokens.grey }}
         >
-          <Ic name="x-mark" size={10} />
+          {/* Крестик по макету 46845:7096: круг 16 grey-20 без рамки, глиф grey */}
+          <Ic name="fig-close-x" size={16} />
         </button>
       )}
     </div>
@@ -759,8 +743,14 @@ export function Composer({
   disabled,
   autoFocus,
   textareaRef,
-  menuDirection = "down",
-  modeIcon = true,
+  generating = false,
+  onStop,
+  limited = false,
+  onUpgrade,
+  notice,
+  nudge = 0,
+  hideMeetings = false,
+  placeholder = "Спросите что-нибудь о встречах…",
 }: {
   state: ComposerState;
   onChange: (patch: Partial<ComposerState>) => void;
@@ -773,14 +763,38 @@ export function Composer({
   disabled?: boolean;
   autoFocus?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
-  menuDirection?: "down" | "up";
-  /** Иконка режима в пикере (на стартовой есть, в диалоге — только текст) */
-  modeIcon?: boolean;
+  /** Идет ответ: кнопка отправки становится кнопкой «Стоп» */
+  generating?: boolean;
+  onStop?: () => void;
+  /** Free и Lite исчерпали вопросы (46726:21248): над полем плашка «Улучшить план», все контролы неактивны */
+  limited?: boolean;
+  onUpgrade?: () => void;
+  /** Плашка над полем с блокировкой ввода, например гостевой просмотр (46770:15573) */
+  notice?: { icon: IconName; text: string; action?: { label: string; onClick?: () => void } };
+  /** Счетчик «толчков»: при заблокированном поле клик по подсказке не вставляет текст, а качает плашку над полем */
+  nudge?: number;
+  /** В чате внутри встречи кнопки «Встречи» нет (46773:16791) */
+  hideMeetings?: boolean;
+  placeholder?: string;
 }) {
+  // Лимит и гостевой просмотр рисуются одной плашкой над полем; ввод в обоих случаях заблокирован
+  const banner = notice ?? (limited ? { icon: "fig-arrow-up-circle" as IconName, text: "Бесплатные запросы кончились, перейдите на тариф Pro или Business", action: { label: "Улучшить план", onClick: onUpgrade } } : null);
+  const locked = limited || !!notice;
   const innerRef = useRef<HTMLTextAreaElement>(null);
   const ref = textareaRef ?? innerRef;
-  const canSend = state.text.trim().length > 0 && !disabled;
-  const modeColor = modeById(state.mode).color;
+  const canSend = state.text.trim().length > 0 && !disabled && !locked;
+
+  // Толчок при клике по подсказке с заблокированным полем: стрелка в иконке плашки «улетает» вверх, снизу подъезжает
+  // такая же — как на ховере «Улучшить план» в сайдбаре. Плашка и текст стоят. Первое значение nudge (0) не анимируем
+  const nudgeArrowRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = nudgeArrowRef.current;
+    if (!el || nudge === 0) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (el.getAnimations().length) return;
+    // Две одинаковые стрелки в столбик: сдвиг на половину = верхняя уходит, нижняя встает на ее место; сброс в 0 незаметен
+    el.animate([{ transform: "translateY(0)" }, { transform: "translateY(-50%)" }], { duration: 180, easing: "cubic-bezier(0.4, 0, 0.2, 1)" });
+  }, [nudge]);
 
   const allMeetings = useMemo(() => Array.from(new Set([...(contextIds ?? []), ...state.meetingIds])), [contextIds, state.meetingIds]);
 
@@ -797,10 +811,48 @@ export function Composer({
   }, [state.text, ref]);
 
   return (
+    <div className="flex w-full flex-col">
+      {banner && (
+        // Плашка на 4px заходит под поле (-mb): голубой виден за скругленными верхними углами поля,
+        // поле ниже перекрывает этот хвост своей белой заливкой
+        <div className="group/bar -mb-[4px] flex h-[44px] items-start justify-between rounded-t-[4px] px-[12px] pt-[12px]" style={{ backgroundColor: "#F6F8FE" }}>
+          <span className="flex min-w-0 items-center gap-[6px]">
+            {banner.icon === "fig-arrow-up-circle" ? (
+              // Синий кружок с двумя стрелками в столбик (как ArrowUpCircle в сайдбаре): стрелка улетает вверх
+              // на ховере всей плашки и при толчке от клика по подсказке
+              <span className="relative block h-[16px] w-[16px] shrink-0 overflow-hidden rounded-full" style={{ backgroundColor: tokens.blue }} aria-hidden="true">
+                <span ref={nudgeArrowRef} className="flex flex-col transition-transform duration-[180ms] ease-[cubic-bezier(0.4,0,0.2,1)] group-hover/bar:-translate-y-1/2 motion-reduce:transition-none">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ctaAsset("ic-arrow-up-white.svg")} alt="" className="block h-[16px] w-[16px] shrink-0" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ctaAsset("ic-arrow-up-white.svg")} alt="" className="block h-[16px] w-[16px] shrink-0" />
+                </span>
+              </span>
+            ) : (
+              <span className="flex shrink-0" style={{ color: tokens.blue }}>
+                <Ic name={banner.icon} />
+              </span>
+            )}
+            <span className="truncate text-[12px] leading-[normal] tracking-[-0.12px]" style={{ color: tokens.black }}>
+              {banner.text}
+            </span>
+          </span>
+          {banner.action && (
+            <button
+              type="button"
+              onClick={banner.action.onClick}
+              className={`shrink-0 rounded-[2px] text-[12px] font-medium leading-[normal] tracking-[-0.12px] hover:text-[#0032B1] ${pressableClass} ${focusRingClass}`}
+              style={{ color: tokens.blue }}
+            >
+              {banner.action.label}
+            </button>
+          )}
+        </div>
+      )}
     <div
-      className="flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
-      style={{ boxShadow: `inset 0 0 0 1px ${tokens.border}, ${composerShadow}` }}
-      onClick={() => ref.current?.focus()}
+      className="relative flex w-full flex-col gap-[12px] rounded-[4px] bg-white p-[12px]"
+      style={{ boxShadow: `inset 0 0 0 1px ${tokens.border}, ${composerShadow}`, color: locked ? tokens.greyDisabled : undefined }}
+      onClick={() => !locked && ref.current?.focus()}
     >
       {state.files.length > 0 && (
         <div className="flex flex-wrap gap-[8px]">
@@ -815,17 +867,19 @@ export function Composer({
         {state.text === "" && (
           <span
             aria-hidden
-            className="pointer-events-none absolute left-[4px] top-[4px] -translate-x-[1px] text-[13px] leading-[16px] tracking-[-0.13px] text-[#BABBBD]"
+            className="pointer-events-none absolute left-[4px] top-[4px] -translate-x-[1px] text-[13px] leading-[16px] tracking-[-0.13px]"
+            style={{ color: tokens.placeholder }}
           >
-            Спроси че хочешь...
+            {placeholder}
           </span>
         )}
         <textarea
           ref={ref}
           value={state.text}
-          autoFocus={autoFocus}
+          autoFocus={autoFocus && !locked}
+          disabled={locked}
           rows={2}
-          aria-label="Спроси че хочешь..."
+          aria-label={placeholder}
           onChange={(e) => onChange({ text: e.target.value })}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -838,76 +892,65 @@ export function Composer({
         />
       </div>
       <div className="flex items-end justify-between">
-        {/* В «Базе знаний» вопросы про сервис, встречи и файлы как контекст не нужны — кнопки гаснут и возвращаются
-            при смене режима. Правая группа стоит на месте: justify-between, ширина левой не влияет */}
-        <AnimatePresence initial={false}>
-          {state.mode !== "kb" && (
-            <motion.div
-              key="context-tools"
-              className="flex items-center gap-[8px]"
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -4 }}
-              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            >
-              <ToolButton square label="Прикрепить файл" onClick={onAddFile}>
-                <span style={{ color: tokens.grey }}>
-                  <Ic name="fig-paperclip" />
+        <div className={`flex items-center gap-[8px] ${locked ? "pointer-events-none" : ""}`}>
+          <ToolButton square label="Прикрепить файл" onClick={onAddFile}>
+            <span style={{ color: locked ? tokens.greyDisabled : tokens.grey }}>
+              <Ic name="fig-paperclip" />
+            </span>
+          </ToolButton>
+          {!hideMeetings && (
+          <ToolButton onClick={onOpenMeetings} label="Добавить встречи">
+            {allMeetings.length === 0 ? (
+              <>
+                <span style={{ color: locked ? tokens.greyDisabled : tokens.grey }}>
+                  <Ic name="fig-plus" />
                 </span>
-              </ToolButton>
-              <ToolButton onClick={onOpenMeetings} label="Добавить встречи">
-                {allMeetings.length === 0 ? (
-                  <>
-                    <span style={{ color: tokens.grey }}>
-                      <Ic name="fig-plus" />
-                    </span>
-                    <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-                      Встречи
-                    </span>
-                  </>
-                ) : (
-                  <span key="stack" className="gc-enter flex items-center gap-[6px]">
-                    <ThumbStack ids={allMeetings} />
-                    <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-                      {pluralMeetings(allMeetings.length)}
-                    </span>
-                    <span className="flex" style={{ color: tokens.grey }}>
-                      <Ic name="chevron-down" />
-                    </span>
-                  </span>
-                )}
-              </ToolButton>
-            </motion.div>
+                <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: locked ? tokens.greyDisabled : tokens.black }}>
+                  Встречи
+                </span>
+              </>
+            ) : (
+              <span key="stack" className="gc-enter flex items-center gap-[6px]">
+                <ThumbStack ids={allMeetings} />
+                <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+                  {pluralMeetings(allMeetings.length)}
+                </span>
+                <span className="flex" style={{ color: tokens.grey }}>
+                  <Ic name="chevron-down" />
+                </span>
+              </span>
+            )}
+          </ToolButton>
           )}
-        </AnimatePresence>
+        </div>
         <div className="ml-auto flex items-center gap-[8px]">
-          <ModeMenu mode={state.mode} onChange={(mode) => onChange({ mode })} direction={menuDirection} showIcon={modeIcon} />
-          <Tip text="Отправить · Enter" placement="top" disabled={!canSend}>
+          {/* Пока идет ответ, та же кнопка становится «Стоп» (46527:6245) */}
+          <Tip text={generating ? "Остановить" : "Отправить · Enter"} placement="top" disabled={!canSend && !generating}>
             <button
               type="button"
-              aria-label="Отправить"
-              disabled={!canSend}
-              onClick={onSend}
+              aria-label={generating ? "Остановить" : "Отправить"}
+              disabled={!canSend && !generating}
+              onClick={generating ? onStop : onSend}
               className={`group/send relative flex h-[32px] w-[32px] shrink-0 items-center justify-center overflow-hidden rounded-[4px] transition-colors duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] disabled:cursor-not-allowed motion-reduce:transition-none ${pressableClass} ${focusRingClass}`}
-              style={{ backgroundColor: canSend ? modeColor : tokens.bgSubtle, color: canSend ? "#FFFFFF" : tokens.greyDisabled, ...sendPalette(modeColor) }}
+              style={{ backgroundColor: canSend || generating ? tokens.blue : tokens.bgSubtle, color: canSend || generating ? "#FFFFFF" : tokens.greyDisabled, ...sendPalette(tokens.blue) }}
             >
-              {/* Заливка активной кнопки — картина + оверлей 60% в цвете режима, как у «Добавить встречу».
-                  Слои всегда в DOM и проявляются кроссфейдом, а не появляются рывком; при смене режима
-                  картина перекрашивается с fade поверх плоской подложки того же цвета */}
-              <span className="absolute inset-0 transition-opacity duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none" style={{ opacity: canSend ? 1 : 0 }} aria-hidden="true">
-                <span key={state.mode} className="gc-fade-in absolute inset-0">
+              {/* Заливка активной кнопки — картина + оверлей 60%, как у «Добавить встречу».
+                  Слои всегда в DOM и проявляются кроссфейдом, а не появляются рывком */}
+              <span className="absolute inset-0 transition-opacity duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none" style={{ opacity: canSend || generating ? 1 : 0 }} aria-hidden="true">
+                <span className="absolute inset-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={gcAsset("send-bg.png")} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ filter: "var(--send-filter)" }} />
                   <span className={`absolute inset-0 bg-[var(--send-c)] group-hover/send:bg-[var(--send-h)] ${pressableClass}`} />
                 </span>
               </span>
-              <span className={`relative ${pressableClass}`}>
-                <Ic name="fig-arrow-up" />
+              <span key={generating ? "stop" : "send"} className={`gc-fade-in relative ${pressableClass}`}>
+                <Ic name={generating ? "fig-stop" : "fig-arrow-up"} />
               </span>
             </button>
           </Tip>
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -916,42 +959,67 @@ export function Composer({
 // Стартовая: подсказки, список базы знаний, предыдущие чаты
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function SuggestionCards({ items, onPick }: { items: Suggestion[]; onPick: (s: Suggestion) => void }) {
-  return (
-    <div className="flex w-full items-start gap-[12px] px-[12px]">
-      {items.map((s, i) => {
-        const m = modeById(s.mode);
-        return (
-          <button
-            key={s.text}
-            type="button"
-            onClick={() => onPick(s)}
-            className={`gc-fade-in-up flex min-w-0 flex-1 flex-col items-start gap-[16px] rounded-[4px] border bg-white p-[16px] text-left hover:bg-[#FAFAFA] ${pressableClass} ${focusRingClass}`}
-            style={{ borderColor: tokens.border, animationDelay: `${i * 40}ms` }}
-          >
-            <span style={{ color: m.color }}>
-              <Ic name={m.icon} />
-            </span>
-            <span className="text-[13px] leading-[18px] tracking-[-0.13px]" style={{ color: tokens.black }}>
-              {s.text}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 /** Подсказки строками с разделителями и стрелкой — для всех режимов, кроме «Авто» */
 /**
  * Саджесты под полем — по макету 46115:7175: строки px-8 py-12, радиус 4, ховер #F7F7F8, справа стрелка;
  * между строками дивайдеры, при ховере строки соседние с ней (сверху и снизу) исчезают
  */
-export function SuggestionList({ items, onPick }: { items: Suggestion[]; onPick: (s: Suggestion) => void }) {
+/**
+ * Баннер-анонс внизу стартовой (46817:17093): миниатюра 80×48 с иконкой чата, заголовок, подзаголовок, «Подробнее»;
+ * точки карусели из макета (46817:17341) пока убраны по просьбе дизайнера
+ */
+export function HomeBanner({ onMore, onClose }: { onMore: () => void; onClose?: () => void }) {
+  return (
+    <div className="group/banner flex w-[640px] max-w-full flex-col items-center gap-[12px]">
+      <div className="relative flex w-full items-center gap-[8px] rounded-[4px] border bg-white py-[12px] pl-[12px] pr-[18px]" style={{ borderColor: tokens.border }}>
+        {/* Крестик в углу на ховере — тот же, что у чипа файла в поле; по клику баннер скрывается */}
+        {onClose && (
+          <button
+            type="button"
+            aria-label="Скрыть баннер"
+            onClick={onClose}
+            className={`absolute -right-[6px] -top-[6px] flex h-[16px] w-[16px] items-center justify-center rounded-full opacity-0 group-hover/banner:opacity-100 focus-visible:opacity-100 hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
+            style={{ backgroundColor: tokens.bgSubtle, color: tokens.grey }}
+          >
+            <Ic name="fig-close-x" size={16} />
+          </button>
+        )}
+        <span className="relative flex h-[48px] w-[80px] shrink-0 items-center justify-center overflow-hidden rounded-[4px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={gcAsset("banner-chat-bg.png")} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <span className="absolute inset-0" style={{ backgroundColor: "rgba(33,40,51,0.08)" }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={gcAsset("banner-chat-fg.png")} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <span className="relative flex text-white">
+            <Ic name="fig-chat-20" size={20} />
+          </span>
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-[4px]">
+          <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+            Представляем глобальный AI Чат
+          </span>
+          <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+            Задавайте вопросы по всем встречам
+          </span>
+        </span>
+        <button
+          type="button"
+          onClick={onMore}
+          className={`flex shrink-0 items-center rounded-[4px] px-[12px] py-[10px] text-[13px] leading-[16px] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+          style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}
+        >
+          Подробнее
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function SuggestionList({ items, onPick, inset = true }: { items: Suggestion[]; onPick: (s: Suggestion) => void; /** боковые поля 12px под композером на стартовой; в чате встречи строки во всю ширину */ inset?: boolean }) {
   const [hovered, setHovered] = useState<number | null>(null);
   return (
     // Без анимации и без key по режиму: при смене режима строки стоят на месте, меняется только текст
-    <div className="flex w-full flex-col px-[12px]" onMouseLeave={() => setHovered(null)}>
+    <div className={`flex w-full flex-col ${inset ? "px-[12px]" : ""}`} onMouseLeave={() => setHovered(null)}>
       {items.map((s, i) => (
         <div key={i} className="flex w-full flex-col">
           {i > 0 && (
@@ -989,10 +1057,24 @@ export type DialogRowActions = {
  * Меню «…» строки диалога — по макету 45896:13503: триггер — иконка 16px на месте даты,
  * меню 160px (p-4, строки px-6 py-8 gap-6) под правым краем строки
  */
-function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog; actions: DialogRowActions; open: boolean; onOpenChange: (open: boolean) => void }) {
+function DialogRowMenu({ dialog, actions, open, onOpenChange, portal = false }: { dialog: Dialog; actions: DialogRowActions; open: boolean; onOpenChange: (open: boolean) => void; /** Меню через портал (fixed от кнопки «…»): в скроллящемся списке переключателя иначе режется overflow */ portal?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
-  useOutsideClose([ref], open, close);
+  useOutsideClose([ref, portalRef], open, close);
+  // Позиция портального меню считается от кнопки при открытии; скролл списка под ним закрывает меню
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!portal || !open) return;
+    const b = ref.current?.getBoundingClientRect();
+    if (b) setAnchor({ top: b.bottom + 8, right: window.innerWidth - b.right });
+    const onScroll = (e: Event) => {
+      if (portalRef.current && e.target instanceof Node && portalRef.current.contains(e.target)) return;
+      close();
+    };
+    window.addEventListener("scroll", onScroll, true);
+    return () => window.removeEventListener("scroll", onScroll, true);
+  }, [portal, open, close]);
   const run = (fn: (id: string) => void) => () => {
     onOpenChange(false);
     fn(dialog.id);
@@ -1011,6 +1093,13 @@ function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog
       <span className="text-[13px] leading-[normal] tracking-[-0.13px]">{label}</span>
     </button>
   );
+  const menu = (
+    <div role="menu" className="flex flex-col">
+      {row(dialog.pinned ? "fig-pin-off" : "fig-pin", dialog.pinned ? "Открепить" : "Закрепить", run(actions.onPin))}
+      {row("fig-pencil", "Переименовать", run(actions.onRename))}
+      {row("fig-trash", "Удалить", run(actions.onDelete), true)}
+    </div>
+  );
   return (
     <div ref={ref} className="relative flex shrink-0" onClick={(e) => e.stopPropagation()}>
       <button
@@ -1022,13 +1111,21 @@ function DialogRowMenu({ dialog, actions, open, onOpenChange }: { dialog: Dialog
       >
         <Ic name="fig-ellipsis" />
       </button>
-      <Popover open={open} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-[calc(100%+8px)] w-[160px]">
-        <div role="menu" className="flex flex-col">
-          {row(dialog.pinned ? "fig-pin-off" : "fig-pin", dialog.pinned ? "Открепить" : "Закрепить", run(actions.onPin))}
-          {row("fig-pencil", "Переименовать", run(actions.onRename))}
-          {row("fig-trash", "Удалить", run(actions.onDelete), true)}
-        </div>
-      </Popover>
+      {portal ? (
+        typeof document !== "undefined" &&
+        createPortal(
+          <div ref={portalRef} className="fixed z-[80]" style={anchor ? { top: anchor.top, right: anchor.right } : { top: 0, right: 0, visibility: "hidden" }} onClick={(e) => e.stopPropagation()}>
+            <Popover open={open && anchor !== null} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-0 w-[160px]">
+              {menu}
+            </Popover>
+          </div>,
+          document.body,
+        )
+      ) : (
+        <Popover open={open} direction="down" padding={4} style={{ boxShadow: shadow }} className="right-0 top-[calc(100%+8px)] w-[160px]">
+          {menu}
+        </Popover>
+      )}
     </div>
   );
 }
@@ -1046,10 +1143,12 @@ export function DialogListRow({
   active = false,
   role = "button",
   tall = false,
+  status,
   onOpen,
   onCommitRename,
   onCancelRename,
   onMenuOpenChange,
+  menuPortal = false,
 }: {
   dialog: Dialog;
   /** Порядок для каскадного появления; без него строка не анимируется */
@@ -1061,10 +1160,14 @@ export function DialogListRow({
   role?: "button" | "menuitem";
   /** Строка 36px (список на стартовой по 46115:7093) вместо 32px в переключателе */
   tall?: boolean;
+  /** Статус ответа (46724:15416): «В процессе» пока чат отвечает в этом диалоге, «Готово» пока ответ не открыли */
+  status?: "running" | "ready";
   onOpen: () => void;
   onCommitRename: (title: string) => void;
   onCancelRename: () => void;
   onMenuOpenChange?: (open: boolean) => void;
+  /** Меню «…» через портал — для строк внутри скроллящегося поповера */
+  menuPortal?: boolean;
 }) {
   const [menuOpen, setMenuOpenState] = useState(false);
   const setMenuOpen = (open: boolean) => {
@@ -1074,11 +1177,14 @@ export function DialogListRow({
   const icon = dialog.pinned ? "fig-pin" : "fig-chat";
   if (renaming) {
     return (
-      <div className={`flex w-full items-center gap-[6px] rounded-[2px] px-[8px] ${tall ? "h-[36px]" : "py-[6px]"}`} style={{ backgroundColor: tokens.bgSubtle }}>
+      <div className={`flex w-full items-center gap-[6px] rounded-[3px] px-[8px] ${tall ? "h-[36px]" : "py-[6px]"}`}>
         <span className="flex shrink-0" style={{ color: tokens.grey }}>
           <Ic name={icon} />
         </span>
         <RenameInput title={dialog.title} onCommit={onCommitRename} onCancel={onCancelRename} />
+        <span className="ml-auto text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.greyDisabled }}>
+          {formatShortDate(dialog.updatedAt)}
+        </span>
       </div>
     );
   }
@@ -1093,7 +1199,7 @@ export function DialogListRow({
           onOpen();
         }
       }}
-      className={`group/row relative flex w-full cursor-pointer items-center gap-[6px] rounded-[2px] px-[8px] ${tall ? "h-[36px]" : "py-[8px]"} hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${index !== undefined ? "gc-fade-in-up gc-no-fill" : ""} ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
+      className={`group/row relative flex w-full cursor-pointer items-center gap-[6px] ${tall ? "h-[36px] rounded-[3px]" : "rounded-[2px] py-[8px]"} px-[8px] hover:bg-[#F7F7F8] hover:z-10 focus-within:z-10 ${index !== undefined ? "gc-fade-in-up gc-no-fill" : ""} ${menuOpen ? "z-10 bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
       style={index !== undefined ? { animationDelay: `${Math.min(index, 6) * 30}ms` } : undefined}
     >
       <span className="flex shrink-0" style={{ color: tokens.grey }}>
@@ -1106,7 +1212,15 @@ export function DialogListRow({
           Фокус учитываем только клавиатурный (focus-visible): в Safari клик по кнопке фокусирует саму строку,
           и на focus-within троеточие залипало бы после действия из меню */}
       <span className="relative flex h-[16px] shrink-0 items-center justify-end">
-        {active ? (
+        {status ? (
+          <span
+            className={`flex items-center gap-[4px] text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "opacity-0" : "group-hover/row:opacity-0 group-focus-visible/row:opacity-0 group-has-[:focus-visible]/row:opacity-0"}`}
+            style={{ color: tokens.blue }}
+          >
+            <Ic name={status === "running" ? "fig-status-dot" : "fig-status-check"} size={12} />
+            {status === "running" ? "В процессе" : "Готово"}
+          </span>
+        ) : active ? (
           <span
             className={`flex transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "opacity-0" : "group-hover/row:opacity-0 group-focus-visible/row:opacity-0 group-has-[:focus-visible]/row:opacity-0"}`}
             style={{ color: tokens.grey }}
@@ -1122,7 +1236,7 @@ export function DialogListRow({
           </span>
         )}
         <span className={`absolute right-0 top-0 transition-opacity duration-[120ms] motion-reduce:transition-none ${menuOpen ? "" : "opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 has-[:focus-visible]:opacity-100"}`}>
-          <DialogRowMenu dialog={dialog} actions={actions} open={menuOpen} onOpenChange={setMenuOpen} />
+          <DialogRowMenu dialog={dialog} actions={actions} open={menuOpen} onOpenChange={setMenuOpen} portal={menuPortal} />
         </span>
       </span>
     </div>
@@ -1150,6 +1264,7 @@ export function PreviousChats({
   renamingId,
   onCommitRename,
   onCancelRename,
+  generatingId = null,
 }: {
   dialogs: Dialog[];
   onOpen: (id: string) => void;
@@ -1157,6 +1272,8 @@ export function PreviousChats({
   renamingId: string | null;
   onCommitRename: (id: string, title: string) => void;
   onCancelRename: () => void;
+  /** Диалог, в котором сейчас идет ответ — у его строки «В процессе» */
+  generatingId?: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   // Строки, у которых закончился вход: до этого они обрезаны по высоте, после — overflow снова видимый (меню «…» выходит за строку)
@@ -1165,6 +1282,9 @@ export function PreviousChats({
   const sorted = sortDialogs(dialogs);
   const collapsible = sorted.length > PREVIOUS_COLLAPSED;
   const visible = collapsible && !expanded ? sorted.slice(0, PREVIOUS_COLLAPSED) : sorted;
+  // layout-анимация строк нужна только при смене порядка или состава списка (пин, удаление, «Показать все»).
+  // Когда выше растет поле ввода, список должен сдвигаться мгновенно, без догоняющей анимации
+  const orderKey = visible.map((d) => d.id).join("|");
   const toggleExpanded = () => {
     setExpanded((v) => !v);
     setSettled(new Set());
@@ -1197,6 +1317,7 @@ export function PreviousChats({
               <motion.div
                 key={d.id}
                 layout={reduce ? false : "position"}
+                layoutDependency={orderKey}
                 initial={reduce ? false : { height: 0, opacity: 0 }}
                 animate={{
                   height: "auto",
@@ -1214,6 +1335,7 @@ export function PreviousChats({
                   dialog={d}
                   index={extra ? undefined : i}
                   tall
+                  status={generatingId === d.id ? "running" : d.unread ? "ready" : undefined}
                   actions={actions}
                   renaming={renamingId === d.id}
                   onOpen={() => onOpen(d.id)}
@@ -1298,6 +1420,15 @@ function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: s
   const list = filterChatMeetings(MEETINGS, filters);
   const filtersActive = hasActiveFilters(filters);
   const toggle = (id: string) => setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // «Выбрать все» работает по видимому списку: с поиском или фильтрами — по найденным, остальной выбор не трогает
+  const visibleSelected = list.filter((m) => selected.includes(m.id)).length;
+  const allVisible = list.length > 0 && visibleSelected === list.length;
+  const toggleAll = () =>
+    setSelected((prev) => {
+      const ids = list.map((m) => m.id);
+      return allVisible ? prev.filter((x) => !ids.includes(x)) : Array.from(new Set([...prev, ...ids]));
+    });
+  const narrowed = filtersActive || filters.query.length > 0;
 
   const reduce = useReducedMotion();
   return createPortal(
@@ -1411,15 +1542,29 @@ function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: s
               )}
             </div>
           </div>
-          <div className="gc-scroll flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {/* Список идет до самого футера (в макете шестая строка режется его краем), скроллбар 4px стоит в правом поле модалки,
+              а контент остается на ширине 568: -mr-12 + pr-8 + 4px полосы */}
+          <div className="gc-scroll -mb-[16px] -mr-[12px] flex min-h-0 flex-1 flex-col overflow-y-auto pr-[8px]" style={{ scrollbarGutter: "stable" }}>
+            {/* «Выбрать все (N встреч)» (46726:24181): строка 40px над списком, чекбокс на одной вертикали с чекбоксами строк.
+                Работает по видимому списку: с поиском или фильтрами — по найденным, остальной выбор не трогает */}
+            {list.length > 0 && (
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={allVisible}
+                onClick={toggleAll}
+                className={`flex h-[40px] w-full shrink-0 items-center gap-[12px] rounded-[4px] py-[12px] pr-[12px] text-left ${pressableClass} ${focusRingClass}`}
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                  {narrowed ? "Выбрать найденные" : "Выбрать все"} ({pluralMeetings(list.length)})
+                </span>
+                <Checkbox checked={allVisible} />
+              </button>
+            )}
             {list.length === 0 && (
-              <div className="flex flex-1 flex-col items-center justify-center gap-[4px] text-[13px] tracking-[-0.13px]" style={{ color: tokens.grey }}>
-                <span>Ничего не нашли</span>
-                {filtersActive && (
-                  <button type="button" onClick={() => setFilters((f) => ({ ...f, sources: [], authorIds: [], dateFrom: null, dateTo: null }))} className="text-[12px] tracking-[-0.24px] underline" style={{ color: tokens.blue }}>
-                    Сбросить фильтры
-                  </button>
-                )}
+              <div className="flex flex-1 flex-col items-center justify-center gap-[8px] text-center" style={{ color: tokens.black }}>
+                <span className="text-[16px] font-medium leading-[normal] tracking-[-0.32px]">Не удалось ничего найти</span>
+                <span className="w-[288px] text-[13px] leading-[16px] tracking-[-0.13px]">Попробуйте другой запрос или смените рабочее пространство</span>
               </div>
             )}
             {list.map((m) => {
@@ -1431,14 +1576,14 @@ function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: s
                   role="option"
                   aria-selected={on}
                   onClick={() => toggle(m.id)}
-                  className={`flex h-[72px] w-full items-center gap-[12px] rounded-[4px] py-[12px] pr-[12px] text-left hover:bg-[#FAFAFA] ${pressableClass} ${focusRingClass}`}
+                  className={`flex h-[72px] w-full items-center gap-[12px] rounded-[4px] py-[12px] pr-[12px] text-left ${pressableClass} ${focusRingClass}`}
                 >
                   <MeetingThumb thumb={m.thumb} width={80} height={48} />
                   <span className="flex min-w-0 flex-1 flex-col gap-[4px]">
                     <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
                       {m.title}
                     </span>
-                    <span className="flex items-center gap-[4px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey, fontFeatureSettings: '"lnum" 1, "tnum" 1' }}>
+                    <span className="flex items-center gap-[4px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
                       {m.time}
                       <span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.grey }} />
                       {m.durationMin} мин
@@ -1592,6 +1737,9 @@ function SharePopoverPanel({ onCopied }: { onCopied: () => void }) {
   );
 }
 
+/** Текст гостевого режима — одинаковый в тултипе чипа и в плашке над композером (46770:15573) */
+export const GUEST_NOTICE = "Вы просматриваете диалог как гость. Писать сообщения в чат может только его владелец";
+
 export function DialogHeader({
   dialog,
   dialogs,
@@ -1608,6 +1756,7 @@ export function DialogHeader({
   renamingRowId,
   onCommitRowRename,
   onCancelRowRename,
+  guest = false,
 }: {
   /** null — стартовая: в шапке только «Чат», остальное не рендерится */
   dialog: Dialog | null;
@@ -1626,6 +1775,8 @@ export function DialogHeader({
   renamingRowId: string | null;
   onCommitRowRename: (id: string, title: string) => void;
   onCancelRowRename: () => void;
+  /** Гостевой просмотр по ссылке (46770:15573): название без переключателя, чип «Общий доступ», без действий справа */
+  guest?: boolean;
 }) {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -1639,10 +1790,12 @@ export function DialogHeader({
   const closeSwitcher = useCallback(() => setSwitcherOpen(false), []);
   const closeShare = useCallback(() => setShareOpen(false), []);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-  useOutsideClose([switcherRef], switcherOpen, closeSwitcher);
+  // Пока открыто меню строки (оно в портале, вне switcherRef), клик по нему не должен закрывать переключатель
+  useOutsideClose([switcherRef], switcherOpen && !rowMenuOpen, closeSwitcher);
   useOutsideClose([shareRef], shareOpen, closeShare);
   useOutsideClose([menuRef], menuOpen, closeMenu);
   const others = sortDialogs(dialogs);
+  const switcherOrderKey = others.map((d) => d.id).join("|");
   const dialogId = dialog?.id ?? null;
 
   return (
@@ -1664,7 +1817,21 @@ export function DialogHeader({
         <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.grey }}>
           /
         </span>
-        {renaming ? (
+        {guest ? (
+          <>
+            <span className="max-w-[420px] truncate p-[6px] text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+              {dialog.title}
+            </span>
+            <Tip text={GUEST_NOTICE} placement="bottom">
+              <span className="ml-[2px] flex h-[24px] shrink-0 items-center gap-[4px] rounded-[3px] px-[8px]" style={{ backgroundColor: "#E4ECFA", color: tokens.blue }}>
+                <Ic name="fig-share-12" size={12} />
+                <span className="text-[12px] leading-[normal] underline decoration-dotted underline-offset-[3px]" style={{ textDecorationColor: tokens.blue }}>
+                  Общий доступ
+                </span>
+              </span>
+            </Tip>
+          </>
+        ) : renaming ? (
           <div className="p-[6px]">
             <RenameInput title={dialog.title} onCommit={onCommitRename} onCancel={onCancelRename} />
           </div>
@@ -1685,10 +1852,11 @@ export function DialogHeader({
             </span>
           </button>
         )}
-        <Popover open={switcherOpen} direction="down" padding={4} style={{ boxShadow: shadow }} className="left-[45px] top-[calc(100%+4px)] w-[320px]">
-          <div role="menu" className={`gc-scroll flex max-h-[360px] flex-col ${rowMenuOpen || renamingRowId ? "overflow-visible" : "overflow-y-auto"}`}>
+        <Popover open={switcherOpen} direction="down" padding={4} style={{ boxShadow: shadow }} className="left-[45px] top-[calc(100%+4px)] w-max min-w-[320px] max-w-[560px]">
+          {/* Список всегда скроллится: меню строк уходят в портал и не режутся, а строки не вываливаются за поповер */}
+          <div role="menu" className="gc-scroll flex max-h-[360px] flex-col overflow-y-auto">
             {others.map((d) => (
-              <motion.div key={d.id} layout={reduceMotion ? false : "position"} transition={ROW_IN} className="w-full">
+              <motion.div key={d.id} layout={reduceMotion ? false : "position"} layoutDependency={switcherOrderKey} transition={ROW_IN} className="w-full">
                 <DialogListRow
                   dialog={d}
                   role="menuitem"
@@ -1702,6 +1870,7 @@ export function DialogHeader({
                   onCommitRename={(t) => onCommitRowRename(d.id, t)}
                   onCancelRename={onCancelRowRename}
                   onMenuOpenChange={setRowMenuOpen}
+                  menuPortal
                 />
               </motion.div>
             ))}
@@ -1711,7 +1880,7 @@ export function DialogHeader({
         )}
       </div>
 
-      {dialog && (
+      {dialog && !guest && (
       <div key={`actions-${dialog.id}`} className="gc-enter flex shrink-0 items-center gap-[8px]">
         {/* Сплит «Поделиться | ссылка» */}
         <div ref={shareRef} className="relative flex h-[32px] items-center rounded-[3px] border" style={{ borderColor: tokens.border }}>
@@ -1735,7 +1904,7 @@ export function DialogHeader({
               <Ic name="fig-link" />
             </button>
           </Tip>
-          <Popover open={shareOpen} direction="down" padding={0} style={{ boxShadow: popoverShadow }} className="right-0 top-[calc(100%+8px)] w-[360px]">
+          <Popover open={shareOpen} direction="down" padding={0} style={{ boxShadow: popoverShadow }} className="right-[-80px] top-[calc(100%+8px)] w-[360px]">
             <SharePopoverPanel onCopied={onCopyLink} />
           </Popover>
         </div>
@@ -1785,11 +1954,19 @@ export function DialogHeader({
 
 function RenameInput({ title, onCommit, onCancel }: { title: string; onCommit: (t: string) => void; onCancel: () => void }) {
   const [value, setValue] = useState(title);
+  // Поле ровно по ширине текста, как в макете: невидимый двойник в той же клетке грида задает ширину, инпут ее растягивает
   return (
+    <span className="inline-grid min-w-0 max-w-[420px] items-center">
+    <span aria-hidden className="invisible col-start-1 row-start-1 h-[22px] whitespace-pre px-[5px] text-[13px] leading-[22px] tracking-[-0.13px]">
+      {value || " "}
+    </span>
     <input
       autoFocus
       value={value}
-      onFocus={(e) => e.currentTarget.select()}
+      onFocus={(e) => {
+        const n = e.currentTarget.value.length;
+        e.currentTarget.setSelectionRange(n, n);
+      }}
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => (value.trim() ? onCommit(value) : onCancel())}
       onKeyDown={(e) => {
@@ -1802,9 +1979,10 @@ function RenameInput({ title, onCommit, onCancel }: { title: string; onCommit: (
           onCancel();
         }
       }}
-      className="h-[24px] min-w-0 rounded-[2px] border bg-white px-[4px] text-[13px] font-medium leading-[normal] tracking-[-0.13px] outline-none"
-      style={{ color: tokens.black, borderColor: tokens.blue, width: Math.min(420, Math.max(160, value.length * 8 + 16)) }}
+      className="col-start-1 row-start-1 h-[22px] w-full min-w-0 rounded-[3px] border bg-white px-[4px] text-[13px] leading-[normal] tracking-[-0.13px] outline-none"
+      style={{ color: tokens.black, borderColor: tokens.blue }}
     />
+    </span>
   );
 }
 
@@ -1814,7 +1992,9 @@ function RenameInput({ title, onCommit, onCancel }: { title: string; onCommit: (
 
 export function UserBubble({ message }: { message: Message }) {
   return (
-    <div className="gc-enter flex w-full justify-end">
+    <div className="gc-enter flex w-full flex-col items-end gap-[8px]">
+      {/* Приложенные файлы (46753:8155): те же чипы, что в поле, над пузырем по правому краю */}
+      {message.files?.map((f) => <FileChip key={f.id} file={f} />)}
       <div className="max-w-[560px] whitespace-pre-wrap rounded-[4px] p-[8px] text-[13px] leading-[20px] tracking-[-0.13px]" style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}>
         {message.text}
       </div>
@@ -1838,7 +2018,12 @@ function CitationDot({ n, hover }: { n: number; hover?: boolean }) {
 
 /** Значок цитаты [n] с карточкой источника на ховере (46382:7400): шапка — миниатюра, название и дата,
  *  на ховере карточки дата уступает место стрелке; клик по карточке ведет на страницу встречи */
+/** Просмотр диалога гостем (46770:15573): ссылки на встречи-источники недоступны — карточки цитат и строки шага
+ *  показываются без стрелки перехода и не кликаются. Провайдер ставит страница */
+export const ReadOnlyContext = createContext(false);
+
 function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
+  const readOnly = useContext(ReadOnlyContext);
   const [hover, setHover] = useState(false);
   const [cardHover, setCardHover] = useState(false);
   const [alignRight, setAlignRight] = useState(false);
@@ -1878,14 +2063,10 @@ function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
       </span>
       {meeting && (
         <Popover open={hover} direction="down" padding={0} style={{ boxShadow: "0 0 4px rgba(0,0,0,0.2)" }} className={`top-[20px] z-50 w-[340px] overflow-hidden ${alignRight ? "right-0" : "left-0"}`}>
-          {/* В прототипе страница встречи одна — ведем на нее */}
-          <Link
-            href="/ai-export-sharing"
-            className={`flex w-full flex-col text-left ${focusRingClass}`}
-            aria-label={`Открыть встречу «${meeting.title}»`}
-            onMouseEnter={() => setCardHover(true)}
-            onMouseLeave={() => setCardHover(false)}
-          >
+          {/* В прототипе страница встречи одна — ведем на нее; у гостя карточка не кликается и без стрелки */}
+          {(() => {
+            const inner = (
+            <>
             <span className="flex w-full items-center gap-[6px] border-b p-[8px]" style={{ borderColor: tokens.border }}>
               <MeetingThumb thumb={meeting.thumb} width={26} height={16} radius={2} plain />
               <span className="min-w-0 flex-1 truncate text-[12px] leading-[normal] tracking-[-0.12px]" style={{ color: tokens.black }}>
@@ -1899,6 +2080,7 @@ function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
                 >
                   {formatLongDate(meeting.date)}
                 </span>
+                {!readOnly && (
                 <span
                   className="absolute right-0 flex rotate-90 transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
                   style={{ color: tokens.grey, opacity: cardHover ? 1 : 0 }}
@@ -1907,22 +2089,94 @@ function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
                   {/* в макете стрелка «наружу» повернута на 90° — смотрит вправо-вверх */}
                   <Ic name="fig-arrow-out" />
                 </span>
+                )}
               </span>
             </span>
-            <span className="flex w-full flex-col p-[8px] text-[12px] leading-[18px] tracking-[-0.24px]" style={{ color: tokens.black, fontFeatureSettings: '"lnum" 1, "tnum" 1' }}>
-              {meeting.summary.map((t) => (
-                <span key={t}>{t}</span>
+            <span className="flex w-full flex-col p-[8px] text-[12px] leading-[18px] tracking-[-0.24px]" style={{ color: tokens.black }}>
+              {/* таймкод момента в транскрипте перед тезисом (46521:6208), синий; в проде придет от бэка */}
+              {meeting.summary.map((t, i) => (
+                <span key={t}>
+                  <span style={{ color: tokens.blue }}>{mockTimecode(meeting.durationMin, i, meeting.summary.length)}</span> {t}
+                </span>
               ))}
             </span>
-          </Link>
+            </>
+            );
+            return readOnly ? (
+              <div className="flex w-full flex-col text-left">{inner}</div>
+            ) : (
+              <Link
+                href="/ai-export-sharing"
+                className={`flex w-full flex-col text-left ${focusRingClass}`}
+                aria-label={`Открыть встречу «${meeting.title}»`}
+                onMouseEnter={() => setCardHover(true)}
+                onMouseLeave={() => setCardHover(false)}
+              >
+                {inner}
+              </Link>
+            );
+          })()}
         </Popover>
       )}
     </span>
   );
 }
 
-/** Строка текста с цитатами [n] */
-function InlineWithCitations({ text, sources, keyPrefix }: { text: string; sources: string[]; keyPrefix: string }) {
+/** Цитата-ссылка на сайт (46761:7994): кружок 16 с иконкой ссылки 10, по ховеру карточка с заголовком и доменом (46763:8492) */
+function WebCitationBadge({ source, onOpen }: { source: WebSource; onOpen?: (title: string) => void }) {
+  const [hover, setHover] = useState(false);
+  const [alignRight, setAlignRight] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    },
+    [],
+  );
+  return (
+    <span
+      className="relative mt-[2px] inline-flex h-[16px] align-top"
+      onMouseEnter={(e) => {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        // У правого края колонки карточку прижимаем вправо, иначе ее режет скролл-контейнер
+        const rect = e.currentTarget.getBoundingClientRect();
+        setAlignRight(rect.left + 260 > window.innerWidth - 24 || rect.right + 200 > (e.currentTarget.closest(".group\\/answer")?.getBoundingClientRect().right ?? Infinity));
+        hoverTimer.current = setTimeout(() => setHover(true), 120);
+      }}
+      onMouseLeave={() => {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        hoverTimer.current = setTimeout(() => setHover(false), 160);
+      }}
+    >
+      <button
+        type="button"
+        aria-label={`Источник: ${source.title}`}
+        onClick={() => onOpen?.(source.title)}
+        className={`mx-[2px] inline-flex h-[16px] w-[16px] items-center justify-center rounded-full border ${pressableClass} ${focusRingClass}`}
+        style={{ borderColor: hover ? tokens.borderStrong : tokens.border, color: tokens.grey }}
+      >
+        <Ic name="fig-link-10" size={10} />
+      </button>
+      <Popover open={hover} direction="down" padding={0} style={{ boxShadow: "0 0 4px rgba(0,0,0,0.2)" }} className={`top-[20px] z-50 w-max max-w-[260px] overflow-hidden ${alignRight ? "right-0" : "left-0"}`}>
+        <span className="flex w-full flex-col gap-[8px] p-[8px] text-left">
+          <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+            {source.title}
+          </span>
+          <span className="flex items-center gap-[6px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={gcAsset(source.favicon)} alt="" className="h-[16px] w-[16px] shrink-0 object-contain" />
+            <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.greyDisabled }}>
+              {source.domain}
+            </span>
+          </span>
+        </span>
+      </Popover>
+    </span>
+  );
+}
+
+/** Строка текста с цитатами [n]: по встречам — кружки с номерами, по интернету — кружки-ссылки */
+function InlineWithCitations({ text, sources, web, onOpenLink, keyPrefix }: { text: string; sources: string[]; web?: WebSource[]; onOpenLink?: (title: string) => void; keyPrefix: string }) {
   const parts = text.split(/(\[\d+\])/g);
   return (
     <>
@@ -1930,6 +2184,10 @@ function InlineWithCitations({ text, sources, keyPrefix }: { text: string; sourc
         const m = p.match(/^\[(\d+)\]$/);
         if (m) {
           const n = Number(m[1]);
+          if (web) {
+            const src = web[n - 1];
+            return src ? <WebCitationBadge key={`${keyPrefix}-${i}`} source={src} onOpen={onOpenLink} /> : null;
+          }
           return <CitationBadge key={`${keyPrefix}-${i}`} n={n} meetingId={sources[n - 1]} />;
         }
         return <span key={`${keyPrefix}-${i}`}>{p}</span>;
@@ -1939,7 +2197,7 @@ function InlineWithCitations({ text, sources, keyPrefix }: { text: string; sourc
 }
 
 /** Текст ответа: абзацы, буллеты двух уровней, цитаты. 14/24, как в макете */
-export function AnswerText({ text, sources = [], streaming }: { text: string; sources?: string[]; streaming?: boolean }) {
+export function AnswerText({ text, sources = [], web, onOpenLink, streaming }: { text: string; sources?: string[]; web?: WebSource[]; onOpenLink?: (title: string) => void; streaming?: boolean }) {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
   let list: { level: number; text: string }[] = [];
@@ -1961,7 +2219,7 @@ export function AnswerText({ text, sources = [], streaming }: { text: string; so
       <ul className="list-disc pl-[21px]">
         {children.map((c, j) => (
           <li key={j} className={j < children.length - 1 ? "mb-[8px]" : ""}>
-            <InlineWithCitations text={c} sources={sources} keyPrefix={`${prefix}-${j}`} />
+            <InlineWithCitations text={c} sources={sources} web={web} onOpenLink={onOpenLink} keyPrefix={`${prefix}-${j}`} />
           </li>
         ))}
       </ul>
@@ -1975,7 +2233,7 @@ export function AnswerText({ text, sources = [], streaming }: { text: string; so
             </li>
           ) : (
             <li key={i} className={i < tree.length - 1 ? "mb-[8px]" : ""}>
-              <InlineWithCitations text={it.text} sources={sources} keyPrefix={`li-${k}-${i}`} />
+              <InlineWithCitations text={it.text} sources={sources} web={web} onOpenLink={onOpenLink} keyPrefix={`li-${k}-${i}`} />
             </li>
           ),
         )}
@@ -1997,7 +2255,7 @@ export function AnswerText({ text, sources = [], streaming }: { text: string; so
     if (!raw.trim()) return;
     blocks.push(
       <p key={`p-${i}`}>
-        <InlineWithCitations text={raw} sources={sources} keyPrefix={`p-${i}`} />
+        <InlineWithCitations text={raw} sources={sources} web={web} onOpenLink={onOpenLink} keyPrefix={`p-${i}`} />
       </p>,
     );
   });
@@ -2011,7 +2269,17 @@ export function AnswerText({ text, sources = [], streaming }: { text: string; so
 }
 
 /** Шаг «Смотрю встречи…»: клик раскрывает список просмотренных встреч */
-function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["step"]>; looking: boolean; onOpenMeeting?: (id: string) => void }) {
+/** Подпись шага по фазе (46738:7497 / 7646 / 7840): ищем → анализируем → посмотрели */
+const STEP_LABEL: Record<"looking" | "analyzing" | "done", string> = {
+  looking: "Ищу подходящие встречи",
+  analyzing: "Анализирую встречи",
+  done: "Посмотрел встречи",
+};
+
+function StepRow({ step, phase, accent, web, onOpenMeeting, onOpenLink }: { step: NonNullable<Message["step"]>; phase: "looking" | "analyzing" | "done"; /** акцент, пока аватар стоит напротив шага */ accent?: string; /** источники из интернета вместо встреч (46761:8022) */ web?: WebSource[]; onOpenMeeting?: (id: string) => void; onOpenLink?: (title: string) => void }) {
+  const readOnly = useContext(ReadOnlyContext);
+  const looking = phase !== "done";
+  const label = web ? (looking ? "Ищу в интернете" : "Поискал в интернете") : STEP_LABEL[phase];
   const [open, setOpen] = useState(false);
   const labelRef = useRef<HTMLSpanElement>(null);
   const [labelWidth, setLabelWidth] = useState<number | null>(null);
@@ -2020,7 +2288,7 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
     if (!looking) return;
     const el = labelRef.current;
     if (el) setLabelWidth(el.getBoundingClientRect().width);
-  }, [looking, step.label]);
+  }, [looking, phase]);
   const shimmer = looking && labelWidth !== null;
   return (
     <div className="flex w-full flex-col gap-[16px]">
@@ -2032,11 +2300,16 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
         style={shimmer ? ({ ["--gc-shim-w" as string]: `${labelWidth}px` } as React.CSSProperties) : undefined}
       >
         {/* цвет классами, не inline: инлайновый перебивал бы group-hover */}
-        <span ref={labelRef} className={`text-[13px] leading-[20px] tracking-[-0.13px] ${shimmer ? "gc-shimmer-run-text" : "text-[#818AA3] group-hover:text-[#585E6C]"} ${pressableClass}`}>
-          {step.label}
+        <span
+          ref={labelRef}
+          className={`text-[13px] leading-[20px] tracking-[-0.13px] ${shimmer ? "gc-shimmer-run-text" : accent ? "" : "text-[#818AA3] group-hover:text-[#585E6C]"} ${pressableClass}`}
+          style={!shimmer && accent ? { color: accent } : undefined}
+        >
+          {label}
         </span>
         <span
-          className={`flex h-[16px] w-[16px] translate-y-[1px] items-center justify-center text-[#818AA3] transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:text-[#585E6C] motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+          className={`flex h-[16px] w-[16px] translate-y-[1px] items-center justify-center transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${accent && !shimmer ? "" : "text-[#818AA3] group-hover:text-[#585E6C]"} ${open ? "rotate-90" : ""}`}
+          style={!shimmer && accent ? { color: accent } : undefined}
         >
           {/* шеврон на 1px ниже центра строки — оптически по центру текста 13/20 */}
           <Ic name="chevron-right" color={shimmer ? "transparent" : undefined} className={shimmer ? "gc-shimmer-run-icon" : ""} />
@@ -2044,24 +2317,69 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
       </button>
       {open && (
         <div className="gc-enter flex w-full flex-col rounded-[4px] border p-[8px]" style={{ borderColor: tokens.border }}>
+          {web?.map((w) => (
+            <button
+              key={w.title}
+              type="button"
+              onClick={() => onOpenLink?.(w.title)}
+              className={`group/row flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={gcAsset(w.favicon)} alt="" className="h-[16px] w-[16px] shrink-0 object-contain" />
+              <span className="min-w-0 flex-1 truncate text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                {w.title}
+              </span>
+              <span className="relative flex h-[16px] shrink-0 items-center justify-end">
+                <span
+                  className="whitespace-nowrap text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/row:opacity-0 motion-reduce:transition-none"
+                  style={{ color: tokens.greyDisabled }}
+                >
+                  {w.domain}
+                </span>
+                <span
+                  className="absolute right-0 flex rotate-90 opacity-0 transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/row:opacity-100 motion-reduce:transition-none"
+                  style={{ color: tokens.grey }}
+                  aria-hidden="true"
+                >
+                  <Ic name="fig-arrow-out" />
+                </span>
+              </span>
+            </button>
+          ))}
           {step.meetingIds.map((id) => {
             const m = meetingById(id);
             if (!m) return null;
+            // У гостя строка встречи — просто строка: без ховера, стрелки и перехода
+            const Row = readOnly ? "div" : "button";
             return (
-              <button
+              <Row
                 key={id}
-                type="button"
-                onClick={() => onOpenMeeting?.(id)}
-                className={`flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+                {...(readOnly ? {} : { type: "button" as const, onClick: () => onOpenMeeting?.(id) })}
+                className={readOnly ? "flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left" : `group/row flex w-full items-center gap-[6px] rounded-[2px] px-[8px] py-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
               >
                 <MeetingThumb thumb={m.thumb} width={26} height={16} radius={2} plain />
                 <span className="min-w-0 flex-1 truncate text-[13px] leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
                   {m.title}
                 </span>
-                <span className="shrink-0 text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.greyDisabled }}>
-                  {formatLongDate(m.date)}
+                {/* Дата и стрелка перехода стоят на одном месте, как в карточке цитаты: на ховере строки дата гаснет, стрелка проявляется */}
+                <span className="relative flex h-[16px] shrink-0 items-center justify-end">
+                  <span
+                    className="whitespace-nowrap text-[12px] leading-[normal] tracking-[-0.24px] transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/row:opacity-0 motion-reduce:transition-none"
+                    style={{ color: tokens.greyDisabled }}
+                  >
+                    {formatLongDate(m.date)}
+                  </span>
+                  {!readOnly && (
+                  <span
+                    className="absolute right-0 flex rotate-90 opacity-0 transition-opacity duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/row:opacity-100 motion-reduce:transition-none"
+                    style={{ color: tokens.grey }}
+                    aria-hidden="true"
+                  >
+                    <Ic name="fig-arrow-out" />
+                  </span>
+                  )}
                 </span>
-              </button>
+              </Row>
             );
           })}
         </div>
@@ -2071,12 +2389,286 @@ function StepRow({ step, looking, onOpenMeeting }: { step: NonNullable<Message["
 }
 
 /** Уточнение режима: две карточки, склеенные в стек (верхняя без нижней рамки) */
+/** Таблица в ответе (46753:7815): рамка grey-40, шапка на grey-20 Medium 13, ячейки 13/20, px-16 py-12, вертикальные разделители */
+function AnswerTableView({ table }: { table: AnswerTable }) {
+  return (
+    <div className="gc-enter w-full overflow-hidden rounded-[4px] border" style={{ borderColor: tokens.border }}>
+      <div className="flex w-full border-b" style={{ backgroundColor: tokens.bgSubtle, borderColor: tokens.border }}>
+        {table.head.map((h, i) => (
+          <div key={h} className={`flex min-w-0 flex-1 items-center px-[16px] py-[12px] ${i < table.head.length - 1 ? "border-r" : ""}`} style={{ borderColor: tokens.border }}>
+            <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+              {h}
+            </span>
+          </div>
+        ))}
+      </div>
+      {table.rows.map((row, r) => (
+        <div key={r} className={`flex w-full ${r < table.rows.length - 1 ? "border-b" : ""}`} style={{ borderColor: tokens.border }}>
+          {row.map((cell, c) => (
+            <div key={c} className={`flex min-w-0 flex-1 items-center px-[16px] py-[12px] ${c < row.length - 1 ? "border-r" : ""}`} style={{ borderColor: tokens.border }}>
+              <span className="text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                {cell}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Файл как результат ответа (46814:16822): карточка 360 с мини-превью документа, названием, форматом и «Скачать» */
+function FileResultCard({ file, onDownload }: { file: Omit<FileAttachment, "id">; onDownload?: () => void }) {
+  return (
+    // Карточка режет содержимое сама (overflow-clip в макете): листок превью выше своего слота 50×36 и уходит под нижний край карточки
+    <div className="gc-enter flex w-[360px] max-w-full items-center gap-[12px] overflow-hidden rounded-[4px] border bg-white p-[16px]" style={{ borderColor: tokens.border }}>
+      {/* превью: белый листок 48px, повернут на −4°, тень, заголовок 4px и семь серых строчек; слот не режет — только карточка */}
+      <span className="relative flex h-[36px] w-[50px] shrink-0 items-start justify-center">
+        <span className="absolute left-[1px] top-[-2px] flex w-[48px] flex-col gap-[3px] rounded-[3px] bg-white p-[6px]" style={{ transform: "rotate(-4deg)", transformOrigin: "center", boxShadow: "0 0 4px rgba(0,0,0,0.2)" }}>
+          <span className="whitespace-nowrap text-[4px] font-semibold leading-[normal] tracking-[-0.04px]" style={{ color: "#585E6C" }}>
+            {file.name}
+          </span>
+          {[36, 32, 35, 33, 35, 32, 33].map((w, i) => (
+            <span key={i} className="block h-[3px] rounded-[1px]" style={{ width: w, backgroundColor: tokens.border }} />
+          ))}
+        </span>
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+        <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          {file.name}
+        </span>
+        <span className="flex items-center gap-[4px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+          {file.ext}
+          <span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.grey }} />
+          {file.size}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={onDownload}
+        className={`flex shrink-0 items-center rounded-[4px] px-[12px] py-[10px] text-[13px] leading-[16px] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+        style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}
+      >
+        Скачать
+      </button>
+    </div>
+  );
+}
+
+/** Бесплатные вопросы кончились (46768:12497): вместо ответа плашка 480 с иконкой апгрейда и шевроном */
+export function LimitCard({ onUpgrade }: { onUpgrade?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onUpgrade}
+      className={`gc-enter flex w-[480px] max-w-full items-center gap-[12px] rounded-[4px] border bg-white p-[16px] text-left hover:bg-[#FAFAFA] ${pressableClass} ${focusRingClass}`}
+      style={{ borderColor: tokens.border }}
+    >
+      <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px]" style={{ backgroundColor: tokens.bgSubtle, color: tokens.blue }}>
+        <Ic name="fig-arrow-up-circle" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+        <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          Бесплатные вопросы в чате закончились
+        </span>
+        <span className="truncate text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+          Чат без лимита доступен на тарифах Pro и Business
+        </span>
+      </span>
+      <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center" style={{ color: tokens.grey }}>
+        <Ic name="fig-chevron-right-20" size={20} />
+      </span>
+    </button>
+  );
+}
+
+/** Модалка обратной связи после дизлайка (46783:8999): тип проблемы дропдауном, комментарий, «Пропустить» и «Отправить» */
+const FEEDBACK_REASONS = ["Не по тем встречам", "Придумал то, чего не было", "Ответ неполный", "Не понял вопрос", "Ссылки на встречи не сходятся", "Плохо читается", "Другое"];
+
+function FeedbackModal({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => void }) {
+  return <AnimatePresence>{open && <FeedbackModalInner key="feedback" onClose={onClose} onSubmit={onSubmit} />}</AnimatePresence>;
+}
+
+function FeedbackModalInner({ onClose, onSubmit }: { onClose: () => void; onSubmit: () => void }) {
+  const [reason, setReason] = useState<string | null>(null);
+  const [comment, setComment] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useOutsideClose([panelRef], true, useCallback(() => onClose(), [onClose]));
+  useOutsideClose([menuRef], menuOpen, useCallback(() => setMenuOpen(false), []));
+  const reduce = useReducedMotion();
+  const canSend = reason !== null || comment.trim().length > 0;
+  return createPortal(
+    <motion.div
+      className="fixed inset-0 z-[90] flex items-center justify-center"
+      style={{ backgroundColor: tokens.backdrop }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.15, ease: easeOut } }}
+      transition={{ duration: 0.2, ease: easeOut }}
+      role="dialog"
+      aria-modal
+      aria-label="Обратная связь"
+    >
+      <motion.div
+        ref={panelRef}
+        className="flex w-[400px] flex-col rounded-[4px] bg-white"
+        style={{ boxShadow: "0 0 2.5px rgba(0,0,0,0.15)" }}
+        initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "scale(0.97)" }}
+        animate={reduce ? { opacity: 1 } : { opacity: 1, transform: "scale(1)" }}
+        exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, transform: "scale(0.98)", transition: { duration: 0.15, ease: easeOut } }}
+        transition={{ duration: 0.22, ease: easeOut }}
+      >
+        <div className="flex items-center justify-between rounded-t-[4px] border-b p-[16px]" style={{ borderColor: tokens.border }}>
+          <span className="flex items-center gap-[8px]">
+            <span className="flex" style={{ color: tokens.grey }}>
+              <Ic name="fig-chat" />
+            </span>
+            <span className="text-[14px] leading-[1.35] tracking-[-0.28px]" style={{ color: tokens.black }}>
+              Обратная связь
+            </span>
+          </span>
+          <button
+            type="button"
+            aria-label="Закрыть"
+            onClick={onClose}
+            className={`flex h-[16px] w-[16px] items-center justify-center rounded-full hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+            style={{ backgroundColor: tokens.bgSubtle, color: tokens.grey }}
+          >
+            <Ic name="x-mark" size={10} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-[24px] px-[16px] py-[24px]">
+          <div className="flex flex-col gap-[8px]">
+            <span className="text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+              Тип проблемы (опционально)
+            </span>
+            <div ref={menuRef} className="relative">
+              <button
+                type="button"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+                className={`flex w-full items-center gap-[8px] rounded-[4px] border bg-white px-[12px] py-[10px] text-left ${pressableClass} ${focusRingClass}`}
+                style={{ borderColor: menuOpen ? tokens.blue : tokens.border }}
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                  {reason ?? "Выберите"}
+                </span>
+                <span className={`flex transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${menuOpen ? "rotate-180" : ""}`} style={{ color: tokens.grey }}>
+                  <Ic name="chevron-down" />
+                </span>
+              </button>
+              <Popover open={menuOpen} direction="down" padding={4} style={{ boxShadow: shadow }} className="left-0 right-0 top-[calc(100%+4px)] z-10">
+                <div role="listbox" className="flex flex-col">
+                  {FEEDBACK_REASONS.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      role="option"
+                      aria-selected={reason === r}
+                      onClick={() => {
+                        setReason(r);
+                        setMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-[2px] px-[8px] py-[8px] text-left text-[13px] leading-[16px] tracking-[-0.13px] hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+                      style={{ color: tokens.black }}
+                    >
+                      {r}
+                      {reason === r && (
+                        <span className="flex" style={{ color: tokens.grey }}>
+                          <Ic name="fig-check" />
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </Popover>
+            </div>
+          </div>
+          <div className="flex flex-col gap-[8px]">
+            <span className="text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+              Комментарий
+            </span>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Мне не понравилось, что..."
+              rows={3}
+              className="w-full resize-none rounded-[4px] border bg-white px-[12px] py-[10px] text-[14px] leading-[1.35] tracking-[-0.28px] outline-none placeholder:text-[#C7C8CA] focus:border-[#0138C7]"
+              style={{ borderColor: tokens.border, color: tokens.black }}
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-[8px] rounded-b-[4px] border-t p-[16px]" style={{ backgroundColor: tokens.bgSubtle, borderColor: tokens.border }}>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`flex h-[36px] items-center justify-center rounded-[4px] bg-[#F7F7F8] px-[12px] text-[13px] leading-[normal] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+            style={{ color: tokens.black }}
+          >
+            Пропустить
+          </button>
+          <button
+            type="button"
+            disabled={!canSend}
+            onClick={onSubmit}
+            className={`flex h-[36px] items-center justify-center rounded-[4px] bg-[#0138C7] px-[12px] text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white hover:bg-[#0032B1] disabled:cursor-not-allowed disabled:bg-[#809BE3] disabled:hover:bg-[#809BE3] ${pressableClass} ${focusRingClass}`}
+          >
+            Отправить
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body,
+  );
+}
+
+/** Вопрос про сервис (46738:7466): три ссылки-карточки 480px — база знаний, поддержка, продажи; иконки в своих цветах на плашке grey-20 */
+const SUPPORT_LINKS: { icon: IconName; color: string; title: string; text: string }[] = [
+  { icon: "fig-knowledge", color: tokens.green, title: "База знаний", text: "Инструкции по записи, отчетам, интеграциям и тарифам" },
+  { icon: "fig-support", color: tokens.blue, title: "Написать в поддержку", text: "Ответим на почту в рабочее время" },
+  { icon: "fig-sales", color: tokens.black, title: "Связаться с отделом продаж", text: "Командный тариф, оплата по счету, демо для команды" },
+];
+
+function SupportCards({ onPick }: { onPick?: (title: string) => void }) {
+  return (
+    <div className="flex w-[480px] max-w-full flex-col">
+      {SUPPORT_LINKS.map((l, i) => (
+        <button
+          key={l.title}
+          type="button"
+          onClick={() => onPick?.(l.title)}
+          className={`gc-enter flex w-full items-center gap-[12px] border bg-white p-[16px] text-left hover:bg-[#FAFAFA] ${i === 0 ? "rounded-t-[4px]" : "-mt-px"} ${i === SUPPORT_LINKS.length - 1 ? "rounded-b-[4px]" : ""} ${pressableClass} ${focusRingClass}`}
+          style={{ borderColor: tokens.border, animationDelay: `${i * 50}ms` }}
+        >
+          <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px]" style={{ backgroundColor: tokens.bgSubtle, color: l.color }}>
+            <Ic name={l.icon} />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+            <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+              {l.title}
+            </span>
+            <span className="truncate text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+              {l.text}
+            </span>
+          </span>
+          <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center" style={{ color: tokens.grey }}>
+            <Ic name="fig-chevron-right-20" size={20} />
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ClarifyCards({ clarify, onChoose }: { clarify: NonNullable<Message["clarify"]>; onChoose?: (mode: Mode) => void }) {
   const reduce = useReducedMotion();
   const options = clarify.chosen ? clarify.options.filter((o) => o.mode === clarify.chosen) : clarify.options;
   return (
-    <div className="flex w-[560px] max-w-full flex-col">
-      {/* После выбора невыбранная карточка схлопывается, выбранная остается на месте с галочкой */}
+    <div className="flex w-[480px] max-w-full flex-col">
+      {/* Карточки по 46583:6622: 480px, плашка режима 32 с персонажем, название 13 Medium и описание 12 через 1px.
+          После выбора невыбранная карточка схлопывается, выбранная остается на месте с галочкой */}
       <AnimatePresence initial={false}>
       {options.map((o, i) => {
         const m = modeById(o.mode);
@@ -2095,11 +2687,13 @@ function ClarifyCards({ clarify, onChoose }: { clarify: NonNullable<Message["cla
             type="button"
             disabled={done}
             onClick={() => onChoose?.(o.mode)}
+            data-avatar-hover
             className={`gc-enter flex w-full items-center gap-[12px] border bg-white p-[16px] text-left ${first ? "rounded-t-[4px]" : "-mt-px"} ${last ? "rounded-b-[4px]" : ""} ${done ? "cursor-default" : "hover:bg-[#FAFAFA]"} ${pressableClass} ${focusRingClass}`}
             style={{ borderColor: tokens.border, animationDelay: `${i * 50}ms` }}
           >
+            {/* плашка 36 grey-20 с иконкой в цвете варианта: аналитика фиолетовая, вопрос оранжевый (46783:9150) */}
             <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px]" style={{ backgroundColor: tokens.bgSubtle, color: m.color }}>
-              <Ic name={m.icon} />
+              <Ic name={o.mode === "analytics" ? "fig-chart" : "fig-bolt"} />
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
               <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
@@ -2110,7 +2704,7 @@ function ClarifyCards({ clarify, onChoose }: { clarify: NonNullable<Message["cla
               </span>
             </span>
             <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center" style={{ color: tokens.grey }}>
-              <Ic name={done ? "fig-check" : "chevron-right"} size={done ? 16 : 20} />
+              <Ic name={done ? "fig-check" : "fig-chevron-right-20"} size={done ? 16 : 20} />
             </span>
           </button>
           </motion.div>
@@ -2160,14 +2754,23 @@ export function AssistantBlock({
   onChoose,
   onOpenMeeting,
   onCopy,
+  onSupportLink,
+  onUpgrade,
+  onFeedback,
 }: {
   message: Message;
   generation: Generation | null;
   onChoose?: (mode: Mode) => void;
   onOpenMeeting?: (id: string) => void;
   onCopy?: (text: string) => void;
+  /** Клик по карточке «База знаний / Поддержка / Продажи», по источнику из интернета или по «Скачать» */
+  onSupportLink?: (title: string) => void;
+  onUpgrade?: () => void;
+  onFeedback?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [vote, setVote] = useState<"up" | "down" | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -2182,18 +2785,29 @@ export function AssistantBlock({
     copiedTimer.current = setTimeout(() => setCopied(false), 2000);
   };
   const mine = generation?.messageId === message.id ? generation.phase : null;
-  // Шиммер на серых статусах — пока модель думает и смотрит встречи; с первым словом ответа гаснет
-  const generating = mine === "thinking" || mine === "looking";
-  const looking = mine === "looking";
+  // Счетчик секунд в статусе «Думаю N сек...» (46450:5960): тикает, пока модель думает
+  const thinkingSince = mine === "thinking" ? generation?.startedAt ?? null : null;
+  const [thinkSeconds, setThinkSeconds] = useState(0);
+  useEffect(() => {
+    if (thinkingSince === null) return;
+    const tick = () => setThinkSeconds(Math.floor((Date.now() - thinkingSince) / 1000));
+    const t = setInterval(tick, 250);
+    return () => clearInterval(t);
+  }, [thinkingSince]);
+  // Шиммер на статусах — пока модель думает и смотрит встречи; с первым словом ответа гаснет
+  const generating = mine === "thinking" || mine === "looking" || mine === "analyzing";
+  const looking = mine === "looking" || mine === "analyzing";
   const streaming = mine === "streaming";
   const awaitingChoice = message.clarify && message.clarify.chosen === undefined;
-  const done = mine === null && message.text.length > 0 && !awaitingChoice;
-  // Аватар режима: режим, в котором отвечали (после уточнения — выбранный), иконка 16 как в пикере.
+  const idle = mine === null && !awaitingChoice;
+  const done = idle && message.text.length > 0 && !message.support && !message.limited;
+  // Аватар ответа: синий персонаж «Авто», один для всех ответов (режимы пользователю не показываем).
   // Живет снаружи колонки слева (left −24: 16 иконка + 8 отступ), поэтому текст статусов и ответа стоит
   // на одной вертикали и не сдвигается, когда аватар исчезает. Едет вниз вслед за этапом: «Думаю...» →
   // «Смотрю встречи…» → первая строка ответа; через 5с после конца ответа гаснет. У старых ответов его нет
-  const answerMode: Mode = message.clarify?.chosen ?? message.mode ?? "auto";
+  const accent = tokens.blue;
   const thinkRef = useRef<HTMLSpanElement>(null);
+  const clarifyRef = useRef<HTMLParagraphElement>(null);
   const stepRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLSpanElement>(null);
@@ -2208,26 +2822,39 @@ export function AssistantBlock({
     const t = setTimeout(() => setAvatarShown(false), AVATAR_LINGER_MS);
     return () => clearTimeout(t);
   }, [mine, avatarShown]);
-  const stage = streaming || (mine === null && message.text.length > 0) ? "answer" : looking ? "step" : "think";
+  // В уточнении аватар стоит напротив вопроса «Не очень понял…» (46783:9028), а не напротив «Думаю»
+  const stage = awaitingChoice ? "clarify" : streaming || (mine === null && message.text.length > 0) ? "answer" : looking ? "step" : "think";
+  const blockRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const el = avatarRef.current;
-    const target = stage === "answer" ? answerRef.current : stage === "step" ? stepRef.current : thinkRef.current;
-    if (!el || !target) return;
-    // offsetTop относительно блока (он relative); +2 — иконка 16 по центру строки 13/20
-    const y = target.offsetTop + 2;
-    const first = avatarY.current === null;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const from = first ? y : avatarY.current;
-    avatarY.current = y;
-    el.getAnimations().forEach((an) => an.cancel());
-    el.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${y}px)` }], {
-      duration: first || reduce ? 0 : 360,
-      easing: "cubic-bezier(0.32, 0.72, 0, 1)",
-      fill: "forwards",
-    });
+    const place = (animated: boolean) => {
+      const el = avatarRef.current;
+      const target = stage === "answer" ? answerRef.current : stage === "step" ? stepRef.current : stage === "clarify" ? clarifyRef.current : thinkRef.current;
+      if (!el || !target) return;
+      // offsetTop относительно блока (он relative); +1 — иконка 16 в строке 13/20 на глаз чуть выше центра,
+      // так она стоит на одной оси с текстом статуса
+      const y = target.offsetTop + 1;
+      if (avatarY.current === y) return;
+      const first = avatarY.current === null;
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const from = first ? y : avatarY.current;
+      avatarY.current = y;
+      el.getAnimations().forEach((an) => an.cancel());
+      el.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${y}px)` }], {
+        duration: first || reduce || !animated ? 0 : 360,
+        easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+        fill: "forwards",
+      });
+    };
+    place(true);
+    // Блок меняет высоту и без смены этапа: раскрыли список встреч, перенеслись строки — аватар едет за своей строкой
+    const block = blockRef.current;
+    if (!block || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => place(true));
+    ro.observe(block);
+    return () => ro.disconnect();
   }, [stage, avatarShown, message.step, awaitingChoice]);
   return (
-    <div className="gc-enter group/answer relative flex w-full flex-col items-start gap-[16px]">
+    <div ref={blockRef} className="gc-enter group/answer relative flex w-full flex-col items-start gap-[16px]">
       <AnimatePresence>
         {avatarShown && (
           <motion.span
@@ -2240,41 +2867,89 @@ export function AssistantBlock({
             transition={{ duration: 0.18, ease: easeOut }}
             aria-hidden="true"
           >
-            <span ref={avatarRef} className="flex">
-              <span key={answerMode} className="gc-fade-in flex">
-                <ModeGlyph mode={answerMode} thinking={generating} />
-              </span>
+            <span ref={avatarRef} data-gc-answer-avatar className="flex">
+              <ModeGlyph mode="auto" thinking={generating} />
             </span>
           </motion.span>
         )}
       </AnimatePresence>
-      {/* inline color перебивал бы color: transparent у шиммера — ставим цвет только в статике */}
-      <span ref={thinkRef} className={`text-[13px] leading-[20px] tracking-[-0.13px] ${generating ? "gc-shimmer-text" : ""}`} style={generating ? undefined : { color: tokens.grey }}>
-        Думаю...
+      {/* Статус красится в цвет аватара, пока аватар стоит напротив него (46450:5960): во время думанья с бликом
+          шиммера, в уточнении и паузах ровным цветом; когда аватар уехал дальше или исчез — серый.
+          inline color перебивал бы color: transparent у шиммера, поэтому цвет шиммера через переменные */}
+      {message.limited && <LimitCard onUpgrade={onUpgrade} />}
+      {!message.limited && (
+      <span
+        ref={thinkRef}
+        className={`text-[13px] leading-[20px] tracking-[-0.13px] ${mine === "thinking" ? "gc-shimmer-text" : ""}`}
+        style={mine === "thinking" ? shimmerVars(accent) : avatarShown && stage === "think" ? { color: accent } : { color: tokens.grey }}
+      >
+        {mine === "thinking" ? (thinkSeconds > 0 ? `Думаю ${thinkSeconds} сек...` : "Думаю...") : message.thoughtSec ? `Думал ${message.thoughtSec} сек...` : "Думаю..."}
       </span>
+      )}
       {message.clarify && (
         <>
-          <p className="gc-enter text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          <p ref={clarifyRef} className="gc-enter text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
             Не очень понял вопрос, уточните пожалуйста, что вы имеете в виду?
           </p>
           <ClarifyCards clarify={message.clarify} onChoose={onChoose} />
         </>
       )}
+      {message.support && (
+        <>
+          <p ref={answerRef} className="gc-enter text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+            {message.text}
+          </p>
+          <SupportCards onPick={onSupportLink} />
+        </>
+      )}
       {message.step && !awaitingChoice && (
-        <div ref={stepRef} className="gc-enter w-full">
-          <StepRow step={message.step} looking={looking} onOpenMeeting={onOpenMeeting} />
+        <div ref={stepRef} className="gc-enter w-full" style={looking ? shimmerVars(accent) : undefined}>
+          <StepRow
+            step={message.step}
+            phase={mine === "looking" ? "looking" : mine === "analyzing" ? "analyzing" : "done"}
+            accent={avatarShown && stage === "step" ? accent : undefined}
+            web={message.web}
+            onOpenMeeting={onOpenMeeting}
+            onOpenLink={onSupportLink}
+          />
         </div>
       )}
-      {(message.text || streaming) && !awaitingChoice && (
-        <div ref={answerRef} className="w-full">
-          <AnswerText text={message.text} sources={message.sources} streaming={streaming} />
+      {(message.text || streaming) && !awaitingChoice && !message.support && (
+        <div ref={answerRef} className="flex w-full flex-col gap-[16px]">
+          <AnswerText text={message.text} sources={message.sources} web={message.web} onOpenLink={onSupportLink} streaming={streaming} />
+          {message.table && !streaming && <AnswerTableView table={message.table} />}
+          {message.file && !streaming && <FileResultCard file={message.file} onDownload={() => onSupportLink?.(`${message.file?.name}.${message.file?.ext.toLowerCase()}`)} />}
         </div>
       )}
       {done && (
-        <div className="-ml-[4px] flex items-center gap-[4px] opacity-0 transition-opacity duration-[120ms] group-hover/answer:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
+        <div className="flex items-center gap-[4px] opacity-0 transition-opacity duration-[120ms] group-hover/answer:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
           <AnswerAction icon="fig-copy" label={copied ? "Скопировано" : "Скопировать ответ"} onClick={copy} copied={copied} />
+          {/* После оценки остается только выбранный палец: вторая иконка уходит, повторный клик снимает оценку */}
+          {vote !== "down" && <AnswerAction icon="fig-thumb-up" label="Полезно" active={vote === "up"} onClick={() => setVote((v) => (v === "up" ? null : "up"))} />}
+          {vote !== "up" && (
+            <AnswerAction
+              icon="fig-thumb-up"
+              label="Не полезно"
+              flip
+              active={vote === "down"}
+              onClick={() => {
+                // Дизлайк засчитан по клику, форма — необязательный второй шаг (46761:6471)
+                const next = vote === "down" ? null : "down";
+                setVote(next);
+                if (next === "down") setFeedbackOpen(true);
+              }}
+            />
+          )}
         </div>
       )}
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        onSubmit={() => {
+          setFeedbackOpen(false);
+          onFeedback?.();
+        }}
+      />
     </div>
   );
 }

@@ -31,8 +31,6 @@ const BLOB_BODY: Record<Mode, React.ReactNode> = {
   ask: <path d="M17.5 5.5C24 5.5 27.5 11.5 26.5 17.5 25.5 24 19.5 27.5 13.5 26 7 24.5 3.5 17.5 6.5 11.5 8.5 7.5 12.5 5.5 17.5 5.5Z" fill="currentColor" />,
   // шестиугольник со скругленными углами (обводка тем же цветом)
   analytics: <path d="M16 5L26 10.8V21.2L16 27L6 21.2V10.8L16 5Z" fill="currentColor" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />,
-  // скругленный квадрат
-  kb: <rect x="5" y="5" width="22" height="22" rx="8" fill="currentColor" />,
 };
 
 function BlobEyes({ mode }: { mode: Mode }) {
@@ -115,22 +113,6 @@ function LogoFace({ mode, color, glasses = color }: { mode: Mode; color: string;
       </>
     );
   }
-  if (mode === "kb") {
-    return (
-      <>
-        {glasses && (
-          <>
-            <circle cx="245" cy="300" r="74" stroke={glasses} strokeWidth={sw} />
-            <circle cx="575" cy="185" r="74" stroke={glasses} strokeWidth={sw} />
-            <path d="M318 275l184-64" stroke={glasses} strokeWidth={sw} strokeLinecap="round" />
-          </>
-        )}
-        <circle cx="245" cy="300" r="26" fill={color} />
-        <circle cx="575" cy="185" r="26" fill={color} />
-        <path d="M318 600c40 40 80 40 120 0" stroke={color} strokeWidth={sw} strokeLinecap="round" />
-      </>
-    );
-  }
   return (
     <>
       <circle cx="245" cy="300" r="34" fill={color} />
@@ -188,7 +170,6 @@ const PILLOW_BODY: Record<Mode, React.ReactNode> = {
   auto: <rect x="4" y="7" width="24" height="19" rx="9.5" fill="currentColor" transform="rotate(-6 16 16.5)" />,
   ask: BLOB_BODY.ask,
   analytics: BLOB_BODY.analytics,
-  kb: BLOB_BODY.kb,
 };
 
 /** Улыбка формой «m» (перевернутой): две мягкие волны */
@@ -213,16 +194,6 @@ function PillowFace({ mode }: { mode: Mode }) {
         <rect x="9.5" y="14" width="4.5" height="2.2" rx="1.1" fill="#fff" />
         <rect x="18" y="14" width="4.5" height="2.2" rx="1.1" fill="#fff" />
         <MSmile cx={16} cy={20} w={6} />
-      </>
-    );
-  }
-  if (mode === "kb") {
-    return (
-      <>
-        <circle cx="12" cy="15" r="2.4" stroke="#fff" strokeWidth="1.5" />
-        <circle cx="20" cy="15" r="2.4" stroke="#fff" strokeWidth="1.5" />
-        <path d="M14.4 15h3.2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-        <MSmile cx={16} cy={21} w={6} />
       </>
     );
   }
@@ -253,7 +224,6 @@ const CURL_BODY: Record<Mode, React.ReactNode> = {
   auto: <rect x="4" y="10" width="24" height="18" rx="9" fill="currentColor" />,
   ask: <path d="M17.5 8C24 8 27.5 13.5 26.5 19 25.5 25 19.5 28.5 13.5 27 7 25.5 3.5 19 6.5 13.5 8.5 10 12.5 8 17.5 8Z" fill="currentColor" />,
   analytics: <path d="M16 8L26 13.6V24.4L16 30 6 24.4V13.6L16 8Z" fill="currentColor" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />,
-  kb: <rect x="5" y="8" width="22" height="20" rx="7" fill="currentColor" />,
 };
 
 export function AvatarCurl({ mode, size, className }: AvatarProps) {
@@ -262,7 +232,6 @@ export function AvatarCurl({ mode, size, className }: AvatarProps) {
     auto: { stem: "M16.5 10.6Q17.4 7.6 19.3 6.4", cx: 21.3, cy: 5.6 },
     ask: { stem: "M15 8.8Q15.4 5.6 17.4 4.6", cx: 19.5, cy: 4.2 },
     analytics: { stem: "M16.4 9.2Q17.4 6.2 19.4 5.2", cx: 21.4, cy: 4.5 },
-    kb: { stem: "M16.5 8.6Q17.4 5.6 19.3 4.6", cx: 21.3, cy: 4 },
   };
   const c = curl[mode];
   const eyes: Record<Mode, React.ReactNode> = {
@@ -282,13 +251,6 @@ export function AvatarCurl({ mode, size, className }: AvatarProps) {
       <>
         <rect x="9.5" y="18" width="4.5" height="2.2" rx="1.1" fill="#fff" />
         <rect x="18" y="18" width="4.5" height="2.2" rx="1.1" fill="#fff" />
-      </>
-    ),
-    kb: (
-      <>
-        <circle cx="12" cy="18" r="2.4" stroke="#fff" strokeWidth="1.5" />
-        <circle cx="20" cy="18" r="2.4" stroke="#fff" strokeWidth="1.5" />
-        <path d="M14.4 18h3.2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
       </>
     ),
   };
@@ -337,15 +299,6 @@ export function AvatarSquiggle({ mode, size, className }: AvatarProps) {
           <circle cx="25" cy="15" r="1.6" fill={INK} />
         </>
       )}
-      {mode === "kb" && (
-        <>
-          {/* «m» на строчке, как в раскрытой книге */}
-          <path d="M6 21v-5c0-4 5.5-4 5.5 0v5M11.5 21v-5c0-4 5.5-4 5.5 0v5M17 21v-5c0-4 5.5-4 5.5 0v5" {...stroke} />
-          <path d="M4 26h24" {...stroke} />
-          <circle cx="12.2" cy="12.2" r="1.5" fill={INK} />
-          <circle cx="16.8" cy="12.2" r="1.5" fill={INK} />
-        </>
-      )}
     </Svg>
   );
 }
@@ -390,18 +343,6 @@ export function AvatarTile({ mode, size, className }: AvatarProps) {
           <rect x="9.8" y="13.6" width="3" height="1.8" rx="0.9" fill="#fff" />
           <rect x="19.3" y="13.6" width="3" height="1.8" rx="0.9" fill="#fff" />
           <path d="M13.5 22h5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
-        </>
-      )}
-      {mode === "kb" && (
-        <>
-          <rect x="4" y="5" width="24" height="22" rx="6" fill="currentColor" />
-          {/* круглые очки */}
-          <circle cx="11.5" cy="14.5" r="3.6" stroke="#fff" strokeWidth="1.6" />
-          <circle cx="20.5" cy="14.5" r="3.6" stroke="#fff" strokeWidth="1.6" />
-          <path d="M15.1 14.5h1.8" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-          <circle cx="11.5" cy="14.5" r="1.3" fill="#fff" />
-          <circle cx="20.5" cy="14.5" r="1.3" fill="#fff" />
-          <path d="M13.5 21.5c1.4 1.3 3.6 1.3 5 0" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
         </>
       )}
     </Svg>
@@ -451,16 +392,6 @@ export function AvatarSphere({ mode, size, className }: AvatarProps) {
           <path d="M13.5 21.5c1.5 1.2 3.5 1.2 5 0" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
         </>
       )}
-      {mode === "kb" && (
-        <>
-          <circle cx="11.5" cy="15" r="3.2" stroke={INK} strokeWidth="1.5" />
-          <circle cx="20.5" cy="15" r="3.2" stroke={INK} strokeWidth="1.5" />
-          <path d="M14.7 15h2.6" stroke={INK} strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="11.5" cy="15" r="1.2" fill={INK} />
-          <circle cx="20.5" cy="15" r="1.2" fill={INK} />
-          <path d="M13.5 21c1.5 1.2 3.5 1.2 5 0" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
-        </>
-      )}
     </Svg>
   );
 }
@@ -500,16 +431,6 @@ export function AvatarDoodle({ mode, size, className }: AvatarProps) {
           <circle cx="11.5" cy="14.7" r="1.1" fill="currentColor" />
           <circle cx="20.5" cy="14.7" r="1.1" fill="currentColor" />
           <path d="M13 21.5c1.8 1.4 4.2 1.4 6 0" {...doodle} strokeWidth="2" />
-        </>
-      )}
-      {mode === "kb" && (
-        <>
-          <circle cx="12" cy="14.5" r="3" {...doodle} strokeWidth="1.8" />
-          <circle cx="20" cy="14.5" r="3" {...doodle} strokeWidth="1.8" />
-          <path d="M15 14.5h2" {...doodle} strokeWidth="1.8" />
-          <circle cx="12" cy="14.5" r="1.1" fill="currentColor" />
-          <circle cx="20" cy="14.5" r="1.1" fill="currentColor" />
-          <path d="M13 21c1.8 1.5 4.2 1.5 6 0" {...doodle} strokeWidth="2" />
         </>
       )}
     </Svg>

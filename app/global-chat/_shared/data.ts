@@ -1,4 +1,3 @@
-import type { IconName } from "./icons";
 import { tokens } from "./tokens";
 import type { MeetingSource } from "../../search-filters/mock-data";
 
@@ -6,23 +5,19 @@ import type { MeetingSource } from "../../search-filters/mock-data";
 // Режимы (по макету: иконка и цвет режима окрашивают «Салют!» и подсказки)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type Mode = "auto" | "ask" | "analytics" | "kb";
+export type Mode = "auto" | "ask" | "analytics";
 
+/** Режимы внутренние: пользователь их не выбирает, роутер решает сам. Цвета остались у аватаров в карточках уточнения */
 export type ModeDef = {
   id: Mode;
   label: string;
-  description: string;
-  icon: IconName;
   color: string;
-  /** заголовок стартовой после «Салют!» */
-  title: string;
 };
 
 export const MODES: ModeDef[] = [
-  { id: "auto", label: "Авто", description: "Подберем режим под вопрос", icon: "fig-sparkles", color: tokens.blue, title: "Чем могу помочь?" },
-  { id: "ask", label: "Спросить", description: "Быстрые ответы на вопросы", icon: "fig-bolt", color: tokens.orange, title: "Что спросить у встреч?" },
-  { id: "analytics", label: "Аналитика", description: "Глубокий и подробный анализ", icon: "fig-chart", color: tokens.purple, title: "Что надо проанализировать?" },
-  { id: "kb", label: "База знаний", description: "Помощь по работе сервиса", icon: "fig-globe16", color: tokens.green, title: "Что хотите узнать про mymeet.ai?" },
+  { id: "auto", label: "Авто", color: tokens.blue },
+  { id: "ask", label: "Спросить", color: tokens.orange },
+  { id: "analytics", label: "Аналитика", color: tokens.purple },
 ];
 
 export const modeById = (id: Mode) => MODES.find((m) => m.id === id) ?? MODES[0];
@@ -237,6 +232,12 @@ export function pluralMeetingsAcc(n: number) {
 
 export type FileAttachment = { id: string; name: string; ext: string; size: string };
 
+/** Источник из интернета (46761:8022): фавиконка, заголовок страницы, домен */
+export type WebSource = { title: string; domain: string; favicon: string };
+
+/** Таблица в ответе (46753:7815) */
+export type AnswerTable = { head: string[]; rows: string[][] };
+
 export type ClarifyOption = { mode: Mode; label: string; description: string };
 
 export type Message = {
@@ -253,6 +254,18 @@ export type Message = {
   clarify?: { question: string; options: ClarifyOption[]; chosen?: Mode };
   /** источники цитат [1], [2]… — порядок совпадает с номерами */
   sources?: string[];
+  /** сколько секунд модель думала — статус «Думал N сек...» после думанья */
+  thoughtSec?: number;
+  /** вопрос про сам сервис (46738:7318): вместо ответа три карточки, куда идти */
+  support?: boolean;
+  /** ответ из интернета (46761:7869): источники вместо встреч, цитаты-ссылки */
+  web?: WebSource[];
+  /** таблица в ответе (46753:7230) */
+  table?: AnswerTable;
+  /** файл как результат ответа (46753:7914) */
+  file?: Omit<FileAttachment, "id">;
+  /** бесплатные вопросы кончились (46763:8520): вместо ответа плашка с апгрейдом */
+  limited?: boolean;
 };
 
 export type Dialog = {
@@ -263,6 +276,8 @@ export type Dialog = {
   mode: Mode;
   context: string[];
   messages: Message[];
+  /** Ответ пришел, пока диалог не был открыт — в списках у строки «Готово» до первого открытия */
+  unread?: boolean;
 };
 
 // Стартуем счетчик от времени: при hot reload модуль пересоздается, а старые id остаются в состоянии
@@ -282,6 +297,7 @@ export const DIALOGS: Dialog[] = [
       {
         id: "d1-2",
         role: "assistant",
+        thoughtSec: 16,
         mode: "auto",
         step: { label: "Смотрю встречи по онбордингу", meetingIds: ["m2", "m7"] },
         sources: ["m7", "m2"],
@@ -304,6 +320,7 @@ export const DIALOGS: Dialog[] = [
       {
         id: "d2-2",
         role: "assistant",
+        thoughtSec: 9,
         mode: "analytics",
         step: { label: "Смотрю демо и планерку продаж", meetingIds: ["m4", "m6"] },
         sources: ["m4", "m6"],
@@ -327,28 +344,11 @@ export const DIALOGS: Dialog[] = [
       {
         id: "d3-2",
         role: "assistant",
+        thoughtSec: 12,
         mode: "ask",
         step: { label: "Смотрю встречу 1:1 с Алексеем", meetingIds: ["m3"] },
         sources: ["m3"],
         text: `Алексей взял две задачи: подготовить план перехода на новый плеер до 10 сентября и собрать метрики по времени обработки встреч за август. [1] Вы обещали дать ему доступ к дашборду аналитики.`,
-      },
-    ],
-  },
-  {
-    id: "d4",
-    title: "Как подключить Telegram-бота",
-    pinned: false,
-    updatedAt: "2026-08-26T09:15:00",
-    mode: "kb",
-    context: [],
-    messages: [
-      { id: "d4-1", role: "user", text: "Как подключить Telegram-бота, чтобы получать отчеты в мессенджер?", mode: "kb" },
-      {
-        id: "d4-2",
-        role: "assistant",
-        mode: "kb",
-        text: `Откройте раздел Интеграции в боковом меню и нажмите «Подключить» рядом с Telegram. Сервис покажет одноразовый код — отправьте его боту @mymeet_bot в личные сообщения.
-После подключения бот будет присылать краткое содержание и задачи по каждой обработанной встрече. Отключить уведомления можно командой /mute.`,
       },
     ],
   },
@@ -364,6 +364,7 @@ export const DIALOGS: Dialog[] = [
       {
         id: "d5-2",
         role: "assistant",
+        thoughtSec: 7,
         mode: "auto",
         step: { label: "Смотрю ретро спринта 42", meetingIds: ["m5"] },
         sources: ["m5"],
@@ -386,42 +387,34 @@ export function sortDialogs(dialogs: Dialog[]) {
 
 export type Suggestion = { text: string; mode: Mode };
 
-/** Подсказки под композером — строки одного вида для всех режимов (макет 46115:7175) */
-export const SUGGESTIONS: Record<Mode, Suggestion[]> = {
-  // Авто сам подбирает режим, поэтому подсказки широкие и не переключают режим при выборе
-  auto: [
-    { text: "Что важного было на встречах за эту неделю?", mode: "auto" },
-    { text: "Какие договоренности и дедлайны у меня на этой неделе?", mode: "auto" },
-    { text: "Что я пропустил на встречах, пока меня не было?", mode: "auto" },
-  ],
-  ask: [
-    { text: "Какие задачи взял Алексей на 1:1?", mode: "ask" },
-    { text: "Что решили на ретро и что уже сделано?", mode: "ask" },
-    { text: "О чем был дизайн-синк сегодня?", mode: "ask" },
-  ],
-  analytics: [
-    { text: "Сравни возражения на демо звонках", mode: "analytics" },
-    { text: "Собери решения по онбордингу за август и что не закрыто", mode: "analytics" },
-    { text: "Какие риски по срокам звучали на встречах за месяц?", mode: "analytics" },
-  ],
-  kb: [
-    { text: "Как поделиться отчетом с коллегой без аккаунта?", mode: "kb" },
-    { text: "Как подключить MCP mymeet.ai к Claude Code?", mode: "kb" },
-    { text: "Как настроить календарь для автоматической записи звонков?", mode: "kb" },
-  ],
-};
+/** Подсказки под композером на стартовой (46724:12963): персональные, собраны из встреч пользователя по шаблонам
+ *  «Что решили на {название} {когда}?», «Какие договоренности у меня с {участник}?», «Сравни {повторяющиеся встречи} за месяц» */
+export const SUGGESTIONS: Suggestion[] = [
+  { text: "Что решили на дизайн-синке вчера?", mode: "auto" },
+  { text: "Какие договоренности у меня с Алексеем?", mode: "auto" },
+  { text: "Сравни демо для клиентов за месяц", mode: "auto" },
+];
 
-export const SAMPLE_FILE: Omit<FileAttachment, "id"> = { name: "job-description-2026", ext: "PDF", size: "164 КБ" };
+/** Обезличенные подсказки для аккаунта без встреч (46724:10732) */
+export const ZERO_SUGGESTIONS: Suggestion[] = [
+  { text: "Что важного было на встречах за эту неделю?", mode: "auto" },
+  { text: "Какие договоренности и дедлайны у меня на этой неделе?", mode: "auto" },
+  { text: "Что я пропустил на встречах, пока меня не было?", mode: "auto" },
+];
+
+/** Образцы файлов для скрепки (46726:16060): первый клик — PDF, второй — DOCX */
+export const SAMPLE_FILES: Omit<FileAttachment, "id">[] = [
+  { name: "telemost-11-march-2026", ext: "PDF", size: "164 КБ" },
+  { name: "Письмо_заинтересованности_шаблон", ext: "DOCX", size: "164 КБ" },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Генерация ответа (мок)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ANALYTICS_RE = /проанализ|сравни|тренд|динамик|почему|разбер|подробн|глубок|аналит|выдели|систематиз|риск/i;
-const KB_RE = /как (подключ|настро|подел|экспорт|удал|измен|добав|включ|отключ)|тариф|где найти|что такое|как работает|не работает|поддержк|mcp|календар/i;
 
 export function resolveAutoMode(question: string): Mode {
-  if (KB_RE.test(question)) return "kb";
   if (ANALYTICS_RE.test(question)) return "analytics";
   return "ask";
 }
@@ -430,34 +423,92 @@ export function resolveAutoMode(question: string): Mode {
  * «Авто» переспрашивает, когда вопрос можно понять и как просьбу об анализе,
  * и как быстрый вопрос: есть слово «анализ», но нет явного глагола
  */
+/** Вопрос про сам сервис, а не про встречи: как подключить, тариф, поддержка и т.п. — чат отправляет в базу знаний и поддержку */
+const SUPPORT_RE = /как (подключ|настро|подел|экспорт|удал|измен|добав|включ|отключ|оплат)|тариф|где найти|как работает|не работает|поддержк|mcp|календар|интеграци|оплат/i;
+export function isProductQuestion(question: string) {
+  return SUPPORT_RE.test(question);
+}
+
 export function needsClarification(question: string, mode: Mode) {
   if (mode !== "auto") return false;
   return /анализ/i.test(question) && !/проанализируй|сравни|разбери/i.test(question);
 }
 
-export function clarifyOptions(question: string): ClarifyOption[] {
-  const topic = question.replace(/^(сделай|сделай-ка|сделай ка|дай|нужен|нужна|покажи)\s+(мне\s+)?/i, "").replace(/[?!.]+$/g, "").trim();
+export function clarifyOptions(): ClarifyOption[] {
   return [
-    { mode: "analytics", label: "Анализ", description: `Проанализировать встречи и подробно разобрать: ${topic}` },
-    { mode: "ask", label: "Просто спросить", description: `Быстро ответить по встречам: ${topic}` },
+    { mode: "analytics", label: "Проанализировать", description: "Проанализировать и подробно разобрать встречи" },
+    { mode: "ask", label: "Просто спросить", description: "Быстро задать вопрос по встречам" },
   ];
 }
 
 const RECENT_WEEK = ["m1", "m2", "m3", "m4", "m5"];
 
-export function generateAnswer(question: string, mode: Mode, contextIds: string[]) {
+/** Источники для ответа из интернета — из макета 46761:8022 */
+export const WEB_SOURCES: WebSource[] = [
+  { title: "K Definition & Meaning | Dictionary.com", domain: "dictionary.com", favicon: "fav-dictionary.png" },
+  { title: "What does \"K\" mean? - Quora", domain: "quora.com", favicon: "fav-quora.png" },
+  { title: "Why do we use the letter 'K' for a 'Thousand'? - YouTube", domain: "youtube.com", favicon: "fav-youtube.png" },
+  { title: "K - Wikipedia", domain: "en.wikipedia.org", favicon: "fav-wikipedia.png" },
+];
+
+/** Общий вопрос не про встречи: чат идет в интернет (46761:7869) */
+const GENERAL_RE = /^(кто|что такое|что значит|что означает|сколько|где|когда|почему|зачем|какой|какая)(?=\s|$)/i;
+/** Явная просьба поискать в интернете — идем в веб независимо от формы вопроса */
+const WEB_RE = /интернет|в сети|погугл|гугл|поищи|найди в|в вебе|онлайн/i;
+const MEETING_RE = /встреч|синк|ретро|демо|созвон|команд|клиент|обсужд|решил|договор/i;
+export function isGeneralQuestion(question: string) {
+  if (WEB_RE.test(question)) return true;
+  return GENERAL_RE.test(question.trim()) && !MEETING_RE.test(question);
+}
+
+const TABLE_ANSWER: AnswerTable = {
+  head: ["Шаг", "Что сделать", "Результат"],
+  rows: [
+    ["1. Освободить стол", "Убрать все, что не связано с текущей задачей", "Больше порядка и меньше отвлечений"],
+    ["2. Настроить кресло", "Поставить стопы на пол, выпрямить спину, расслабить плечи", "Более комфортная поза"],
+    ["4. Настроить освещение", "Поставить его прямо перед собой, немного ниже уровня глаз", "Меньше нагрузки на шею и глаза"],
+    ["5. Подготовить компьютер", "Убрать блики, направить свет сбоку или сзади", "Комфортная работа с экраном"],
+    ["6. Ограничить уведомления", "Отключить второстепенные звуки и всплывающие сообщения", "Меньше перерывов и отвлечений"],
+  ],
+};
+
+export function generateAnswer(question: string, mode: Mode, contextIds: string[]): { resolvedMode: Mode; sources: string[]; step?: { label: string; meetingIds: string[] }; text: string; extra?: Partial<Message> } {
   const resolved: Mode = mode === "auto" ? resolveAutoMode(question) : mode;
   const sources = contextIds.length ? contextIds.slice(0, 3) : RECENT_WEEK.slice(0, 3);
   const stepLabel = contextIds.length ? `Смотрю ${pluralMeetingsAcc(contextIds.length)} из контекста` : "Смотрю встречи за последнюю неделю";
   const stepMeetings = contextIds.length ? contextIds : RECENT_WEEK;
 
-  if (resolved === "kb") {
+  // Общий вопрос — ответ из интернета: шаг «Поискал в интернете» со списком источников, цитаты ведут на сайты
+  if (isGeneralQuestion(question)) {
     return {
       resolvedMode: resolved,
-      sources: [] as string[],
-      step: undefined,
-      text: `Это делается в разделе Настройки → Доступ. Включите «Доступ по ссылке» — коллега откроет отчет без аккаунта в режиме просмотра. Ссылку можно отозвать там же.
-Если нужно дать право редактировать, добавьте коллегу в воркспейс: Настройки → Команда → Пригласить. На тарифе Free доступно до 3 участников.`,
+      sources: [],
+      step: { label: "", meetingIds: [] },
+      extra: { web: WEB_SOURCES },
+      text: `K — это сокращение от «кило», приставки со значением «тысяча»: 10K означает 10 000. [1] В переписке K часто используют и как короткое «okay», особенно в англоязычных чатах. [2]
+- В финансах и вакансиях K пишут после суммы: 120K это 120 тысяч. [3]
+- Происхождение — греческое chilioi, «тысяча», через французское kilo. [4]`,
+    };
+  }
+
+  // Просьба про таблицу — ответ с таблицей (46753:7230)
+  if (/таблиц/i.test(question)) {
+    return {
+      resolvedMode: resolved,
+      sources: [],
+      extra: { table: TABLE_ANSWER },
+      text: "Конечно. Вот краткая таблица быстрой настройки рабочего пространства:",
+    };
+  }
+
+  // Просьба про файл — ответ с карточкой для скачивания (46753:7914)
+  if (/pdf|docx|docs?\b|документ|файл|фаил|выжимк|скачать|скачива|экспортируй|сохрани в|в word|в ворд|в эксел|xlsx|презентац/i.test(question)) {
+    return {
+      resolvedMode: resolved,
+      sources: [],
+      step: { label: "", meetingIds: stepMeetings },
+      extra: { file: { name: "Meeting analytics", ext: "PDF", size: "164 КБ" } },
+      text: "Собрал главное по встречам за неделю в один документ:",
     };
   }
 

@@ -86,9 +86,6 @@ export default function AvatarsPage() {
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
                       <span className="text-[13px] font-medium leading-[normal] tracking-[-0.13px]">{m.label}</span>
-                      <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-                        {m.description}
-                      </span>
                     </span>
                   </div>
                 ))}

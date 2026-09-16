@@ -56,6 +56,7 @@ export type IconName =
   | "fig-link"
   | "fig-pin"
   | "fig-pin-off"
+  | "fig-stop"
   | "fig-ellipsis"
   | "fig-filter"
   | "fig-search"
@@ -63,6 +64,19 @@ export type IconName =
   | "fig-globe"
   | "fig-globe16"
   | "fig-chat"
+  | "fig-chat-20"
+  | "fig-arrow-up-circle"
+  | "fig-knowledge"
+  | "fig-support"
+  | "fig-sales"
+  | "fig-chevron-right-20"
+  | "fig-link-10"
+  | "fig-share-12"
+  | "fig-lock"
+  | "fig-lock-32"
+  | "fig-file"
+  | "fig-status-check"
+  | "fig-status-dot"
   | "fig-paperclip"
   | "fig-sparkles"
   | "fig-plus"
@@ -75,7 +89,8 @@ export type IconName =
   | "fig-copy"
   | "fig-thumb-up"
   | "fig-pencil"
-  | "fig-trash";
+  | "fig-trash"
+  | "fig-close-x";
 
 export function Ic({
   name,

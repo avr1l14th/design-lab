@@ -6,6 +6,7 @@ import {
   clarifyOptions,
   generateAnswer,
   needsClarification,
+  isProductQuestion,
   nextId,
   nowIso,
   titleFromQuestion,
@@ -25,7 +26,9 @@ import {
 export type Generation = {
   dialogId: string;
   messageId: string;
-  phase: "thinking" | "clarify" | "looking" | "streaming";
+  phase: "thinking" | "clarify" | "looking" | "analyzing" | "streaming";
+  /** когда началось думанье — для счетчика секунд в статусе */
+  startedAt?: number;
 };
 
 export type SendPayload = {
@@ -137,13 +140,19 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
   const [dialogs, setDialogs] = useDialogsState(storageKey, initialDialogs);
   const [activeId, setActiveId] = useState<string | null>(initialActiveId);
   const [generation, setGeneration] = useState<Generation | null>(null);
-  const timers = useRef<{ think?: ReturnType<typeof setTimeout>; look?: ReturnType<typeof setTimeout>; tick?: ReturnType<typeof setInterval> }>({});
+  const timers = useRef<{ think?: ReturnType<typeof setTimeout>; look?: ReturnType<typeof setTimeout>; analyze?: ReturnType<typeof setTimeout>; tick?: ReturnType<typeof setInterval> }>({});
 
   const active = useMemo(() => dialogs.find((d) => d.id === activeId) ?? null, [dialogs, activeId]);
+  // Таймеры стрима живут дольше рендера: какой диалог открыт в момент финиша, узнаем через ref
+  const activeIdRef = useRef(activeId);
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
 
   const clearTimers = () => {
     if (timers.current.think) clearTimeout(timers.current.think);
     if (timers.current.look) clearTimeout(timers.current.look);
+    if (timers.current.analyze) clearTimeout(timers.current.analyze);
     if (timers.current.tick) clearInterval(timers.current.tick);
     timers.current = {};
   };
@@ -163,7 +172,14 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
     [patchDialog],
   );
 
-  const selectDialog = useCallback((id: string | null) => setActiveId(id), []);
+  const selectDialog = useCallback(
+    (id: string | null) => {
+      setActiveId(id);
+      // Открыли диалог — метка «Готово» у строки снимается
+      if (id) patchDialog(id, (d) => (d.unread ? { unread: false } : {}));
+    },
+    [patchDialog],
+  );
   const goHome = useCallback(() => setActiveId(null), []);
 
   const renameDialog = useCallback(
@@ -206,10 +222,12 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
     (dialogId: string, messageId: string, question: string, mode: Mode, context: string[]) => {
       const answer = generateAnswer(question, mode, context);
       if (answer.step) {
-        patchMessage(dialogId, messageId, { step: answer.step, sources: answer.sources });
+        patchMessage(dialogId, messageId, { step: answer.step, sources: answer.sources, ...answer.extra });
         setGeneration({ dialogId, messageId, phase: "looking" });
+        // Половину шага ищем встречи («Ищу подходящие встречи»), половину читаем их («Анализирую встречи», 46738:7646)
+        timers.current.analyze = setTimeout(() => setGeneration({ dialogId, messageId, phase: "analyzing" }), LOOK_MS / 2);
       } else {
-        patchMessage(dialogId, messageId, { sources: answer.sources });
+        patchMessage(dialogId, messageId, { sources: answer.sources, ...answer.extra });
       }
       const startStream = () => {
         const words = answer.text.split(/(\s+)/);
@@ -223,12 +241,14 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
           if (i >= words.length) {
             clearTimers();
             setGeneration(null);
+            // Ответ дописался, пока пользователь был на стартовой или в другом диалоге — строка получает «Готово»
+            if (activeIdRef.current !== dialogId) patchDialog(dialogId, { unread: true });
           }
         }, TICK_MS);
       };
       timers.current.look = setTimeout(startStream, answer.step ? LOOK_MS : 200);
     },
-    [patchMessage],
+    [patchMessage, patchDialog],
   );
 
   const sendMessage = useCallback(
@@ -270,12 +290,21 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
       }
 
       const finalId = dialogId;
-      setGeneration({ dialogId: finalId, messageId: assistantMsg.id, phase: "thinking" });
+      const startedAt = Date.now();
+      setGeneration({ dialogId: finalId, messageId: assistantMsg.id, phase: "thinking", startedAt });
       timers.current.think = setTimeout(() => {
+        // Думанье закончилось — статус переходит в прошедшее время «Думал N сек...»
+        patchMessage(finalId, assistantMsg.id, { thoughtSec: Math.max(1, Math.round((Date.now() - startedAt) / 1000)) });
+        if (isProductQuestion(text)) {
+          // Вопрос про сервис (46738:7318): вместо ответа по встречам — карточки базы знаний, поддержки и продаж
+          patchMessage(finalId, assistantMsg.id, { text: "Я отвечаю по встречам, а с вопросами про сервис помогут здесь:", support: true });
+          setGeneration(null);
+          return;
+        }
         if (needsClarification(text, payload.mode)) {
           patchMessage(finalId, assistantMsg.id, {
             text: "Не очень понял вопрос, уточните пожалуйста, что вы имеете в виду?",
-            clarify: { question: text, options: clarifyOptions(text) },
+            clarify: { question: text, options: clarifyOptions() },
           });
           setGeneration({ dialogId: finalId, messageId: assistantMsg.id, phase: "clarify" });
           return;
@@ -288,6 +317,36 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
     [activeId, dialogs, patchDialog, patchMessage, lookAndStream, setDialogs],
   );
 
+  /** Для демо-режимов (гость по ссылке): если диалогов нет, подкладываем первый из моков и открываем его */
+  const seedDemo = useCallback(() => {
+    const seed = DIALOGS[0];
+    setDialogs((prev) => (prev.some((d) => d.id === seed.id) || prev.length ? prev : [seed]));
+    return seed.id;
+  }, [setDialogs]);
+
+  /** Бесплатные вопросы кончились (46763:8520): вопрос уходит, вместо ответа сразу плашка с апгрейдом, без думанья */
+  const sendLimited = useCallback(
+    (payload: SendPayload) => {
+      const text = payload.text.trim();
+      if (!text) return null;
+      clearTimers();
+      setGeneration(null);
+      const userMsg: Message = { id: nextId("msg"), role: "user", text, mode: payload.mode, files: payload.files.length ? payload.files : undefined };
+      const assistantMsg: Message = { id: nextId("msg"), role: "assistant", text: "", mode: payload.mode, limited: true };
+      let dialogId = activeId;
+      if (!dialogId) {
+        dialogId = nextId("d");
+        const created: Dialog = { id: dialogId, title: titleFromQuestion(text), pinned: false, updatedAt: nowIso(), mode: payload.mode, context: payload.meetingIds, messages: [userMsg, assistantMsg] };
+        setDialogs((prev) => [created, ...prev]);
+        setActiveId(dialogId);
+      } else {
+        patchDialog(dialogId, (d) => ({ messages: [...d.messages, userMsg, assistantMsg], updatedAt: nowIso() }));
+      }
+      return dialogId;
+    },
+    [activeId, patchDialog, setDialogs],
+  );
+
   /** Пользователь выбрал режим в уточнении — продолжаем ответ в этом режиме */
   const resolveClarification = useCallback(
     (dialogId: string, messageId: string, mode: Mode) => {
@@ -296,7 +355,7 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
       if (!d || !m?.clarify) return;
       patchMessage(dialogId, messageId, { clarify: { ...m.clarify, chosen: mode }, text: "", mode });
       patchDialog(dialogId, { mode });
-      setGeneration({ dialogId, messageId, phase: "thinking" });
+      setGeneration({ dialogId, messageId, phase: "thinking", startedAt: Date.now() });
       timers.current.think = setTimeout(() => lookAndStream(dialogId, messageId, m.clarify!.question, mode, d.context), 400);
     },
     [dialogs, patchDialog, patchMessage, lookAndStream],
@@ -323,6 +382,8 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
     sendMessage,
     resolveClarification,
     stopGenerating,
+    sendLimited,
+    seedDemo,
   };
 }
 

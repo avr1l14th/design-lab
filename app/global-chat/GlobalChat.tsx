@@ -1,0 +1,439 @@
+"use client";
+
+import { Inter } from "next/font/google";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  AssistantBlock,
+  AvatarFlight,
+  Composer,
+  DialogHeader,
+  GUEST_NOTICE,
+  HomeTitle,
+  LimitCard,
+  ReadOnlyContext,
+  useCaretPoint,
+  MeetingsModal,
+  PreviousChats,
+  HomeBanner,
+  SuggestionList,
+  UserBubble,
+  type ComposerState,
+} from "./_shared/chat-ui";
+import { SAMPLE_FILES, SUGGESTIONS, ZERO_SUGGESTIONS, meetingById, nextId, type Suggestion } from "./_shared/data";
+import { Sidebar } from "./_shared/Sidebar";
+import { StateSwitcher } from "./_shared/StateSwitcher";
+import { Ic } from "./_shared/icons";
+import { tokens } from "./_shared/tokens";
+import { ToastHost, useToast } from "./_shared/ui";
+import { useDialogs } from "./_shared/use-dialogs";
+
+const inter = Inter({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600"] });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Глобальный чат — по макету (Figma: секции «Чат» и «Диалог»).
+// Стартовая: «Салют! Чем могу помочь?», композер, подсказки / предыдущие чаты.
+// Диалог: «Чат / Название», вопрос, «Думаю...» → «Смотрю встречи…» → ответ с цитатами.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EMPTY_COMPOSER: ComposerState = { text: "", mode: "auto", meetingIds: [], files: [] };
+
+/** Кривая «переезда» по экрану: быстрый старт, мягкая остановка (iOS drawer) */
+const TRAVEL_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
+/** 340ms — поле проходит ~420px; быстрее ощущается как рывок, медленнее — как ожидание */
+const TRAVEL_MS = 340;
+/** Остальное содержимое экрана догоняет поле с этой задержкой (≈ треть переезда) */
+const TRAVEL_FOLLOW_DELAY = "110ms";
+
+/**
+ * FLIP-переезд композера: перед сменой экрана запоминаем top поля, после рендера нового экрана
+ * поле стартует со старой позиции и доезжает до новой одним движением (WAAPI, только transform).
+ * Ширина и X у обоих композеров одинаковые (640, по центру), поэтому хватает translateY.
+ */
+function useComposerTravel() {
+  const fromTop = useRef<number | null>(null);
+  const remember = (el: HTMLElement | null) => {
+    fromTop.current = el ? el.getBoundingClientRect().top : null;
+  };
+  const useArrive = (ref: React.RefObject<HTMLDivElement | null>, key: string) => {
+    useLayoutEffect(() => {
+      const el = ref.current;
+      // Оба композера (стартовой и диалога) слушают переезд; забирает точку только тот, кто сейчас в DOM
+      if (el === null) return;
+      const from = fromTop.current;
+      fromTop.current = null;
+      if (from === null) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const dy = from - el.getBoundingClientRect().top;
+      if (Math.abs(dy) < 2) return;
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], { duration: TRAVEL_MS, easing: TRAVEL_EASING });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key]);
+  };
+  return { remember, useArrive };
+}
+
+/** Доступ к диалогу закрыт (46770:15895): замок и две строки по центру пустого экрана, в шапке только «Чат» */
+function NoAccess() {
+  return (
+    <div className="gc-enter flex min-h-0 flex-1 flex-col items-center justify-center pb-[54px]">
+      <div className="flex flex-col items-center gap-[16px]">
+        <span className="flex h-[32px] w-[32px] items-center justify-center" style={{ color: tokens.grey }}>
+          <Ic name="fig-lock-32" size={32} />
+        </span>
+        <div className="flex flex-col items-center gap-[12px]">
+          <div className="text-[20px] font-medium leading-[normal] tracking-[-0.2px]" style={{ color: tokens.black }}>
+            У вас нет доступа к этому диалогу
+          </div>
+          <div className="w-[236px] text-center text-[14px] leading-[1.35]" style={{ color: tokens.black }}>
+            Владелец закрыл общий доступ или ссылка устарела
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Состояния прототипа — отдельные статичные адреса: /global-chat/zero/, /limit/, /guest/, /noaccess/ */
+export type ChatVariant = "default" | "zero" | "limit" | "guest" | "noaccess";
+
+export function GlobalChat({ variant = "default" }: { variant?: ChatVariant }) {
+  // Стартуем с пустой историей — так виден дефолт «нет предыдущих диалогов»
+  // Диалоги живут в localStorage — прошлые чаты остаются после перезагрузки
+  const api = useDialogs(null, [], "gc:dialogs:v1");
+  const toast = useToast();
+  const [composer, setComposer] = useState<ComposerState>(EMPTY_COMPOSER);
+  const [meetingsOpen, setMeetingsOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renamingRowId, setRenamingRowId] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const homeComposerRef = useRef<HTMLDivElement>(null);
+  const dialogComposerRef = useRef<HTMLDivElement>(null);
+  const travel = useComposerTravel();
+
+  const patch = (p: Partial<ComposerState>) => setComposer((c) => ({ ...c, ...p }));
+  const active = api.active;
+
+  // Перелет персонажа со стартовой к аватару первого ответа: позиция запоминается при отправке, а когда в новом
+  // диалоге появляется аватар ответа (через кадр-два после «Думаю…»), поверх летит призрак, сам аватар скрыт до посадки
+  const avatarFrom = useRef<DOMRect | null>(null);
+  // Обратный путь: со стартовой кнопкой «Чат» из диалога, где аватар ответа еще на экране, персонаж летит назад в заголовок
+  const avatarBackFrom = useRef<DOMRect | null>(null);
+  // Сам DOM-узел цели держим в ref, а не в state: его inline-стиль меняется руками на взлете и посадке
+  const flightTarget = useRef<HTMLElement | null>(null);
+  const [flight, setFlight] = useState<{ from: DOMRect; to: DOMRect; reverse: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const reverse = !active;
+    const from = reverse ? avatarBackFrom.current : avatarFrom.current;
+    if (!from) return;
+    avatarFrom.current = null;
+    avatarBackFrom.current = null;
+    const selector = reverse ? "[data-gc-home-avatar]" : "[data-gc-answer-avatar]";
+    let frames = 0;
+    let raf = 0;
+    const look = () => {
+      const target = document.querySelector<HTMLElement>(selector);
+      if (target) {
+        target.style.opacity = "0";
+        flightTarget.current = target;
+        setFlight({ from, to: target.getBoundingClientRect(), reverse });
+        return;
+      }
+      if (++frames < 40) raf = requestAnimationFrame(look);
+    };
+    raf = requestAnimationFrame(look);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id]);
+  const landAvatar = () => {
+    if (flightTarget.current) flightTarget.current.style.opacity = "";
+    flightTarget.current = null;
+    setFlight(null);
+  };
+
+  // Автоскролл ленты: к новому сообщению едем плавно, во время стрима и при смене диалога — сразу
+  const lastText = active?.messages[active.messages.length - 1]?.text;
+  const scrollMemo = useRef<{ id: string | null; count: number }>({ id: null, count: 0 });
+  useEffect(() => {
+    const el = scrollRef.current;
+    const id = active?.id ?? null;
+    const count = active?.messages.length ?? 0;
+    const prev = scrollMemo.current;
+    scrollMemo.current = { id, count };
+    if (!el) return;
+    const newMessage = id === prev.id && count > prev.count;
+    const smooth = newMessage && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, [active?.id, active?.messages.length, lastText, api.generation?.phase]);
+
+  const send = () => {
+    if (!composer.text.trim() || api.isGenerating) return;
+    // Первый вопрос: поле уезжает с середины стартовой вниз экрана диалога, персонаж из заголовка — к первому ответу
+    if (!active) {
+      travel.remember(homeComposerRef.current);
+      avatarFrom.current = document.querySelector("[data-gc-home-avatar]")?.getBoundingClientRect() ?? null;
+    }
+    api.sendMessage({ text: composer.text, mode: composer.mode, meetingIds: composer.meetingIds, files: composer.files });
+    // Встречи уходят в контекст диалога, файлы и текст — отправлены
+    setComposer((c) => ({ ...c, text: "", meetingIds: [], files: [] }));
+  };
+
+  // Клик по подсказке при заблокированном поле (лимит, гость): текст не вставляем, качаем плашку над полем
+  const [nudge, setNudge] = useState(0);
+  const pickSuggestion = (s: Suggestion) => {
+    if (limited || guest) {
+      setNudge((n) => n + 1);
+      return;
+    }
+    patch({ text: s.text, mode: s.mode });
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      el?.focus();
+      el?.setSelectionRange(s.text.length, s.text.length);
+    });
+  };
+
+  const addFile = () => {
+    // До двух образцов: первый клик PDF, второй DOCX (46726:16060)
+    const next = SAMPLE_FILES[composer.files.length];
+    if (!next) return;
+    patch({ files: [...composer.files, { id: nextId("file"), ...next }] });
+  };
+
+  const applyMeetings = (ids: string[]) => {
+    if (active) {
+      // В диалоге модалка редактирует контекст диалога целиком
+      api.setDialogContext(active.id, ids);
+      patch({ meetingIds: [] });
+    } else {
+      patch({ meetingIds: ids });
+    }
+    setMeetingsOpen(false);
+  };
+
+  const openDialog = (id: string) => {
+    const d = api.dialogs.find((x) => x.id === id);
+    // Со стартовой в старый диалог поле уезжает вниз так же, как при первом вопросе
+    if (!active) travel.remember(homeComposerRef.current);
+    api.selectDialog(id);
+    setRenaming(false);
+    if (d) patch({ mode: d.mode, meetingIds: [], files: [] });
+  };
+
+  const goHome = () => {
+    // Обратно на стартовую — поле возвращается снизу в центр, а персонаж (если он еще стоит у ответа) — в заголовок
+    travel.remember(dialogComposerRef.current);
+    const avatar = document.querySelector<HTMLElement>("[data-gc-answer-avatar]");
+    avatarBackFrom.current = avatar && avatar.style.opacity !== "0" ? avatar.getBoundingClientRect() : null;
+    api.goHome();
+    setRenaming(false);
+    setComposer((c) => ({ ...c, meetingIds: [], files: [] }));
+  };
+
+  const deleteActive = () => {
+    if (!active) return;
+    const undo = api.deleteDialog(active.id);
+    toast.show("Диалог удален", { undo });
+  };
+
+  // Закрепление без тоста: результат виден по иконке кнопки и по порядку в списке
+  const pinActive = () => {
+    if (!active) return;
+    api.togglePin(active.id);
+  };
+
+  // Меню «…» строки диалога — одно и то же в списке на стартовой и в переключателе в шапке
+  const rowActions = {
+    onPin: (id: string) => api.togglePin(id),
+    onRename: (id: string) => setRenamingRowId(id),
+    onDelete: (id: string) => {
+      const undo = api.deleteDialog(id);
+      toast.show("Диалог удален", { undo });
+    },
+  };
+
+  const hasDialogs = api.dialogs.length > 0;
+  // Zero state (нет встреч и диалогов) — адрес /zero/, прячет сохраненные диалоги: в моке они есть всегда
+  const zero = variant === "zero";
+  // Лимит Free и Lite (46726:21248, 46763:8520) — адрес /limit/: бесплатные вопросы кончились. Плашка над полем
+  // и заблокированный композер показываются сразу, а в каждом открытом диалоге под последним ответом стоит карточка апгрейда
+  const limited = variant === "limit";
+  // Баннер-анонс можно скрыть крестиком; до перезагрузки не возвращается
+  const [bannerHidden, setBannerHidden] = useState(false);
+  // Шеринг: /guest/ — просмотр чужого диалога по ссылке (46770:15573), /noaccess/ — доступ закрыт (46770:15895)
+  const guest = variant === "guest";
+  const noAccess = variant === "noaccess";
+  useEffect(() => {
+    if (!guest) return;
+    // Гостю показываем готовый диалог из моков: своих у него нет. setState из эффекта — только через таймер (линт)
+    const t = setTimeout(() => api.selectDialog(api.seedDemo()), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guest]);
+  const onUpgrade = () => toast.show("Открываем тарифы", { icon: "arrow-right" });
+  const showZero = zero;
+  travel.useArrive(dialogComposerRef, active ? active.id : "");
+  travel.useArrive(homeComposerRef, active ? "" : "home");
+  // На стартовой аватар в заголовке следит глазами за кареткой, пока набирается первый вопрос
+  const caret = useCaretPoint(textareaRef, composer.text, !active);
+  // Остальное содержимое экрана появляется чуть позже композера — при переезде движение читается первым
+  const enterDelay = { animationDelay: TRAVEL_FOLLOW_DELAY };
+
+  return (
+    <ReadOnlyContext.Provider value={guest}>
+    <main className={`${inter.className} h-screen min-h-[720px] w-full overflow-hidden bg-white`} style={{ color: tokens.black }}>
+      <div className="flex h-full w-full bg-white">
+        <Sidebar active="chat" />
+        <section className="relative flex h-full min-w-0 flex-1 flex-col bg-white">
+          {/* Шапка общая для стартовой и диалога: «Чат» стоит на месте и лишь меняет цвет, остальное проявляется рядом */}
+          <DialogHeader
+                dialog={active}
+                dialogs={api.dialogs}
+                onHome={goHome}
+                onSwitch={openDialog}
+                onCopyLink={() => toast.show("Ссылка скопирована")}
+                onPin={pinActive}
+                onRename={() => setRenaming(true)}
+                onDelete={deleteActive}
+                rowActions={rowActions}
+                renamingRowId={renamingRowId}
+                onCommitRowRename={(id, t) => {
+                  api.renameDialog(id, t);
+                  setRenamingRowId(null);
+                }}
+                onCancelRowRename={() => setRenamingRowId(null)}
+                renaming={renaming}
+                onCommitRename={(t) => {
+                  if (active) api.renameDialog(active.id, t);
+                  setRenaming(false);
+                }}
+                onCancelRename={() => setRenaming(false)}
+                guest={guest}
+          />
+          {noAccess ? (
+            <NoAccess />
+          ) : active ? (
+            <>
+              <div key={active.id} className="flex min-h-0 flex-1 flex-col items-center">
+                <div className="flex min-h-0 w-[640px] max-w-full flex-1 flex-col justify-between pb-[16px]">
+                  {/* Лента шире колонки на 24px с каждой стороны (отрицательные поля + такой же padding): overflow-y: auto
+                      режет и по горизонтали, а аватар ответа стоит слева за пределами колонки */}
+                  <div ref={scrollRef} className="gc-enter gc-noscroll -mx-[24px] min-h-0 flex-1 overflow-y-auto px-[24px]" style={enterDelay}>
+                    <div className="flex w-full flex-col items-end gap-[40px] pb-[40px] pt-[40px]">
+                      {active.messages.map((m) =>
+                        m.role === "user" ? (
+                          <UserBubble key={m.id} message={m} />
+                        ) : (
+                          <AssistantBlock
+                            key={m.id}
+                            message={m}
+                            generation={api.generation}
+                            onChoose={(mode) => {
+                              api.resolveClarification(active.id, m.id, mode);
+                              patch({ mode });
+                            }}
+                            onOpenMeeting={(id) => toast.show(`Открываем «${meetingById(id)?.title}»`, { icon: "arrow-right" })}
+                            onCopy={() => toast.show("Ответ скопирован")}
+                            onSupportLink={(title) => toast.show(`Открываем «${title}»`, { icon: "arrow-right" })}
+                            onUpgrade={onUpgrade}
+                            onFeedback={() => toast.show("Спасибо, разберемся")}
+                          />
+                        ),
+                      )}
+                      {limited && (
+                        <div className="flex w-full">
+                          <LimitCard onUpgrade={onUpgrade} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div ref={dialogComposerRef} className="relative z-10 w-full will-change-transform">
+                    <Composer
+                      state={composer}
+                      onChange={patch}
+                      onSend={send}
+                      onOpenMeetings={() => setMeetingsOpen(true)}
+                      onAddFile={addFile}
+                      onRemoveFile={(id) => patch({ files: composer.files.filter((f) => f.id !== id) })}
+                      contextIds={guest ? undefined : active.context}
+                      disabled={api.isGenerating}
+                      textareaRef={textareaRef}
+                      generating={api.isGenerating}
+                      onStop={api.stopGenerating}
+                      limited={limited}
+                      onUpgrade={onUpgrade}
+                      notice={guest ? { icon: "fig-lock", text: GUEST_NOTICE } : undefined}
+                      nudge={nudge}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Стартовая по макету 46115:7175: блок 640 прибит к верху (64px под шапкой), внутри заголовок,
+                  поле и через 24px строки-подсказки, ниже через 40px «Предыдущие чаты». Если не влезает — скроллится весь экран */}
+              {/* Баннер-анонс (46817:17093) живет в конце той же скролл-области: при коротком содержимом прижат к низу экрана
+                  (mt-auto), при раскрытом списке чатов уезжает вниз вместе с содержимым */}
+              <div className="gc-noscroll flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-[24px] pb-[24px] pt-[64px]">
+                <div className="flex w-[640px] max-w-full shrink-0 flex-col items-center gap-[24px]">
+                  <div className="gc-enter" style={enterDelay}>
+                    <HomeTitle lookAt={caret} />
+                  </div>
+                  <div className="flex w-full flex-col">
+                    <div ref={homeComposerRef} className="relative z-10 w-full will-change-transform">
+                      <Composer
+                        state={composer}
+                        onChange={patch}
+                        onSend={send}
+                        onOpenMeetings={() => setMeetingsOpen(true)}
+                        onAddFile={addFile}
+                        onRemoveFile={(id) => patch({ files: composer.files.filter((f) => f.id !== id) })}
+                        autoFocus
+                        textareaRef={textareaRef}
+                        limited={limited}
+                        onUpgrade={onUpgrade}
+                        nudge={nudge}
+                      />
+                    </div>
+                    <div className="gc-enter mt-[24px] w-full" style={enterDelay}>
+                      <SuggestionList items={showZero ? ZERO_SUGGESTIONS : SUGGESTIONS} onPick={pickSuggestion} />
+                    </div>
+                  </div>
+                  {hasDialogs && !showZero && (
+                    <div className="gc-enter mt-[16px] w-full" style={enterDelay}>
+                      <PreviousChats
+                        dialogs={api.dialogs}
+                        generatingId={api.generation?.dialogId ?? null}
+                        onOpen={openDialog}
+                        renamingId={renamingRowId}
+                        onCommitRename={(id, t) => {
+                          api.renameDialog(id, t);
+                          setRenamingRowId(null);
+                        }}
+                        onCancelRename={() => setRenamingRowId(null)}
+                        actions={rowActions}
+                      />
+                    </div>
+                  )}
+                </div>
+                {!bannerHidden && (
+                  <div className="gc-enter mt-auto flex w-[640px] max-w-full shrink-0 justify-center pt-[40px]" style={enterDelay}>
+                    <HomeBanner onMore={() => toast.show("Открываем анонс глобального чата", { icon: "arrow-right" })} onClose={() => setBannerHidden(true)} />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <ToastHost toast={toast.toast} visible={toast.visible} onHide={toast.hide} />
+        </section>
+      </div>
+      <StateSwitcher />
+
+      <MeetingsModal open={meetingsOpen} initial={active ? active.context : composer.meetingIds} onClose={() => setMeetingsOpen(false)} onApply={applyMeetings} onReset={() => applyMeetings([])} />
+      {flight && <AvatarFlight from={flight.from} to={flight.to} reverse={flight.reverse} getTarget={() => flightTarget.current?.getBoundingClientRect() ?? null} duration={TRAVEL_MS} easing={TRAVEL_EASING} onDone={landAvatar} />}
+    </main>
+    </ReadOnlyContext.Provider>
+  );
+}

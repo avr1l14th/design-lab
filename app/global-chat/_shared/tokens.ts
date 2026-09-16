@@ -10,7 +10,7 @@ export const tokens = {
   grey: "#818AA3",
   greyHover: "#585E6C",
   greyDisabled: "#C7C8CA", // text/disabled, даты в списках
-  placeholder: "#BABBBD", // grey-70 — плейсхолдер композера в макете
+  placeholder: "#C7C8CA", // text/placeholder — все плейсхолдеры (композер, поиск, поле отзыва), тот же цвет, что text/disabled
   bgPage: "#FFFFFF",
   bgSubtle: "#F7F7F8", // grey-20
   bgLight: "#FAFAFA", // surface/light — ховер строки меню
