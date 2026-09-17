@@ -297,7 +297,7 @@ export function useDialogs(initialActiveId: string | null = null, initialDialogs
         patchMessage(finalId, assistantMsg.id, { thoughtSec: Math.max(1, Math.round((Date.now() - startedAt) / 1000)) });
         if (isProductQuestion(text)) {
           // Вопрос про сервис (46738:7318): вместо ответа по встречам — карточки базы знаний, поддержки и продаж
-          patchMessage(finalId, assistantMsg.id, { text: "Я отвечаю по встречам, а с вопросами про сервис помогут здесь:", support: true });
+          patchMessage(finalId, assistantMsg.id, { text: "Это вопрос про сам сервис, а я отвечаю по содержанию ваших встреч: решения, договоренности, задачи. Про подключение, отчеты и тарифы быстрее ответят здесь:", support: true });
           setGeneration(null);
           return;
         }

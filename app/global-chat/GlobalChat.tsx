@@ -9,7 +9,6 @@ import {
   DialogHeader,
   GUEST_NOTICE,
   HomeTitle,
-  LimitCard,
   ReadOnlyContext,
   useCaretPoint,
   MeetingsModal,
@@ -256,8 +255,20 @@ export function GlobalChat({ variant = "default" }: { variant?: ChatVariant }) {
   // Zero state (нет встреч и диалогов) — адрес /zero/, прячет сохраненные диалоги: в моке они есть всегда
   const zero = variant === "zero";
   // Лимит Free и Lite (46726:21248, 46763:8520) — адрес /limit/: бесплатные вопросы кончились. Плашка над полем
-  // и заблокированный композер показываются сразу, а в каждом открытом диалоге под последним ответом стоит карточка апгрейда
+  // и заблокированный композер показываются сразу и во всех диалогах. Карточка апгрейда вместо ответа — только
+  // в том диалоге, где ушел последний вопрос: в прототипе он подкладывается в «Предыдущие чаты» при первом заходе
   const limited = variant === "limit";
+  useEffect(() => {
+    if (!limited) return;
+    const t = setTimeout(() => {
+      if (api.dialogs.some((d) => d.messages.some((m) => m.limited))) return;
+      api.sendLimited({ text: "Что решили на синке?", mode: "auto", meetingIds: [], files: [] });
+      // sendLimited открывает созданный диалог — остаемся на стартовой, диалог виден в списке
+      api.goHome();
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limited]);
   // Баннер-анонс можно скрыть крестиком; до перезагрузки не возвращается
   const [bannerHidden, setBannerHidden] = useState(false);
   // Шеринг: /guest/ — просмотр чужого диалога по ссылке (46770:15573), /noaccess/ — доступ закрыт (46770:15895)
@@ -339,11 +350,6 @@ export function GlobalChat({ variant = "default" }: { variant?: ChatVariant }) {
                             onFeedback={() => toast.show("Спасибо, разберемся")}
                           />
                         ),
-                      )}
-                      {limited && (
-                        <div className="flex w-full">
-                          <LimitCard onUpgrade={onUpgrade} />
-                        </div>
                       )}
                     </div>
                   </div>

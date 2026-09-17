@@ -84,7 +84,7 @@ export function MeetingThumb({
  * и радиусом 2 в ряд, каждая следующая наезжает на предыдущую на 16px (видно по 10px),
  * последняя — целиком: либо третья встреча, либо серая плашка «+N».
  */
-export function ThumbStack({ ids }: { ids: string[] }) {
+export function ThumbStack({ ids, muted = false }: { ids: string[]; /** Заблокированное поле (46891:6123): миниатюры на 50%, «+N» и текст — text/disabled */ muted?: boolean }) {
   const shown = ids.length <= 3 ? ids : ids.slice(0, 2);
   const extra = ids.length - shown.length;
   // Каждая следующая плашка выше предыдущей — иначе позиционированная миниатюра всплывает над «+N»
@@ -93,8 +93,10 @@ export function ThumbStack({ ids }: { ids: string[] }) {
   return (
     <span className="isolate flex items-center">
       {shown.map((id, i) => (
-        <span key={id} className={`${tileClass} ${i < shown.length - 1 || extra > 0 ? "mr-[-16px]" : ""}`} style={{ zIndex: i + 1 }}>
-          <MeetingThumb thumb={meetingById(id)?.thumb ?? "legacy"} width={26} height={16} radius={2} plain />
+        <span key={id} className={`${tileClass} ${i < shown.length - 1 || extra > 0 ? "mr-[-16px]" : ""} ${muted ? "bg-white" : ""}`} style={{ zIndex: i + 1 }}>
+          <span className={`flex ${muted ? "opacity-50" : ""}`}>
+            <MeetingThumb thumb={meetingById(id)?.thumb ?? "legacy"} width={26} height={16} radius={2} plain />
+          </span>
         </span>
       ))}
       {extra > 0 && (
@@ -911,11 +913,11 @@ export function Composer({
               </>
             ) : (
               <span key="stack" className="gc-enter flex items-center gap-[6px]">
-                <ThumbStack ids={allMeetings} />
-                <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
+                <ThumbStack ids={allMeetings} muted={locked} />
+                <span className="text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: locked ? tokens.greyDisabled : tokens.black }}>
                   {pluralMeetings(allMeetings.length)}
                 </span>
-                <span className="flex" style={{ color: tokens.grey }}>
+                <span className="flex" style={{ color: locked ? tokens.greyDisabled : tokens.grey }}>
                   <Ic name="chevron-down" />
                 </span>
               </span>
@@ -2177,10 +2179,19 @@ function WebCitationBadge({ source, onOpen }: { source: WebSource; onOpen?: (tit
 
 /** Строка текста с цитатами [n]: по встречам — кружки с номерами, по интернету — кружки-ссылки */
 function InlineWithCitations({ text, sources, web, onOpenLink, keyPrefix }: { text: string; sources: string[]; web?: WebSource[]; onOpenLink?: (title: string) => void; keyPrefix: string }) {
-  const parts = text.split(/(\[\d+\])/g);
+  // Кроме цитат [n] понимаем выделение **так**: подводки тезисов набраны Semi Bold (46750:8049)
+  const parts = text.split(/(\[\d+\]|\*\*[^*]+\*\*)/g);
   return (
     <>
       {parts.map((p, i) => {
+        const bold = p.match(/^\*\*([^*]+)\*\*$/);
+        if (bold) {
+          return (
+            <span key={`${keyPrefix}-${i}`} className="font-semibold">
+              {bold[1]}
+            </span>
+          );
+        }
         const m = p.match(/^\[(\d+)\]$/);
         if (m) {
           const n = Number(m[1]);
