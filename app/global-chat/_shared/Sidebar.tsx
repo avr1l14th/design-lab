@@ -32,12 +32,13 @@ function SbIcon({ name, size = 16 }: { name: string; size?: number }) {
   return <img src={sbAsset(name)} alt="" width={size} height={size} className="shrink-0" />;
 }
 
-function MenuIcon({ name, active }: { name: string; active?: boolean }) {
+// Иконка пункта всегда серая, активность показывает только заливка строки (active в сигнатуре оставлен для вызовов)
+function MenuIcon({ name }: { name: string; active?: boolean }) {
   const src = sbAsset(name);
   return (
     <span
       aria-hidden="true"
-      className={`h-[16px] w-[16px] shrink-0 ${active ? "bg-[#212833]" : "bg-[#818AA3] group-hover:bg-[#585E6C]"} ${pressableClass}`}
+      className={`h-[16px] w-[16px] shrink-0 bg-[#818AA3] group-hover:bg-[#585E6C] ${pressableClass}`}
       style={{
         WebkitMaskImage: `url(${src})`,
         maskImage: `url(${src})`,

@@ -117,6 +117,8 @@ const TABS = ["Все встречи", "Мои встречи", "Доступн�
 export default function MeetingsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Все встречи");
   const [query, setQuery] = useState("");
+  // Поиск свернут в квадратную кнопку, как в «Поиске и фильтрах»; по клику раскрывается в поле
+  const [searchOpen, setSearchOpen] = useState(false);
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
     return MEETINGS.filter((m) => (tab === "Мои встречи" ? m.authorId === "u-fedos" : true)).filter((m) => !q || m.title.toLowerCase().includes(q));
@@ -145,18 +147,41 @@ export default function MeetingsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={sfAsset("icon-filter.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
             </button>
-            <label className={`flex h-[36px] w-[320px] items-center gap-[10px] rounded-[4px] border bg-white px-[10px] focus-within:border-[#0138C7] ${pressableClass}`} style={{ borderColor: tokens.border }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={sfAsset("icon-search.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск по названию встречи"
+            {searchOpen ? (
+              <label className={`flex h-[36px] w-[320px] items-center gap-[10px] rounded-[4px] border bg-white px-[10px] focus-within:border-[#0138C7] ${pressableClass}`} style={{ borderColor: tokens.border }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sfAsset("icon-search.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onBlur={() => {
+                    if (!query.trim()) setSearchOpen(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setQuery("");
+                      setSearchOpen(false);
+                    }
+                  }}
+                  placeholder="Поиск по названию встречи"
+                  aria-label="Поиск по названию встречи"
+                  className="min-w-0 flex-1 bg-transparent text-[13px] leading-[normal] tracking-[-0.13px] outline-none placeholder:text-[#C7C8CA]"
+                  style={{ color: tokens.black }}
+                />
+              </label>
+            ) : (
+              <button
+                type="button"
                 aria-label="Поиск по названию встречи"
-                className="min-w-0 flex-1 bg-transparent text-[13px] leading-[normal] tracking-[-0.13px] outline-none placeholder:text-[#C7C8CA]"
-                style={{ color: tokens.black }}
-              />
-            </label>
+                onClick={() => setSearchOpen(true)}
+                className={`flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[4px] border bg-white hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+                style={{ borderColor: tokens.border }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sfAsset("icon-search.svg")} alt="" className="h-[16px] w-[16px] max-w-none shrink-0" />
+              </button>
+            )}
             <div className="ml-[4px] h-[24px] w-px shrink-0" style={{ backgroundColor: tokens.border }} />
             <div className="flex h-[36px] items-center">
               {TABS.map((t) => {
