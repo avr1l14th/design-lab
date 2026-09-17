@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Ic } from "./icons";
+import { MODE_AVATAR_ART, MODE_GLYPH_16 } from "./mode-avatar-art";
 import { ctaAsset, focusRingClass, pressableClass, sbAsset, tokens } from "./tokens";
 
 // Сайдбар — переиспользован из task-improvements (sidebar-menu-update + CTA из
-// b2c-upgrade-cta). По макету чата пункт «Чат» — первый в навигации.
+// b2c-upgrade-cta). По макету чата пункт «AI Агент» — первый в навигации.
 
 export type NavKey = "meetings" | "chat" | "reports" | "integrations" | "settings";
 
 type Item = { key?: NavKey; label: string; icon: string; custom?: boolean };
 
 const primaryItems: Item[] = [
-  { key: "chat", label: "Чат", icon: "fig-chat", custom: true },
+  { key: "chat", label: "AI Агент", icon: "agent", custom: true },
   { key: "meetings", label: "Встречи", icon: "meetings.svg" },
   { key: "reports", label: "AI Отчеты", icon: "ai-reports.svg" },
   { key: "integrations", label: "Интеграции", icon: "integrations.svg" },
@@ -51,6 +51,22 @@ function MenuIcon({ name, active }: { name: string; active?: boolean }) {
   );
 }
 
+/** Иконка пункта «AI Агент»: тот же персонаж, что в чате, но серым (currentColor) с белыми глазами, 16px */
+function AgentGlyph() {
+  const art = MODE_AVATAR_ART.auto;
+  const { w, h } = MODE_GLYPH_16.auto;
+  return (
+    <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center" aria-hidden="true">
+      <svg width={w} height={h} viewBox={art.viewBox} fill="none" xmlns="http://www.w3.org/2000/svg" className="block">
+        <path d={art.body} fill="currentColor" />
+        {art.eyes.map((d, i) => (
+          <path key={i} d={d} fill="#fff" />
+        ))}
+      </svg>
+    </span>
+  );
+}
+
 export function SidebarMenuItem({
   item,
   active,
@@ -72,7 +88,7 @@ export function SidebarMenuItem({
         <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
           {item.custom ? (
             <span className={`flex text-[#818AA3] group-hover:text-[#585E6C] ${pressableClass}`}>
-              <Ic name="fig-chat" />
+              <AgentGlyph />
             </span>
           ) : (
             <MenuIcon name={item.icon} active={active} />
