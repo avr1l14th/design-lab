@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { MODE_AVATAR_ART, MODE_GLYPH_16 } from "./mode-avatar-art";
 import { ctaAsset, focusRingClass, pressableClass, sbAsset, tokens } from "./tokens";
@@ -9,11 +10,11 @@ import { ctaAsset, focusRingClass, pressableClass, sbAsset, tokens } from "./tok
 
 export type NavKey = "meetings" | "chat" | "reports" | "integrations" | "settings";
 
-type Item = { key?: NavKey; label: string; icon: string; custom?: boolean };
+type Item = { key?: NavKey; label: string; icon: string; custom?: boolean; /** Пункт ведет на страницу прототипа */ href?: string };
 
 const primaryItems: Item[] = [
-  { key: "chat", label: "AI Агент", icon: "agent", custom: true },
-  { key: "meetings", label: "Встречи", icon: "meetings.svg" },
+  { key: "chat", label: "AI Агент", icon: "agent", custom: true, href: "/global-chat" },
+  { key: "meetings", label: "Встречи", icon: "meetings.svg", href: "/global-chat/meetings" },
   { key: "reports", label: "AI Отчеты", icon: "ai-reports.svg" },
   { key: "integrations", label: "Интеграции", icon: "integrations.svg" },
   { key: "settings", label: "Настройки", icon: "settings-figma.svg" },
@@ -78,12 +79,9 @@ export function SidebarMenuItem({
   onClick?: () => void;
   trailing?: ReactNode;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group flex w-full items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`}
-    >
+  const className = `group flex w-full items-center justify-between rounded-[3px] p-[6px] text-left hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : ""} ${pressableClass} ${focusRingClass}`;
+  const inner = (
+    <>
       <span className="flex items-center gap-[6px]">
         <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
           {item.custom ? (
@@ -99,6 +97,19 @@ export function SidebarMenuItem({
         </span>
       </span>
       {trailing}
+    </>
+  );
+  // Пункты с адресом — ссылки между страницами прототипа; остальные — кнопки-заглушки
+  if (item.href && !onClick) {
+    return (
+      <Link href={item.href} className={className} aria-current={active ? "page" : undefined}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {inner}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Inter } from "next/font/google";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AssistantBlock, Composer, SuggestionList, UserBubble, type ComposerState } from "../_shared/chat-ui";
 import { SAMPLE_FILES, nextId, type Suggestion } from "../_shared/data";
@@ -77,9 +78,9 @@ function MeetingTopBar({ onAction }: { onAction: (label: string) => void }) {
   const btn = `flex h-[32px] items-center text-[13px] leading-[normal] tracking-[-0.13px] hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`;
   return (
     <header className="flex h-[54px] shrink-0 items-center justify-between pl-[24px] pr-[24px]">
-      <button type="button" onClick={() => onAction("Назад")} className={`rounded-[3px] text-[13px] leading-[normal] tracking-[-0.13px] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`} style={{ color: tokens.black }}>
+      <Link href="/global-chat/meetings" className={`rounded-[3px] text-[13px] leading-[normal] tracking-[-0.13px] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`} style={{ color: tokens.black }}>
         Назад
-      </button>
+      </Link>
       <div className="flex shrink-0 items-center gap-[8px]">
         {/* Сплит «AI-отчет | ▾» — иконка приходит из макета готовой картинкой с правой границей */}
         <div className="flex h-[32px] items-center rounded-[4px] border" style={{ borderColor: tokens.border }}>

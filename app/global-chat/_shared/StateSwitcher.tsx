@@ -12,6 +12,7 @@ import { focusRingClass, pressableClass, shadow, tokens } from "./tokens";
 
 const PAGES: { href: string; label: string }[] = [
   { href: "/global-chat", label: "Стартовая" },
+  { href: "/global-chat/meetings", label: "Встречи" },
   { href: "/global-chat/zero", label: "Пустой аккаунт" },
   { href: "/global-chat/limit", label: "Лимит" },
   { href: "/global-chat/guest", label: "Гость" },
