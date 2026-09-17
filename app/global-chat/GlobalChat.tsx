@@ -165,17 +165,18 @@ export function GlobalChat({ variant = "default" }: { variant?: ChatVariant }) {
     el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
   }, [active?.id, active?.messages.length, lastText, api.generation?.phase]);
 
-  const send = () => {
-    if (!composer.text.trim() || api.isGenerating) return;
+  const sendText = (text: string, mode: ComposerState["mode"]) => {
+    if (!text.trim() || api.isGenerating) return;
     // Первый вопрос: поле уезжает с середины стартовой вниз экрана диалога, персонаж из заголовка — к первому ответу
     if (!active) {
       travel.remember(homeComposerRef.current);
       avatarFrom.current = document.querySelector("[data-gc-home-avatar]")?.getBoundingClientRect() ?? null;
     }
-    api.sendMessage({ text: composer.text, mode: composer.mode, meetingIds: composer.meetingIds, files: composer.files });
+    api.sendMessage({ text, mode, meetingIds: composer.meetingIds, files: composer.files });
     // Встречи уходят в контекст диалога, файлы и текст — отправлены
     setComposer((c) => ({ ...c, text: "", meetingIds: [], files: [] }));
   };
+  const send = () => sendText(composer.text, composer.mode);
 
   // Клик по подсказке при заблокированном поле (лимит, гость): текст не вставляем, качаем плашку над полем
   const [nudge, setNudge] = useState(0);
@@ -184,12 +185,8 @@ export function GlobalChat({ variant = "default" }: { variant?: ChatVariant }) {
       setNudge((n) => n + 1);
       return;
     }
-    patch({ text: s.text, mode: s.mode });
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      el?.focus();
-      el?.setSelectionRange(s.text.length, s.text.length);
-    });
+    // Подсказка уходит в чат сразу, без подстановки в поле
+    sendText(s.text, s.mode);
   };
 
   const addFile = () => {

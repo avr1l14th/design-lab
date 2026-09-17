@@ -209,20 +209,15 @@ export default function MeetingChatPage() {
     el.scrollTo({ top: el.scrollHeight, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [active?.messages.length, lastText, api.generation?.phase]);
 
-  const send = () => {
-    if (!composer.text.trim() || api.isGenerating) return;
-    api.sendMessage({ text: composer.text, mode: composer.mode, meetingIds: [MEETING_ID], files: composer.files });
+  const sendText = (text: string, mode: ComposerState["mode"]) => {
+    if (!text.trim() || api.isGenerating) return;
+    api.sendMessage({ text, mode, meetingIds: [MEETING_ID], files: composer.files });
     setComposer((c) => ({ ...c, text: "", files: [] }));
   };
+  const send = () => sendText(composer.text, composer.mode);
 
-  const pickSuggestion = (s: Suggestion) => {
-    patch({ text: s.text, mode: s.mode });
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      el?.focus();
-      el?.setSelectionRange(s.text.length, s.text.length);
-    });
-  };
+  // Подсказка уходит в чат сразу, без подстановки в поле
+  const pickSuggestion = (s: Suggestion) => sendText(s.text, s.mode);
 
   const addFile = () => {
     const next = SAMPLE_FILES[composer.files.length];

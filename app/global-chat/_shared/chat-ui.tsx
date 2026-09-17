@@ -1300,7 +1300,7 @@ export function PreviousChats({
             type="button"
             aria-expanded={expanded}
             onClick={toggleExpanded}
-            className={`rounded-[2px] text-[#818AA3] ${pressableClass} ${focusRingClass}`}
+            className={`rounded-[2px] text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
           >
             {expanded ? "Свернуть" : "Показать все"}
           </button>
@@ -2075,9 +2075,11 @@ function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
           {(() => {
             const inner = (
             <>
-            <span className="flex w-full items-center gap-[6px] border-b p-[8px]" style={{ borderColor: tokens.border }}>
+            {/* Карточка по 46919:10663: один блок p-8 с gap-8, без разделителя; название Medium 12, дата text/disabled */}
+            <span className="flex w-full flex-col gap-[8px] p-[8px]">
+            <span className="flex w-full items-center gap-[6px]">
               <MeetingThumb thumb={meeting.thumb} width={26} height={16} radius={2} plain />
-              <span className="min-w-0 flex-1 truncate text-[12px] leading-[normal] tracking-[-0.12px]" style={{ color: tokens.black }}>
+              <span className="min-w-0 flex-1 truncate text-[12px] font-medium leading-[normal] tracking-[-0.12px]" style={{ color: tokens.black }}>
                 {meeting.title}
               </span>
               {/* Дата и стрелка стоят на одном месте: на ховере карточки дата гаснет, стрелка проявляется */}
@@ -2100,13 +2102,14 @@ function CitationBadge({ n, meetingId }: { n: number; meetingId?: string }) {
                 )}
               </span>
             </span>
-            <span className="flex w-full flex-col p-[8px] text-[12px] leading-[18px] tracking-[-0.24px]" style={{ color: tokens.black }}>
+            <span className="flex w-full flex-col text-[12px] leading-[18px] tracking-[-0.24px]" style={{ color: tokens.black }}>
               {/* таймкод момента в транскрипте перед тезисом (46521:6208), синий; в проде придет от бэка */}
               {meeting.summary.map((t, i) => (
                 <span key={t}>
                   <span style={{ color: tokens.blue }}>{mockTimecode(meeting.durationMin, i, meeting.summary.length)}</span> {t}
                 </span>
               ))}
+            </span>
             </span>
             </>
             );
@@ -2161,7 +2164,7 @@ function WebCitationBadge({ source, onOpen }: { source: WebSource; onOpen?: (tit
         aria-label={`Источник: ${source.title}`}
         onClick={() => onOpen?.(source.title)}
         className={`mx-[2px] inline-flex h-[16px] w-[16px] items-center justify-center rounded-full border ${pressableClass} ${focusRingClass}`}
-        style={{ borderColor: hover ? tokens.borderStrong : tokens.border, color: tokens.grey }}
+        style={{ borderColor: tokens.border, backgroundColor: hover ? tokens.bgSubtle : "transparent", color: tokens.grey }}
       >
         <Ic name="fig-link-10" size={10} />
       </button>
@@ -2214,7 +2217,7 @@ function InlineWithCitations({ text, sources, web, onOpenLink, keyPrefix }: { te
 }
 
 /** Текст ответа: абзацы, буллеты двух уровней, цитаты. 14/24, как в макете */
-export function AnswerText({ text, sources = [], web, onOpenLink, streaming }: { text: string; sources?: string[]; web?: WebSource[]; onOpenLink?: (title: string) => void; streaming?: boolean }) {
+export function AnswerText({ text, sources = [], web, onOpenLink }: { text: string; sources?: string[]; web?: WebSource[]; onOpenLink?: (title: string) => void; /** оставлен в сигнатуре для вызовов; курсор стрима больше не рисуем */ streaming?: boolean }) {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
   let list: { level: number; text: string }[] = [];
@@ -2280,7 +2283,7 @@ export function AnswerText({ text, sources = [], web, onOpenLink, streaming }: {
   return (
     <div className="w-full text-[13px] leading-[20px] tracking-[-0.13px]" style={{ color: tokens.black }}>
       {blocks}
-      {streaming && <span className="gc-caret ml-[2px] inline-block h-[13px] w-[6px] translate-y-[2px] rounded-[1px]" style={{ backgroundColor: tokens.black }} />}
+      {/* Курсор стрима убран по просьбе дизайнера: черный прямоугольник в начале строк отвлекал */}
     </div>
   );
 }
@@ -2438,10 +2441,14 @@ function AnswerTableView({ table }: { table: AnswerTable }) {
 function FileResultCard({ file, onDownload }: { file: Omit<FileAttachment, "id">; onDownload?: () => void }) {
   return (
     // Карточка режет содержимое сама (overflow-clip в макете): листок превью выше своего слота 50×36 и уходит под нижний край карточки
-    <div className="gc-enter flex w-[360px] max-w-full items-center gap-[12px] overflow-hidden rounded-[4px] border bg-white p-[16px]" style={{ borderColor: tokens.border }}>
+    <div className="gc-enter group/filecard flex w-[360px] max-w-full items-center gap-[12px] overflow-hidden rounded-[4px] border bg-white p-[16px]" style={{ borderColor: tokens.border }}>
       {/* превью: белый листок 48px, повернут на −4°, тень, заголовок 4px и семь серых строчек; слот не режет — только карточка */}
       <span className="relative flex h-[36px] w-[50px] shrink-0 items-start justify-center">
-        <span className="absolute left-[1px] top-[-2px] flex w-[48px] flex-col gap-[3px] rounded-[3px] bg-white p-[6px]" style={{ transform: "rotate(-4deg)", transformOrigin: "center", boxShadow: "0 0 4px rgba(0,0,0,0.2)" }}>
+        {/* На ховере карточки листок выравнивается в 0°: мягко, как кладут бумагу на стол */}
+        <span
+          className="absolute left-[1px] top-[-2px] flex w-[48px] origin-center -rotate-4 flex-col gap-[3px] rounded-[3px] bg-white p-[6px] transition-[rotate] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/filecard:rotate-0 motion-reduce:transition-none"
+          style={{ boxShadow: "0 0 4px rgba(0,0,0,0.2)" }}
+        >
           <span className="whitespace-nowrap text-[4px] font-semibold leading-[normal] tracking-[-0.04px]" style={{ color: "#585E6C" }}>
             {file.name}
           </span>
@@ -2463,8 +2470,9 @@ function FileResultCard({ file, onDownload }: { file: Omit<FileAttachment, "id">
       <button
         type="button"
         onClick={onDownload}
-        className={`flex shrink-0 items-center rounded-[4px] px-[12px] py-[10px] text-[13px] leading-[16px] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
-        style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}
+        // Заливка классом, а не inline-стилем: иначе hover:bg не перебивал бы ее
+        className={`flex shrink-0 items-center rounded-[4px] bg-[#F7F7F8] px-[12px] py-[10px] text-[13px] leading-[16px] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+        style={{ color: tokens.black }}
       >
         Скачать
       </button>
