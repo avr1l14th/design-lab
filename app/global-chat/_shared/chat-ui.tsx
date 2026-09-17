@@ -1555,12 +1555,14 @@ function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: s
                 role="checkbox"
                 aria-checked={allVisible}
                 onClick={toggleAll}
-                className={`flex h-[40px] w-full shrink-0 items-center gap-[12px] rounded-[4px] py-[12px] pr-[12px] text-left ${pressableClass} ${focusRingClass}`}
+                className={`block h-[40px] w-full min-w-0 shrink-0 rounded-[4px] text-left ${pressableClass} ${focusRingClass}`}
               >
-                <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                  {narrowed ? "Выбрать найденные" : "Выбрать все"} ({pluralMeetings(list.length)})
+                <span className="flex h-full w-full min-w-0 items-center gap-[12px] py-[12px] pr-[12px]">
+                  <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                    {narrowed ? "Выбрать найденные" : "Выбрать все"} ({pluralMeetings(list.length)})
+                  </span>
+                  <Checkbox checked={allVisible} />
                 </span>
-                <Checkbox checked={allVisible} />
               </button>
             )}
             {list.length === 0 && (
@@ -1578,20 +1580,24 @@ function MeetingsModalInner({ initial, onClose, onApply, onReset }: { initial: s
                   role="option"
                   aria-selected={on}
                   onClick={() => toggle(m.id)}
-                  className={`flex h-[72px] w-full items-center gap-[12px] rounded-[4px] py-[12px] pr-[12px] text-left ${pressableClass} ${focusRingClass}`}
+                  // Флекс-раскладка не на самой <button>: Safari не ужимает длинный заголовок внутри кнопки-флекса,
+                  // и чекбокс у строки с длинным названием уезжал вправо. Внутренний span ведет себя предсказуемо
+                  className={`block h-[72px] w-full min-w-0 rounded-[4px] text-left ${pressableClass} ${focusRingClass}`}
                 >
-                  <MeetingThumb thumb={m.thumb} width={80} height={48} />
-                  <span className="flex min-w-0 flex-1 flex-col gap-[4px]">
-                    <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
-                      {m.title}
+                  <span className="flex h-full w-full min-w-0 items-center gap-[12px] py-[12px] pr-[12px]">
+                    <MeetingThumb thumb={m.thumb} width={80} height={48} />
+                    <span className="flex min-w-0 flex-1 flex-col gap-[4px] overflow-hidden">
+                      <span className="truncate text-[13px] font-medium leading-[normal] tracking-[-0.13px]" style={{ color: tokens.black }}>
+                        {m.title}
+                      </span>
+                      <span className="flex items-center gap-[4px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
+                        {m.time}
+                        <span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.grey }} />
+                        {m.durationMin} мин
+                      </span>
                     </span>
-                    <span className="flex items-center gap-[4px] text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-                      {m.time}
-                      <span className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: tokens.grey }} />
-                      {m.durationMin} мин
-                    </span>
+                    <Checkbox checked={on} />
                   </span>
-                  <Checkbox checked={on} />
                 </button>
               );
             })}
