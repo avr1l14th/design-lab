@@ -402,7 +402,7 @@ export function GlobalChat({ variant = "default" }: { variant?: ChatVariant }) {
                         nudge={nudge}
                       />
                     </div>
-                    <div className="gc-enter mt-[24px] w-full" style={enterDelay}>
+                    <div className="gc-enter mt-[16px] w-full" style={enterDelay}>
                       <SuggestionList items={showZero ? ZERO_SUGGESTIONS : SUGGESTIONS} onPick={pickSuggestion} />
                     </div>
                   </div>
