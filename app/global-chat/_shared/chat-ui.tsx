@@ -927,7 +927,7 @@ export function Composer({
         </div>
         <div className="ml-auto flex items-center gap-[8px]">
           {/* Пока идет ответ, та же кнопка становится «Стоп» (46527:6245) */}
-          <Tip text={generating ? "Остановить" : "Отправить · Enter"} placement="top" disabled={!canSend && !generating}>
+          <Tip text={generating ? "Остановить" : "Отправить"} placement="top" disabled={!canSend && !generating}>
             <button
               type="button"
               aria-label={generating ? "Остановить" : "Отправить"}
@@ -1807,10 +1807,10 @@ export function DialogHeader({
   const dialogId = dialog?.id ?? null;
 
   return (
-    // Слева 10px + паддинг чипа 6px = текст «Чат» на тех же 16px, что и на стартовой — не скачет при переходе
+    // Слева 10px + паддинг чипа 6px = текст «AI Агент» на тех же 16px, что и на стартовой — не скачет при переходе
     <header className="flex h-[54px] shrink-0 items-center justify-between py-[16px] pl-[10px] pr-[16px]">
       <div ref={switcherRef} className="relative flex min-w-0 items-center gap-[2px]">
-        {/* «Чат» живет в шапке постоянно: на стартовой черный и некликабельный, в диалоге серый и ведет домой */}
+        {/* «AI Агент» живет в шапке постоянно: на стартовой черный и некликабельный, в диалоге серый и ведет домой */}
         <button
           type="button"
           onClick={dialog ? onHome : undefined}
@@ -1818,7 +1818,7 @@ export function DialogHeader({
           aria-disabled={!dialog}
           className={`shrink-0 rounded-[3px] p-[6px] text-[13px] font-medium leading-[normal] tracking-[-0.13px] ${dialog ? "cursor-pointer text-[#818AA3] hover:bg-[#F7F7F8] hover:text-[#212833]" : "cursor-default text-[#212833]"} ${pressableClass} ${focusRingClass}`}
         >
-          Чат
+          AI Агент
         </button>
         {dialog && (
         <div key={dialog.id} className="gc-enter flex min-w-0 items-center gap-[2px]">
