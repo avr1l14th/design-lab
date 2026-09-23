@@ -1,7 +1,8 @@
 "use client";
 
 import { forwardRef, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { createPortal } from "react-dom";
 import {
   MenuDivider,
   MenuRow,
@@ -11,9 +12,16 @@ import {
   usePopoverMotion,
 } from "../../global-chat/_shared/ui";
 import { Ic } from "../../global-chat/_shared/icons";
-import { TAG_COLORS, tagColorHex, type Tag, type TagColor } from "./data";
+import {
+  TAG_COLORS,
+  pluralMeetingsGen,
+  tagColorHex,
+  type Tag,
+  type TagColor,
+} from "./data";
 import {
   TAG_NAME_MAX,
+  easeOut,
   focusRingClass,
   pressableClass,
   shadow,
@@ -134,26 +142,28 @@ export function TagChip({
         {name}
       </span>
       {showRemove && (
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={`Снять тег «${name}»`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onRemove();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
+        <Tip text="Убрать со встречи">
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Снять тег «${name}»`}
+            onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               onRemove();
-            }
-          }}
-          className={`absolute right-[3px] top-1/2 flex h-[16px] w-[16px] -translate-y-1/2 items-center justify-center rounded-[2px] opacity-0 group-hover/chip:opacity-100 focus-visible:opacity-100 text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
-        >
-          <TgIc name="x-mark" size={12} />
-        </span>
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemove();
+              }
+            }}
+            className={`absolute right-[3px] top-1/2 flex h-[16px] w-[16px] -translate-y-1/2 items-center justify-center rounded-[2px] opacity-0 group-hover/chip:opacity-100 focus-visible:opacity-100 text-[#818AA3] hover:text-[#585E6C] ${pressableClass} ${focusRingClass}`}
+          >
+            <TgIc name="x-mark" size={12} />
+          </span>
+        </Tip>
       )}
     </>
   );
@@ -184,7 +194,6 @@ export function TagChip({
         aria-expanded={active}
         className={cls}
         style={style}
-        title={name}
       >
         {inner}
       </span>
@@ -199,14 +208,13 @@ export function TagChip({
         aria-expanded={active}
         className={cls}
         style={style}
-        title={name}
       >
         {inner}
       </button>
     );
   }
   return (
-    <span className={cls} style={style} title={name}>
+    <span className={cls} style={style}>
       {inner}
     </span>
   );
@@ -587,7 +595,7 @@ function PickerBody({
     ref.current?.focus();
   }, []);
 
-  const rowClass = `group/row flex h-[32px] w-full items-center gap-[8px] rounded-[3px] px-[8px] text-left ${pressableClass} ${focusRingClass}`;
+  const rowClass = `group/row relative flex h-[32px] w-full items-center gap-[8px] rounded-[3px] px-[8px] text-left ${pressableClass} ${focusRingClass}`;
 
   return (
     <div
@@ -674,10 +682,13 @@ function PickerBody({
                 <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
                   <ColorDot color={row.tag.color} size={8} />
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]">
+                {/* Имя — на всю ширину строки; на ховере/подсветке справа освобождается место под «…» и имя уходит в троеточие */}
+                <span
+                  className={`min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px] group-hover/row:pr-[24px] ${hot || menuOpen ? "pr-[24px]" : ""}`}
+                >
                   {row.tag.name}
                 </span>
-                {/* «…» — меню тега (имя, цвет, удаление); виден на ховере строки, при подсветке и пока меню открыто */}
+                {/* «…» — меню тега (имя, цвет, удаление); лежит поверх строки справа, виден на ховере, при подсветке и пока меню открыто */}
                 <button
                   type="button"
                   aria-label={`Меню тега «${row.tag.name}»`}
@@ -690,7 +701,7 @@ function PickerBody({
                       e.currentTarget.closest("[role=option]") as HTMLElement,
                     );
                   }}
-                  className={`-mr-[4px] flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[3px] ${hot || menuOpen ? "opacity-100" : "opacity-0"} ${menuOpen ? "text-[#585E6C]" : "text-[#818AA3] hover:text-[#585E6C]"} group-hover/row:opacity-100 focus-visible:opacity-100 ${pressableClass} ${focusRingClass}`}
+                  className={`absolute right-[4px] top-1/2 flex h-[24px] w-[24px] -translate-y-1/2 items-center justify-center rounded-[3px] ${hot || menuOpen ? "opacity-100" : "opacity-0"} ${menuOpen ? "text-[#585E6C]" : "text-[#818AA3] hover:text-[#585E6C]"} group-hover/row:opacity-100 focus-visible:opacity-100 ${pressableClass} ${focusRingClass}`}
                 >
                   <Ic name="ellipsis-horizontal" />
                 </button>
@@ -730,7 +741,11 @@ const NewTagMenu = forwardRef<
     api.tags.some((t) => normalizeName(t.name) === normalizeName(trimmed));
   // Лимит не режем молча: даем дописать и показываем ошибку под полем
   const tooLong = trimmed.length > TAG_NAME_MAX;
-  const error = tooLong ? `Не больше ${TAG_NAME_MAX} символов` : clash ? "Такой тег уже есть" : null;
+  const error = tooLong
+    ? `Не больше ${TAG_NAME_MAX} символов`
+    : clash
+      ? "Такой тег уже есть"
+      : null;
   const canCreate = trimmed.length > 0 && !clash && !tooLong;
   const m = usePopoverMotion("down");
   const pos: React.CSSProperties =
@@ -888,8 +903,13 @@ const TagMenu = forwardRef<
         t.id !== tag.id && normalizeName(t.name) === normalizeName(trimmed),
     );
   const tooLong = trimmed.length > TAG_NAME_MAX;
-  const error = tooLong ? `Не больше ${TAG_NAME_MAX} символов` : clash ? "Такой тег уже есть" : null;
-  const canSave = trimmed.length > 0 && !clash && !tooLong && trimmed !== tag.name;
+  const error = tooLong
+    ? `Не больше ${TAG_NAME_MAX} символов`
+    : clash
+      ? "Такой тег уже есть"
+      : null;
+  const canSave =
+    trimmed.length > 0 && !clash && !tooLong && trimmed !== tag.name;
 
   // Имя применяется по мере ввода — чип и строки списка меняются сразу; пустое, дубль или слишком длинное не сохраняются
   const change = (v: string) => {
@@ -898,7 +918,8 @@ const TagMenu = forwardRef<
     const dup = api.tags.some(
       (x) => x.id !== tag.id && normalizeName(x.name) === normalizeName(t),
     );
-    if (t.length > 0 && t.length <= TAG_NAME_MAX && !dup && t !== tag.name) api.rename(tag.id, t);
+    if (t.length > 0 && t.length <= TAG_NAME_MAX && !dup && t !== tag.name)
+      api.rename(tag.id, t);
   };
   const save = () => {
     if (canSave) api.rename(tag.id, trimmed);
@@ -907,9 +928,13 @@ const TagMenu = forwardRef<
     save();
     onClose();
   };
-  const remove = () => {
+  // Удаление — через модалку подтверждения: тег общий на пространство и уйдет у всех
+  const [confirm, setConfirm] = useState(false);
+  const remove = () => setConfirm(true);
+  const confirmRemove = () => {
     const snapshot = api.remove(tag.id);
     if (snapshot) onDeleted?.(tag, () => api.restore(snapshot));
+    setConfirm(false);
     onClose();
   };
   const m = usePopoverMotion(placement === "above" ? "up" : "down");
@@ -998,9 +1023,160 @@ const TagMenu = forwardRef<
         danger
         onClick={remove}
       />
+      <ConfirmDeleteTag
+        open={confirm}
+        name={tag.name}
+        meetings={api.usage(tag.id).meetings}
+        onCancel={() => setConfirm(false)}
+        onConfirm={confirmRemove}
+      />
     </motion.div>
   );
 });
+
+/**
+ * Модалка подтверждения удаления тега (Figma 47291:70): затемнение, шапка с иконкой, вопрос,
+ * последствия для всех участников и число встреч, футер с «Отменить» и синей «Удалить».
+ * Через портал — меню тега лежит в трансформированном motion.div, fixed внутри него не работает
+ */
+function ConfirmDeleteTag({
+  open,
+  name,
+  meetings,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  name: string;
+  meetings: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const text =
+    meetings > 0
+      ? `Тег исчезнет у всех участников рабочего пространства и снимется с ${pluralMeetingsGen(meetings)}. Сами встречи останутся.`
+      : "Тег исчезнет у всех участников рабочего пространства.";
+  // События модалки не должны доходить до меню/пикера под ней и до их document-слушателей
+  const stop = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+  };
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[90] flex items-center justify-center"
+          style={{ backgroundColor: "rgba(33, 40, 51, 0.3)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.15, ease: easeOut } }}
+          transition={{ duration: 0.2, ease: easeOut }}
+          role="dialog"
+          aria-modal
+          aria-labelledby="tg-confirm-title"
+          onMouseDown={(e) => {
+            stop(e);
+            if (e.target === e.currentTarget) onCancel();
+          }}
+          onClick={stop}
+          onKeyDown={(e) => {
+            stop(e);
+            if (e.key === "Escape") onCancel();
+          }}
+        >
+          <motion.div
+            className="flex w-[500px] flex-col rounded-[4px] bg-white"
+            style={{ boxShadow: shadow }}
+            initial={
+              reduce ? { opacity: 0 } : { opacity: 0, transform: "scale(0.97)" }
+            }
+            animate={
+              reduce ? { opacity: 1 } : { opacity: 1, transform: "scale(1)" }
+            }
+            exit={
+              reduce
+                ? { opacity: 0, transition: { duration: 0 } }
+                : {
+                    opacity: 0,
+                    transform: "scale(0.98)",
+                    transition: { duration: 0.15, ease: easeOut },
+                  }
+            }
+            transition={{ duration: 0.22, ease: easeOut }}
+          >
+            <div
+              className="flex items-center justify-between gap-[10px] rounded-t-[4px] border-b p-[16px]"
+              style={{ borderColor: tokens.border }}
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                <span className="flex" style={{ color: tokens.grey }}>
+                  <TgIc name="tag" />
+                </span>
+                <span
+                  className="text-[14px] font-medium leading-[1.35] tracking-[-0.28px]"
+                  style={{ color: tokens.black }}
+                >
+                  Удаление тега
+                </span>
+              </div>
+              {/* Крестик как в других модалках лаборатории (Figma 6932:1962): серый круг 16 с иконкой 10 */}
+              <button
+                type="button"
+                aria-label="Закрыть"
+                onClick={onCancel}
+                className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+                style={{ backgroundColor: tokens.bgSubtle, color: tokens.grey }}
+              >
+                <Ic name="x-mark" size={10} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-[12px] px-[16px] py-[24px]">
+              <h2
+                id="tg-confirm-title"
+                className="text-[16px] font-medium leading-[normal] tracking-[-0.32px]"
+                style={{ color: tokens.black }}
+              >
+                Удалить тег «{name}»?
+              </h2>
+              <p
+                className="text-[13px] leading-[16px] tracking-[-0.13px]"
+                style={{ color: tokens.black }}
+              >
+                {text}
+              </p>
+            </div>
+            <div
+              className="flex items-center justify-end gap-[8px] rounded-b-[4px] border-t p-[16px]"
+              style={{
+                backgroundColor: tokens.bgSubtle,
+                borderColor: tokens.border,
+              }}
+            >
+              <button
+                type="button"
+                onClick={onCancel}
+                className={`flex h-[36px] items-center justify-center rounded-[4px] px-[12px] text-[13px] leading-[normal] tracking-[-0.13px] hover:bg-[#EFEFEF] ${pressableClass} ${focusRingClass}`}
+                style={{ color: tokens.black }}
+              >
+                Отменить
+              </button>
+              <button
+                type="button"
+                autoFocus
+                onClick={onConfirm}
+                className={`flex h-[36px] items-center justify-center rounded-[4px] bg-[#0138C7] px-[12px] text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white hover:bg-[#0032B1] ${pressableClass} ${focusRingClass}`}
+              >
+                Удалить
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+}
 
 /**
  * Меню тега под чипом (страница встречи): то же меню, что у «…» в пикере — имя, цвет, удаление,
