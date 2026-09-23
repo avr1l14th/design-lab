@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AUTHORS, SOURCE_META, type Author, type MeetingSource } from "../../search-filters/mock-data";
 import { formatDateRange, monthYearLabel, type FilterState as BaseFilterState } from "../../search-filters/use-filtered-meetings";
-import { TODAY, pluralMeetings, type Tag, type TagMeeting } from "./data";
+import { TODAY, type Tag, type TagMeeting } from "./data";
 import { sfAsset, tokens } from "./tokens";
 import { Checkbox, ColorDot, TgIc } from "./ui";
 
@@ -193,13 +193,13 @@ function AuthorsPanel({ filters, onChange }: { filters: FilterState; onChange: (
 }
 
 /** Подпанель «Теги»: теги текущего пространства */
-function TagsPanel({ filters, tags, countOf, onChange }: { filters: FilterState; tags: Tag[]; countOf: (tagId: string) => number; onChange: (next: FilterState) => void }) {
+function TagsPanel({ filters, tags, onChange }: { filters: FilterState; tags: Tag[]; onChange: (next: FilterState) => void }) {
   const toggle = (id: string) => {
     const has = filters.tagIds.includes(id);
     onChange({ ...filters, tagIds: has ? filters.tagIds.filter((x) => x !== id) : [...filters.tagIds, id] });
   };
   return (
-    <div className="flex w-[264px] flex-col items-start rounded-[4px] bg-white" style={{ boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)" }} role="menu">
+    <div className="flex w-[220px] flex-col items-start rounded-[4px] bg-white" style={{ boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)" }} role="menu">
       {tags.length === 0 ? (
         <p className="px-[10px] py-[12px] text-[12px] leading-[16px] tracking-[-0.24px]" style={{ color: tokens.grey }}>
           В этом пространстве тегов пока нет. Откройте встречу и добавьте первый
@@ -207,7 +207,7 @@ function TagsPanel({ filters, tags, countOf, onChange }: { filters: FilterState;
       ) : (
         <div className="tg-scroll max-h-[264px] w-full overflow-y-auto p-[4px]">
           {tags.map((t) => (
-            <button key={t.id} type="button" role="menuitemcheckbox" aria-checked={filters.tagIds.includes(t.id)} onClick={() => toggle(t.id)} className="flex h-[32px] w-full items-center justify-between gap-[8px] rounded-[3px] py-[6px] pl-[8px] pr-[8px] transition-colors hover:bg-[#F7F7F8]">
+            <button key={t.id} type="button" role="menuitemcheckbox" aria-checked={filters.tagIds.includes(t.id)} onClick={() => toggle(t.id)} className="flex h-[32px] w-full items-center gap-[8px] rounded-[3px] px-[8px] transition-colors hover:bg-[#F7F7F8]">
               <span className="flex min-w-0 items-center gap-[8px]">
                 <Checkbox checked={filters.tagIds.includes(t.id)} />
                 <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
@@ -217,13 +217,6 @@ function TagsPanel({ filters, tags, countOf, onChange }: { filters: FilterState;
                   {t.name}
                 </span>
               </span>
-              {/* Ноль не пишем — пустое место читается как «встреч нет» */}
-              {/* «1 встреча» / «4 встречи» / «7 встреч» */}
-              {countOf(t.id) > 0 && (
-                <span className="shrink-0 text-[12px] leading-[16px] tracking-[-0.24px]" style={{ color: "#C7C8CA" }}>
-                  {pluralMeetings(countOf(t.id))}
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -404,7 +397,6 @@ export function FilterPopover({
   onClear,
   onClose,
   tags,
-  countOf,
 }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
   filters: FilterState;
@@ -417,8 +409,6 @@ export function FilterPopover({
   onClose: () => void;
   /** Теги для подпанели — использованные в текущем пространстве */
   tags: Tag[];
-  /** Сколько встреч с тегом — серым числом справа */
-  countOf: (tagId: string) => number;
 }) {
   const submenuOffset: Record<FilterTab, number> = { tags: 0, sources: 32, authors: 64, date: 96 };
   const submenuTop = activeTab !== null ? submenuOffset[activeTab] : 0;
@@ -431,7 +421,7 @@ export function FilterPopover({
           {activeTab === "sources" && <SourcesPanel filters={filters} onChange={onChange} />}
           {activeTab === "authors" && <AuthorsPanel filters={filters} onChange={onChange} />}
           {activeTab === "date" && <DatePanel filters={filters} onChange={onChange} onClose={onClose} />}
-          {activeTab === "tags" && <TagsPanel filters={filters} tags={tags} countOf={countOf} onChange={onChange} />}
+          {activeTab === "tags" && <TagsPanel filters={filters} tags={tags} onChange={onChange} />}
         </div>
       )}
     </div>

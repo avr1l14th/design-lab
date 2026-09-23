@@ -223,7 +223,6 @@ export default function TagsMeetingsPage() {
                   }}
                   onClose={closeFilters}
                   tags={api.tags}
-                  countOf={(id) => api.usage(id).meetings}
                 />
               )}
             </div>
