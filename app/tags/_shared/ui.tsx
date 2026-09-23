@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import {
+  Button,
   MenuDivider,
   MenuRow,
   Popover,
@@ -716,7 +717,7 @@ function PickerBody({
 
 /**
  * Панель нового тега сбоку от строки «Создать тег»: имя и цвет.
- * Enter — тег создается и сразу ставится на встречу (кнопки нет)
+ * Enter или кнопка «Создать» — тег создается и сразу ставится на встречу
  */
 const NewTagMenu = forwardRef<
   HTMLDivElement,
@@ -814,6 +815,17 @@ const NewTagMenu = forwardRef<
         )}
       </div>
       <ColorRow value={color} onPick={setColor} />
+      {/* Явная кнопка на всю ширину: команде было неочевидно, что тег создается по Enter. Enter работает по-прежнему */}
+      <div className="p-[4px]">
+        <Button
+          variant="primary"
+          onClick={submit}
+          disabled={!canCreate}
+          className="w-full"
+        >
+          Создать
+        </Button>
+      </div>
     </motion.div>
   );
 });
