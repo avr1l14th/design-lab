@@ -5,8 +5,6 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import {
   Button,
-  MenuDivider,
-  MenuRow,
   Popover,
   Tip,
   useOutsideClose,
@@ -84,6 +82,45 @@ export function TgIc({
 // цвета тега (6px). Системные чипы (источник, автор, дата) залиты серым — контур и кружок
 // отличают «мои теги» от атрибутов встречи. Два размера: 20 в списке, 23 на странице встречи
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** shadow/default из макета тегов: #00000033, радиус 4 */
+const popShadow = "0 0 4px 0 rgba(0, 0, 0, 0.2)";
+
+/**
+ * Строка меню по макету (Frame 337293): высота 32, отступ 6, скругление 2, иконка 16, зазор 6.
+ * Общая для «Создать тег» в пикере и пунктов меню тега
+ */
+function TgMenuRow({
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: TgIconName;
+  label: string;
+  onClick?: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={`flex h-[32px] w-full items-center gap-[6px] rounded-[2px] px-[6px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
+      style={{ color: danger ? tokens.red : tokens.black }}
+    >
+      <span
+        className="flex h-[16px] w-[16px] shrink-0 items-center justify-center"
+        style={{ color: danger ? tokens.red : tokens.grey }}
+      >
+        <TgIc name={icon} />
+      </span>
+      <span className="truncate text-[13px] leading-[16px] tracking-[-0.13px]">
+        {label}
+      </span>
+    </button>
+  );
+}
 
 const chipBase =
   "inline-flex shrink-0 items-center rounded-[3px] border text-[12px] leading-[normal] tracking-[-0.24px] whitespace-nowrap";
@@ -500,8 +537,8 @@ export function TagPicker({
       {open && <Backdrop onClose={onClose} />}
       <Popover
         open={open}
-        className={`w-[240px] ${className}`}
-        style={style}
+        className={`w-[210px] ${className}`}
+        style={{ boxShadow: popShadow, ...style }}
         direction={direction}
         padding={0}
       >
@@ -628,7 +665,7 @@ function PickerBody({
     ref.current?.focus();
   }, []);
 
-  const rowClass = `group/row relative flex h-[32px] w-full items-center gap-[8px] rounded-[3px] px-[8px] text-left ${pressableClass} ${focusRingClass}`;
+  const rowClass = `group/row relative flex h-[32px] w-full items-center gap-[8px] rounded-[2px] px-[6px] text-left ${pressableClass} ${focusRingClass}`;
 
   return (
     <div
@@ -675,9 +712,9 @@ function PickerBody({
       >
         <div
           ref={createRowRef}
-          className={createMenu ? "rounded-[3px] bg-[#F7F7F8]" : ""}
+          className={createMenu ? "rounded-[2px] bg-[#F7F7F8]" : ""}
         >
-          <MenuRow
+          <TgMenuRow
             icon="plus"
             label="Создать тег"
             onClick={() =>
@@ -711,7 +748,10 @@ function PickerBody({
                 className={`${rowClass} cursor-pointer ${hot || menuOpen ? "bg-[#F7F7F8]" : ""}`}
                 style={{ color: tokens.black }}
               >
-                <Checkbox checked={on} />
+                {/* Чекбокс 14 в ячейке 16 — как в макете строки */}
+                <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
+                  <Checkbox checked={on} />
+                </span>
                 <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
                   <ColorDot color={row.tag.color} size={8} />
                 </span>
@@ -797,7 +837,7 @@ const NewTagMenu = forwardRef<
       className="absolute z-50 w-[240px] rounded-[4px] bg-white p-[4px]"
       style={{
         ...pos,
-        boxShadow: shadow,
+        boxShadow: popShadow,
         transformOrigin: side === "left" ? "top right" : "top left",
       }}
       onKeyDown={(e) => {
@@ -818,7 +858,7 @@ const NewTagMenu = forwardRef<
     >
       <div className="p-[4px]">
         <label
-          className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border bg-white px-[8px] ${error ? "border-[#CC3333]" : "border-[#EFEFEF] focus-within:border-[#0138C7]"} ${pressableClass}`}
+          className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border border-[#EFEFEF] bg-white px-[12px] focus-within:border-[#0138C7] ${pressableClass}`}
         >
           <input
             autoFocus
@@ -839,7 +879,7 @@ const NewTagMenu = forwardRef<
         </label>
         {error && (
           <p
-            className="px-[2px] pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]"
+            className="pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]"
             style={{ color: tokens.red }}
           >
             {error}
@@ -872,7 +912,7 @@ function ColorRow({
 }) {
   return (
     <div
-      className="flex items-center justify-between px-[8px] py-[6px]"
+      className="flex items-center justify-between px-[4px] py-[6px]"
       role="radiogroup"
       aria-label="Цвет тега"
     >
@@ -988,8 +1028,8 @@ const TagMenu = forwardRef<
       ? { top, left: "calc(100% + 4px)" }
       : { top, right: "calc(100% + 4px)" }
     : placement === "above"
-      ? { bottom: "calc(100% + 4px)", left: 0 }
-      : { top: "calc(100% + 4px)", left: 0 };
+      ? { bottom: "calc(100% + 6px)", left: 0 }
+      : { top: "calc(100% + 6px)", left: 0 };
   const origin = beside
     ? side === "left"
       ? "top right"
@@ -1003,8 +1043,8 @@ const TagMenu = forwardRef<
       ref={ref}
       role="menu"
       {...m}
-      className="absolute z-50 w-[240px] rounded-[4px] bg-white p-[4px]"
-      style={{ ...pos, boxShadow: shadow, transformOrigin: origin }}
+      className="absolute z-50 w-[240px] overflow-hidden rounded-[4px] bg-white"
+      style={{ ...pos, boxShadow: popShadow, transformOrigin: origin }}
       onKeyDown={(e) => {
         // Esc в меню — закрыть только меню. React в App Router слушает на document, как и Esc поповера
         if (e.key === "Escape") {
@@ -1022,51 +1062,54 @@ const TagMenu = forwardRef<
         }
       }}
     >
+      {/* Верхний блок: имя и цвет; нижний — действия, отделен линией во всю ширину (как в макете) */}
       <div className="p-[4px]">
-        <label
-          className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border bg-white px-[8px] ${error ? "border-[#CC3333]" : "border-[#EFEFEF] focus-within:border-[#0138C7]"} ${pressableClass}`}
-        >
-          <input
-            value={name}
-            onChange={(e) => change(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") close();
-            }}
-            onBlur={save}
-            aria-label="Название тега"
-            aria-invalid={!!error}
-            className="min-w-0 flex-1 bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none"
-            style={{ color: tokens.black }}
-          />
-        </label>
-        {error && (
-          <p
-            className="px-[2px] pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]"
-            style={{ color: tokens.red }}
+        <div className="p-[4px]">
+          <label
+            className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border border-[#EFEFEF] bg-white px-[12px] focus-within:border-[#0138C7] ${pressableClass}`}
           >
-            {error}
-          </p>
-        )}
+            <input
+              value={name}
+              onChange={(e) => change(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") close();
+              }}
+              onBlur={save}
+              aria-label="Название тега"
+              aria-invalid={!!error}
+              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none"
+              style={{ color: tokens.black }}
+            />
+          </label>
+          {error && (
+            <p
+              className="pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]"
+              style={{ color: tokens.red }}
+            >
+              {error}
+            </p>
+          )}
+        </div>
+        <ColorRow value={tag.color} onPick={(c) => api.setColor(tag.id, c)} />
       </div>
-      <ColorRow value={tag.color} onPick={(c) => api.setColor(tag.id, c)} />
-
-      <MenuDivider />
-      {onUnassign && (
-        <MenuRow
-          icon="x-mark"
-          label="Убрать со встречи"
-          onClick={() => {
-            onUnassign();
-            onClose();
-          }}
+      <div className="border-t p-[4px]" style={{ borderColor: tokens.border }}>
+        {onUnassign && (
+          <TgMenuRow
+            icon="x-mark"
+            label="Убрать со встречи"
+            onClick={() => {
+              onUnassign();
+              onClose();
+            }}
+          />
+        )}
+        <TgMenuRow
+          icon="trash"
+          label={onUnassign ? "Удалить тег" : "Удалить"}
+          danger
+          onClick={remove}
         />
-      )}
-      <MenuRow
-        icon="trash"
-        label={onUnassign ? "Удалить тег" : "Удалить"}
-        danger
-        onClick={remove}
-      />
+      </div>
       <ConfirmDeleteTag
         open={confirm}
         name={tag.name}

@@ -16,6 +16,9 @@ import { TODAY, type Tag, type TagMeeting } from "./data";
 import { sfAsset, tokens } from "./tokens";
 import { Checkbox, ColorDot, TgIc } from "./ui";
 
+/** Тень панелей фильтра по макету: 0 0 2 #00000026 */
+const panelShadow = "0 0 2px 0 rgba(0, 0, 0, 0.15)";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Фильтры встреч — из прототипа «Поиск и фильтры» (через глобальный чат) плюс
 // четвертый пункт «Теги»: чекбоксы по тегам, использованным в этом пространстве,
@@ -194,7 +197,7 @@ function MainPanel({
   return (
     <div
       className="flex w-[200px] flex-col items-start rounded-[4px] bg-white p-[4px]"
-      style={{ boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)" }}
+      style={{ boxShadow: panelShadow }}
       role="menu"
     >
       <MainPanelRow
@@ -324,7 +327,7 @@ function SourcesPanel({
   return (
     <div
       className="flex w-[200px] flex-col items-start rounded-[4px] bg-white p-[4px]"
-      style={{ boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)" }}
+      style={{ boxShadow: panelShadow }}
       role="menu"
     >
       {SOURCES_ORDER.map((s) => (
@@ -359,7 +362,7 @@ function AuthorsPanel({
   return (
     <div
       className="flex w-[240px] flex-col items-start rounded-[4px] bg-white p-[4px]"
-      style={{ boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)" }}
+      style={{ boxShadow: panelShadow }}
       role="menu"
     >
       {AUTHORS.map((a) => (
@@ -396,8 +399,8 @@ function TagsPanel({
   };
   return (
     <div
-      className="flex w-[220px] flex-col items-start rounded-[4px] bg-white"
-      style={{ boxShadow: "0 0 4px 0 rgba(0,0,0,0.15)" }}
+      className="flex w-[200px] flex-col items-start rounded-[4px] bg-white"
+      style={{ boxShadow: panelShadow }}
       role="menu"
     >
       {tags.length === 0 ? (
@@ -416,10 +419,13 @@ function TagsPanel({
               role="menuitemcheckbox"
               aria-checked={filters.tagIds.includes(t.id)}
               onClick={() => toggle(t.id)}
-              className="flex h-[32px] w-full items-center gap-[8px] rounded-[3px] px-[8px] transition-colors hover:bg-[#F7F7F8]"
+              className="flex h-[32px] w-full items-center gap-[8px] rounded-[2px] px-[6px] transition-colors hover:bg-[#F7F7F8]"
             >
               <span className="flex min-w-0 items-center gap-[8px]">
-                <Checkbox checked={filters.tagIds.includes(t.id)} />
+                {/* Чекбокс 14 в ячейке 16 — как в строке макета */}
+                <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
+                  <Checkbox checked={filters.tagIds.includes(t.id)} />
+                </span>
                 <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
                   <ColorDot color={t.color} size={8} />
                 </span>

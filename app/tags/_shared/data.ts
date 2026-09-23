@@ -143,7 +143,7 @@ export const ME_ID = "u-fedos";
 export type TagColor = "grey" | "blue" | "purple" | "orange" | "yellow" | "teal" | "green" | "red";
 
 export const TAG_COLORS: { id: TagColor; hex: string; label: string }[] = [
-  { id: "grey", hex: "#C7C8CA", label: "Серый" },
+  { id: "grey", hex: "#818AA3", label: "Серый" },
   { id: "blue", hex: "#0138C7", label: "Синий" },
   { id: "purple", hex: "#8A38F5", label: "Фиолетовый" },
   { id: "orange", hex: "#FF9E2C", label: "Оранжевый" },
