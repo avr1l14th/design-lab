@@ -48,7 +48,7 @@ function rememberOpen(id: string) {
 
 /** Колонка тегов в строке: чипы и «+» на ховере (без тегов — «+ Добавить тег»).
  * Чип открывает меню тега (как на странице встречи), «+» и «+N» — пикер */
-function TagsCell({ m, api, onCreated, onDeleted }: { m: TagMeeting; api: TagsApi; onCreated: (name: string) => void; onDeleted: (name: string, restore: () => void) => void }) {
+function TagsCell({ m, api, onDeleted }: { m: TagMeeting; api: TagsApi; onDeleted: (name: string, restore: () => void) => void }) {
   const tags = api.tagsFor(m.id);
   /** Кто открыл пикер: "more" («+N») или "plus»; null — закрыт. Открывший держит серую заливку */
   const [openFrom, setOpenFrom] = useState<string | null>(null);
@@ -82,7 +82,6 @@ function TagsCell({ m, api, onCreated, onDeleted }: { m: TagMeeting; api: TagsAp
         api={api}
         open={open}
         onClose={() => setOpenFrom(null)}
-        onCreated={(t) => onCreated(t.name)}
         onDeleted={(t, restore) => onDeleted(t.name, restore)}
         anchorRef={cellRef}
         direction={direction}
@@ -93,7 +92,7 @@ function TagsCell({ m, api, onCreated, onDeleted }: { m: TagMeeting; api: TagsAp
 }
 
 /** Строка встречи (72px): миниатюра, название и время, автор, источник, теги */
-function MeetingRow({ m, api, onCreated, onDeleted }: { m: TagMeeting; api: TagsApi; onCreated: (name: string) => void; onDeleted: (name: string, restore: () => void) => void }) {
+function MeetingRow({ m, api, onDeleted }: { m: TagMeeting; api: TagsApi; onDeleted: (name: string, restore: () => void) => void }) {
   const author = getAuthor(m.authorId);
   const source = SOURCE_META[m.source];
 
@@ -130,7 +129,7 @@ function MeetingRow({ m, api, onCreated, onDeleted }: { m: TagMeeting; api: Tags
         </span>
         {/* Колонка тегов интерактивна поверх ссылки */}
         <div className="pointer-events-auto flex min-w-0 flex-1">
-          <TagsCell m={m} api={api} onCreated={onCreated} onDeleted={onDeleted} />
+          <TagsCell m={m} api={api} onDeleted={onDeleted} />
         </div>
       </div>
     </div>
@@ -299,7 +298,7 @@ export default function TagsMeetingsPage() {
                 <div key={g.key} className="flex w-full flex-col">
                   <DateHeader label={g.label} subLabel={g.subLabel} />
                   {g.meetings.map((m) => (
-                    <MeetingRow key={m.id} m={m} api={api} onCreated={(name) => toast.show(`Тег «${name}» создан`)} onDeleted={(name, restore) => toast.show("Тег удален", { undo: restore })} />
+                    <MeetingRow key={m.id} m={m} api={api} onDeleted={(name, restore) => toast.show("Тег удален", { undo: restore })} />
                   ))}
                 </div>
               ))

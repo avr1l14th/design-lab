@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { Ic } from "../../global-chat/_shared/icons";
 import { SOURCE_META, getAuthor } from "../../search-filters/mock-data";
-import { MEETINGS, formatDateTime, meetingById, type Tag, type TagMeeting } from "../_shared/data";
+import { MEETINGS, formatDateTime, meetingById, type TagMeeting } from "../_shared/data";
 import { Sidebar } from "../_shared/Sidebar";
 import { OPEN_MEETING_KEY, focusRingClass, gcAsset, pressableClass, sfAsset, tokens } from "../_shared/tokens";
-import { AddTagChip, TagChip, TagChipMenu, TagPicker, ToastHost, useToast } from "../_shared/ui";
-import { useTags, type TagsApi } from "../_shared/use-tags";
+import { AddTagChip, ChipWithMenu, TagPicker, ToastHost, useToast } from "../_shared/ui";
+import { useTags } from "../_shared/use-tags";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600"] });
 
@@ -85,40 +85,27 @@ function MeetingTopBar({ onAction }: { onAction: (label: string) => void }) {
   );
 }
 
-/** Чип тега на встрече: клик — меню тега под чипом, крестик на ховере — снять с встречи */
-function MeetingTagChip({
-  tag,
-  meetingId,
-  api,
-  open,
-  onToggle,
-  onClose,
-  onDeleted,
-}: {
-  tag: Tag;
-  meetingId: string;
-  api: TagsApi;
-  open: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  onDeleted: (name: string, restore: () => void) => void;
-}) {
-  const ref = useRef<HTMLButtonElement>(null);
-  return (
-    <span className="relative flex">
-      <TagChip buttonRef={ref} name={tag.name} color={tag.color} size={23} active={open} onClick={onToggle} onRemove={() => api.toggle(meetingId, tag.id)} />
-      <TagChipMenu tag={tag} api={api} open={open} onClose={onClose} anchorRef={ref} onUnassign={() => api.toggle(meetingId, tag.id)} onDeleted={(t, restore) => onDeleted(t.name, restore)} />
-    </span>
-  );
-}
-
 /** Ряд чипов под заголовком: источник, автор, дата — и теги пользователя с кнопкой добавления */
-function MeetingInfo({ m, onCreated, onDeleted }: { m: TagMeeting; onCreated: (name: string) => void; onDeleted: (name: string, restore: () => void) => void }) {
+function MeetingInfo({ m, onDeleted }: { m: TagMeeting; onDeleted: (name: string, restore: () => void) => void }) {
   const api = useTags();
   const tags = api.tagsFor(m.id);
   const author = getAuthor(m.authorId);
   const source = SOURCE_META[m.source];
   const [open, setOpen] = useState(false);
+  /** Где стоит пикер: координаты «+» относительно ряда в момент открытия. Пока пикер открыт,
+      он не двигается, даже если «+» уехал из-за новых чипов; при следующем открытии — снова у «+» */
+  const [pickerPos, setPickerPos] = useState<{ left: number; top: number } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const openPicker = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const row = rowRef.current?.getBoundingClientRect();
+    const plus = btnRef.current?.getBoundingClientRect();
+    if (row && plus) setPickerPos({ left: plus.left - row.left, top: plus.bottom - row.top + 6 });
+    setOpen(true);
+  };
   /** Какой чип открыл свое меню */
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -131,7 +118,7 @@ function MeetingInfo({ m, onCreated, onDeleted }: { m: TagMeeting; onCreated: (n
       </h1>
       {/* Один ряд с переносом: системные чипы и теги — отдельные элементы, теги докладываются в первую строку
           и переносятся по одному. Кнопка добавления видна всегда */}
-      <div className="flex flex-wrap items-center gap-[6px]">
+      <div ref={rowRef} className="relative flex flex-wrap items-center gap-[6px]">
         <span className={chip} style={{ backgroundColor: tokens.bgSubtle, color: tokens.black }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={sfAsset(source.icon)} alt="" className="h-[12px] w-[12px] max-w-none shrink-0 object-contain" />
@@ -148,18 +135,22 @@ function MeetingInfo({ m, onCreated, onDeleted }: { m: TagMeeting; onCreated: (n
           {formatDateTime(m.date, m.time)}
         </span>
         {tags.map((t) => (
-          <MeetingTagChip key={t.id} tag={t} meetingId={m.id} api={api} open={menuFor === t.id} onToggle={() => setMenuFor((v) => (v === t.id ? null : t.id))} onClose={() => setMenuFor(null)} onDeleted={onDeleted} />
+          <span key={t.id} className="relative flex">
+            <ChipWithMenu tag={t} meetingId={m.id} api={api} size={23} open={menuFor === t.id} onToggle={() => setMenuFor((v) => (v === t.id ? null : t.id))} onClose={() => setMenuFor(null)} onDeleted={(tag, restore) => onDeleted(tag.name, restore)} />
+          </span>
         ))}
-        <span className="relative flex">
-          <AddTagChip
-            buttonRef={btnRef}
-            size={23}
-            active={open}
-            onClick={() => setOpen((v) => !v)}
-            label={tags.length === 0 ? "Добавить тег" : undefined}
-          />
-          <TagPicker meetingId={m.id} api={api} open={open} onClose={() => setOpen(false)} onCreated={(t) => onCreated(t.name)} onDeleted={(t, restore) => onDeleted(t.name, restore)} anchorRef={btnRef} className="left-0 top-[calc(100%+6px)]" />
-        </span>
+        <AddTagChip buttonRef={btnRef} size={23} active={open} onClick={openPicker} label={tags.length === 0 ? "Добавить тег" : undefined} />
+        {/* Пикер лежит в ряду с абсолютными координатами «+» на момент открытия — и не двигается,
+            пока открыт, сколько бы тегов ни добавили */}
+        <TagPicker
+          meetingId={m.id}
+          api={api}
+          open={open}
+          onClose={() => setOpen(false)}
+            onDeleted={(t, restore) => onDeleted(t.name, restore)}
+          anchorRef={btnRef}
+          style={pickerPos ? { left: pickerPos.left, top: pickerPos.top } : undefined}
+        />
       </div>
       <div className="flex w-full flex-col gap-[4px]">
         <span className="text-[13px] leading-[16px] tracking-[-0.13px] underline decoration-dotted underline-offset-[3px]" style={{ color: tokens.black, textDecorationColor: tokens.grey }}>
@@ -285,7 +276,7 @@ export default function TagsMeetingPage() {
               {meeting && (
                 <>
                   <div className="flex shrink-0 flex-col gap-[24px]">
-                    <MeetingInfo m={meeting} onCreated={(name) => toast.show(`Тег «${name}» создан`)} onDeleted={(name, restore) => toast.show("Тег удален", { undo: restore })} />
+                    <MeetingInfo m={meeting} onDeleted={(name, restore) => toast.show("Тег удален", { undo: restore })} />
                     <MeetingTabs onPick={stub} />
                   </div>
                   <Article m={meeting} />

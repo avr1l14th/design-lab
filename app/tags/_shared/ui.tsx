@@ -2,13 +2,36 @@
 
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MenuDivider, MenuRow, Popover, Tip, useOutsideClose, usePopoverMotion } from "../../global-chat/_shared/ui";
+import {
+  MenuDivider,
+  MenuRow,
+  Popover,
+  Tip,
+  useOutsideClose,
+  usePopoverMotion,
+} from "../../global-chat/_shared/ui";
 import { Ic } from "../../global-chat/_shared/icons";
 import { TAG_COLORS, tagColorHex, type Tag, type TagColor } from "./data";
-import { TAG_NAME_MAX, focusRingClass, pressableClass, shadow, tgAsset, tokens } from "./tokens";
+import {
+  TAG_NAME_MAX,
+  focusRingClass,
+  pressableClass,
+  shadow,
+  tgAsset,
+  tokens,
+} from "./tokens";
 import { normalizeName, type TagsApi } from "./use-tags";
 
-export { Popover, Tip, useOutsideClose, ToastHost, useToast, Button, MenuRow, MenuDivider } from "../../global-chat/_shared/ui";
+export {
+  Popover,
+  Tip,
+  useOutsideClose,
+  ToastHost,
+  useToast,
+  Button,
+  MenuRow,
+  MenuDivider,
+} from "../../global-chat/_shared/ui";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Иконки прототипа: heroicons 20/solid из public/tags, 16×16 через маску (как Ic в чате)
@@ -16,7 +39,15 @@ export { Popover, Tip, useOutsideClose, ToastHost, useToast, Button, MenuRow, Me
 
 export type TgIconName = "tag" | "plus" | "check" | "x-mark" | "trash";
 
-export function TgIc({ name, size = 16, className = "" }: { name: TgIconName; size?: number; className?: string }) {
+export function TgIc({
+  name,
+  size = 16,
+  className = "",
+}: {
+  name: TgIconName;
+  size?: number;
+  className?: string;
+}) {
   const src = tgAsset(`${name}.svg`);
   return (
     <span
@@ -45,11 +76,24 @@ export function TgIc({ name, size = 16, className = "" }: { name: TgIconName; si
 // отличают «мои теги» от атрибутов встречи. Два размера: 20 в списке, 23 на странице встречи
 // ─────────────────────────────────────────────────────────────────────────────
 
-const chipBase = "inline-flex shrink-0 items-center rounded-[3px] border text-[12px] leading-[normal] tracking-[-0.24px] whitespace-nowrap";
+const chipBase =
+  "inline-flex shrink-0 items-center rounded-[3px] border text-[12px] leading-[normal] tracking-[-0.24px] whitespace-nowrap";
 
-export function ColorDot({ color, size = 6 }: { color: TagColor | string; size?: number }) {
+export function ColorDot({
+  color,
+  size = 6,
+}: {
+  color: TagColor | string;
+  size?: number;
+}) {
   const hex = color.startsWith("#") ? color : tagColorHex(color as TagColor);
-  return <span aria-hidden="true" className="shrink-0 rounded-full" style={{ width: size, height: size, backgroundColor: hex }} />;
+  return (
+    <span
+      aria-hidden="true"
+      className="shrink-0 rounded-full"
+      style={{ width: size, height: size, backgroundColor: hex }}
+    />
+  );
 }
 
 export function TagChip({
@@ -74,7 +118,9 @@ export function TagChip({
 }) {
   const px = size === 20 ? 6 : 8;
   // Пока открыт поповер/меню этого чипа (active) — серая заливка держится, не только на ховере
-  const interactive = onClick ? `hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : "bg-white"} ${pressableClass} ${focusRingClass}` : "bg-white";
+  const interactive = onClick
+    ? `hover:bg-[#F7F7F8] ${active ? "bg-[#F7F7F8]" : "bg-white"} ${pressableClass} ${focusRingClass}`
+    : "bg-white";
   // Пока открыт поповер чипа (active), крестик спрятан и текст стоит на всю ширину, как по умолчанию
   const showRemove = !!onRemove && !active;
   const inner = (
@@ -82,7 +128,11 @@ export function TagChip({
       <ColorDot color={color} />
       {/* Ширина чипа — по тексту. На ховере крестик накладывается справа, а текст уходит в троеточие,
           чтобы чип не менял ширину и не держал пустоту под крестик */}
-      <span className={`min-w-0 truncate ${showRemove ? "group-hover/chip:max-w-[calc(100%-26px)] group-focus-within/chip:max-w-[calc(100%-26px)]" : ""}`}>{name}</span>
+      <span
+        className={`min-w-0 truncate ${showRemove ? "group-hover/chip:max-w-[calc(100%-26px)] group-focus-within/chip:max-w-[calc(100%-26px)]" : ""}`}
+      >
+        {name}
+      </span>
       {showRemove && (
         <span
           role="button"
@@ -108,7 +158,14 @@ export function TagChip({
     </>
   );
   // Рамка у чипов всегда #EFEFEF — активное состояние отличается только заливкой
-  const style = { height: size, maxWidth, paddingLeft: px, paddingRight: px, borderColor: tokens.border, color: tokens.black };
+  const style = {
+    height: size,
+    maxWidth,
+    paddingLeft: px,
+    paddingRight: px,
+    borderColor: tokens.border,
+    color: tokens.black,
+  };
   const cls = `group/chip gc-enter relative ${chipBase} gap-[6px] ${interactive}`;
   if (onClick && onRemove) {
     // Чип и крестик оба кликабельны — внешний элемент не <button>, чтобы не вкладывать кнопку в кнопку
@@ -135,7 +192,15 @@ export function TagChip({
   }
   if (onClick) {
     return (
-      <button ref={buttonRef} type="button" onClick={onClick} aria-expanded={active} className={cls} style={style} title={name}>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={onClick}
+        aria-expanded={active}
+        className={cls}
+        style={style}
+        title={name}
+      >
         {inner}
       </button>
     );
@@ -168,7 +233,9 @@ export function AddTagChip({
 }) {
   const px = label ? (size === 20 ? 6 : 8) : 0;
   // gap 6, как между чипами
-  const tone = active ? "bg-[#F7F7F8] text-[#585E6C] border-[#EFEFEF]" : "bg-white text-[#818AA3] border-[#EFEFEF] hover:text-[#585E6C] hover:bg-[#F7F7F8]";
+  const tone = active
+    ? "bg-[#F7F7F8] text-[#585E6C] border-[#EFEFEF]"
+    : "bg-white text-[#818AA3] border-[#EFEFEF] hover:text-[#585E6C] hover:bg-[#F7F7F8]";
   const btn = (
     <button
       ref={buttonRef}
@@ -177,7 +244,12 @@ export function AddTagChip({
       aria-expanded={active}
       onClick={onClick}
       className={`${chipBase} justify-center gap-[6px] ${tone} ${pressableClass} ${focusRingClass} ${className}`}
-      style={{ height: size, width: label ? undefined : size, paddingLeft: px, paddingRight: px }}
+      style={{
+        height: size,
+        width: label ? undefined : size,
+        paddingLeft: px,
+        paddingRight: px,
+      }}
     >
       <TgIc name="plus" size={12} />
       {/* Подпись — черным, как у чипов тегов; серым остается только плюс */}
@@ -185,7 +257,13 @@ export function AddTagChip({
     </button>
   );
   // Тултип нужен только квадрату без подписи
-  return label ? btn : <Tip text={ariaLabel} disabled={active}>{btn}</Tip>;
+  return label ? (
+    btn
+  ) : (
+    <Tip text={ariaLabel} disabled={active}>
+      {btn}
+    </Tip>
+  );
 }
 
 /**
@@ -281,8 +359,26 @@ export function ChipWithMenu({
   const ref = useRef<HTMLButtonElement>(null);
   return (
     <span className="relative flex">
-      <TagChip buttonRef={ref} name={tag.name} color={tag.color} size={size} maxWidth={maxWidth} active={open} onClick={onToggle} onRemove={() => api.toggle(meetingId, tag.id)} />
-      <TagChipMenu tag={tag} api={api} open={open} onClose={onClose} anchorRef={ref} onUnassign={() => api.toggle(meetingId, tag.id)} onDeleted={onDeleted} direction={direction} />
+      <TagChip
+        buttonRef={ref}
+        name={tag.name}
+        color={tag.color}
+        size={size}
+        maxWidth={maxWidth}
+        active={open}
+        onClick={onToggle}
+        onRemove={() => api.toggle(meetingId, tag.id)}
+      />
+      <TagChipMenu
+        tag={tag}
+        api={api}
+        open={open}
+        onClose={onClose}
+        anchorRef={ref}
+        onUnassign={() => api.toggle(meetingId, tag.id)}
+        onDeleted={onDeleted}
+        direction={direction}
+      />
     </span>
   );
 }
@@ -293,11 +389,17 @@ export function ChipWithMenu({
 
 export function Checkbox({ checked }: { checked: boolean }) {
   return checked ? (
-    <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-[2px] text-white" style={{ backgroundColor: tokens.blue }}>
+    <span
+      className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-[2px] text-white"
+      style={{ backgroundColor: tokens.blue }}
+    >
       <TgIc name="check" size={12} />
     </span>
   ) : (
-    <span className="h-[14px] w-[14px] shrink-0 rounded-[2px] border" style={{ borderColor: tokens.borderStrong }} />
+    <span
+      className="h-[14px] w-[14px] shrink-0 rounded-[2px] border"
+      style={{ borderColor: tokens.borderStrong }}
+    />
   );
 }
 
@@ -308,6 +410,22 @@ export function Checkbox({ checked }: { checked: boolean }) {
 // Клавиатура: ↑↓ по строкам, Enter — переключить/создать, Esc — закрыть.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Прозрачная подложка под открытым поповером: лочит фон — клик мимо только закрывает поповер,
+ * а не открывает встречу под курсором. Ниже поповера (z-40) и боковых меню (z-50)
+ */
+function Backdrop({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="fixed inset-0 z-30"
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+    />
+  );
+}
 
 export function TagPicker({
   meetingId,
@@ -317,6 +435,7 @@ export function TagPicker({
   onCreated,
   onDeleted,
   className = "",
+  style,
   direction = "down",
   anchorRef,
 }: {
@@ -329,15 +448,34 @@ export function TagPicker({
   onDeleted?: (tag: Tag, restore: () => void) => void;
   /** Позиционирование относительно родителя (left-/right-/top-/bottom- классы) */
   className?: string;
+  /** Точные координаты, когда позиция считается по layout (страница встречи) */
+  style?: React.CSSProperties;
   direction?: "down" | "up";
   /** Триггер — клик по нему не считается кликом вне */
   anchorRef?: React.RefObject<HTMLElement | null>;
 }) {
   return (
-    <Popover open={open} className={`w-[240px] ${className}`} direction={direction} padding={0}>
-      {/* Тело живет только пока поповер открыт — поле и курсор сбрасываются сами */}
-      <PickerBody meetingId={meetingId} api={api} open={open} onClose={onClose} onCreated={onCreated} onDeleted={onDeleted} anchorRef={anchorRef} />
-    </Popover>
+    <>
+      {open && <Backdrop onClose={onClose} />}
+      <Popover
+        open={open}
+        className={`w-[240px] ${className}`}
+        style={style}
+        direction={direction}
+        padding={0}
+      >
+        {/* Тело живет только пока поповер открыт — поле и курсор сбрасываются сами */}
+        <PickerBody
+          meetingId={meetingId}
+          api={api}
+          open={open}
+          onClose={onClose}
+          onCreated={onCreated}
+          onDeleted={onDeleted}
+          anchorRef={anchorRef}
+        />
+      </Popover>
+    </>
   );
 }
 
@@ -362,28 +500,47 @@ function PickerBody({
   /** Клавиатурный курсор: -1 — ничего не подсвечено (при открытии и когда мышь ушла со списка) */
   const [cursorRaw, setCursorRaw] = useState(-1);
   /** Меню тега («…»): какой тег и где рисовать — смещение строки от верха пикера и сторона */
-  const [menu, setMenu] = useState<{ id: string; top: number; side: "right" | "left" } | null>(null);
+  const [menu, setMenu] = useState<{
+    id: string;
+    top: number;
+    side: "right" | "left";
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   /** Панель нового тега («+ Создать тег»): где рисовать */
-  const [createMenu, setCreateMenu] = useState<{ top: number; side: "right" | "left" } | null>(null);
+  const [createMenu, setCreateMenu] = useState<{
+    top: number;
+    side: "right" | "left";
+  } | null>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
-  useOutsideClose(anchorRef ? [ref, menuRef, createMenuRef, anchorRef] : [ref, menuRef, createMenuRef], open, onClose);
+  useOutsideClose(
+    anchorRef
+      ? [ref, menuRef, createMenuRef, anchorRef]
+      : [ref, menuRef, createMenuRef],
+    open,
+    onClose,
+  );
 
   const assigned = new Set(api.tagsFor(meetingId).map((t) => t.id));
-  const menuTag = menu ? api.tagById(menu.id) ?? null : null;
+  const menuTag = menu ? (api.tagById(menu.id) ?? null) : null;
 
   /** Где рисовать боковое меню для строки: смещение от верха пикера и сторона (слева, если справа не влезает) */
   const placeBeside = (rowEl: HTMLElement) => {
     const box = ref.current?.getBoundingClientRect();
     const row = rowEl.getBoundingClientRect();
-    // Минус внутренний отступ меню (4px): содержимое меню встает ровно напротив строки,
-    // а у первой строки верхние края обоих поповеров совпадают
-    return { top: box ? row.top - box.top - 4 : 0, side: (box && window.innerWidth - box.right < 220 ? "left" : "right") as "right" | "left" };
+    // Минус паддинг меню (4) и паддинг блока с полем (4): поле имени (32px) встает ровно
+    // напротив строки пикера (тоже 32px)
+    return {
+      top: box ? row.top - box.top - 8 : 0,
+      side: (box && window.innerWidth - box.right < 260 ? "left" : "right") as
+        "right" | "left",
+    };
   };
   /** Открыть меню тега рядом с его строкой */
   const openMenu = (tagId: string, rowEl: HTMLElement) => {
     setCreateMenu(null);
-    setMenu((m) => (m?.id === tagId ? null : { id: tagId, ...placeBeside(rowEl) }));
+    setMenu((m) =>
+      m?.id === tagId ? null : { id: tagId, ...placeBeside(rowEl) },
+    );
   };
 
   const rows = api.tags;
@@ -433,7 +590,12 @@ function PickerBody({
   const rowClass = `group/row flex h-[32px] w-full items-center gap-[8px] rounded-[3px] px-[8px] text-left ${pressableClass} ${focusRingClass}`;
 
   return (
-    <div ref={ref} tabIndex={-1} className="relative flex flex-col outline-none" onKeyDown={onKeyDown}>
+    <div
+      ref={ref}
+      tabIndex={-1}
+      className="relative flex flex-col outline-none"
+      onKeyDown={onKeyDown}
+    >
       {createMenu && (
         <NewTagMenu
           ref={createMenuRef}
@@ -458,61 +620,85 @@ function PickerBody({
           side={menu.side}
           onClose={() => setMenu(null)}
           onDeleted={onDeleted}
+          onUnassign={
+            assigned.has(menuTag.id)
+              ? () => api.toggle(meetingId, menuTag.id)
+              : undefined
+          }
         />
       )}
-      <div className="tg-scroll max-h-[232px] overflow-y-auto p-[4px]" role="listbox" aria-label="Теги" onMouseLeave={() => setCursorRaw(-1)}>
-        {rows.length === 0 && (
-          <p className="px-[8px] py-[8px] text-[12px] leading-[16px] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-            В пространстве пока нет тегов
-          </p>
-        )}
-        {rows.map((tag, i) => {
-          const hot = i === cursor;
-          const row = { tag };
-          const on = assigned.has(row.tag.id);
-          const menuOpen = menu?.id === row.tag.id;
-          return (
-            <div
-              key={row.tag.id}
-              role="option"
-              aria-selected={hot}
-              aria-checked={on}
-              tabIndex={-1}
-              onMouseEnter={() => setCursorRaw(i)}
-              onClick={() => act(row.tag)}
-              className={`${rowClass} cursor-pointer ${hot || menuOpen ? "bg-[#F7F7F8]" : ""}`}
-              style={{ color: tokens.black }}
-            >
-              <Checkbox checked={on} />
-              <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
-                <ColorDot color={row.tag.color} size={8} />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]">{row.tag.name}</span>
-              {/* «…» — меню тега (имя, цвет, удаление); виден на ховере строки, при подсветке и пока меню открыто */}
-              <button
-                type="button"
-                aria-label={`Меню тега «${row.tag.name}»`}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openMenu(row.tag.id, e.currentTarget.closest("[role=option]") as HTMLElement);
-                }}
-                className={`-mr-[4px] flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[3px] ${hot || menuOpen ? "opacity-100" : "opacity-0"} ${menuOpen ? "text-[#585E6C]" : "text-[#818AA3] hover:text-[#585E6C]"} group-hover/row:opacity-100 focus-visible:opacity-100 ${pressableClass} ${focusRingClass}`}
-              >
-                <Ic name="ellipsis-horizontal" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Создание — отдельной строкой внизу, как «Создать отчет» в дропдауне отчетов; сбоку откроется панель имени и цвета */}
-      <div className="border-t p-[4px]" style={{ borderColor: tokens.border }}>
-        <div ref={createRowRef} className={createMenu ? "rounded-[3px] bg-[#F7F7F8]" : ""}>
-          <MenuRow icon="plus" label="Создать тег" onClick={() => createRowRef.current && openCreate(createRowRef.current)} />
+      {/* Создание — первой строкой, как «Создать отчет» в дропдауне отчетов; сбоку откроется панель имени и цвета */}
+      <div
+        className={`p-[4px] ${rows.length > 0 ? "border-b" : ""}`}
+        style={{ borderColor: tokens.border }}
+      >
+        <div
+          ref={createRowRef}
+          className={createMenu ? "rounded-[3px] bg-[#F7F7F8]" : ""}
+        >
+          <MenuRow
+            icon="plus"
+            label="Создать тег"
+            onClick={() =>
+              createRowRef.current && openCreate(createRowRef.current)
+            }
+          />
         </div>
       </div>
+      {/* Без тегов список не рисуем — остается одна строка «Создать тег» */}
+      {rows.length > 0 && (
+        <div
+          className="tg-scroll max-h-[232px] overflow-y-auto p-[4px]"
+          role="listbox"
+          aria-label="Теги"
+          onMouseLeave={() => setCursorRaw(-1)}
+        >
+          {rows.map((tag, i) => {
+            const hot = i === cursor;
+            const row = { tag };
+            const on = assigned.has(row.tag.id);
+            const menuOpen = menu?.id === row.tag.id;
+            return (
+              <div
+                key={row.tag.id}
+                role="option"
+                aria-selected={hot}
+                aria-checked={on}
+                tabIndex={-1}
+                onMouseEnter={() => setCursorRaw(i)}
+                onClick={() => act(row.tag)}
+                className={`${rowClass} cursor-pointer ${hot || menuOpen ? "bg-[#F7F7F8]" : ""}`}
+                style={{ color: tokens.black }}
+              >
+                <Checkbox checked={on} />
+                <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
+                  <ColorDot color={row.tag.color} size={8} />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]">
+                  {row.tag.name}
+                </span>
+                {/* «…» — меню тега (имя, цвет, удаление); виден на ховере строки, при подсветке и пока меню открыто */}
+                <button
+                  type="button"
+                  aria-label={`Меню тега «${row.tag.name}»`}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openMenu(
+                      row.tag.id,
+                      e.currentTarget.closest("[role=option]") as HTMLElement,
+                    );
+                  }}
+                  className={`-mr-[4px] flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[3px] ${hot || menuOpen ? "opacity-100" : "opacity-0"} ${menuOpen ? "text-[#585E6C]" : "text-[#818AA3] hover:text-[#585E6C]"} group-hover/row:opacity-100 focus-visible:opacity-100 ${pressableClass} ${focusRingClass}`}
+                >
+                  <Ic name="ellipsis-horizontal" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -523,15 +709,34 @@ function PickerBody({
  */
 const NewTagMenu = forwardRef<
   HTMLDivElement,
-  { api: TagsApi; initialName: string; initialColor: TagColor; top: number; side: "right" | "left"; onCreate: (name: string, color: TagColor) => void; onClose: () => void }
->(function NewTagMenu({ api, initialName, initialColor, top, side, onCreate, onClose }, ref) {
+  {
+    api: TagsApi;
+    initialName: string;
+    initialColor: TagColor;
+    top: number;
+    side: "right" | "left";
+    onCreate: (name: string, color: TagColor) => void;
+    onClose: () => void;
+  }
+>(function NewTagMenu(
+  { api, initialName, initialColor, top, side, onCreate, onClose },
+  ref,
+) {
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState<TagColor>(initialColor);
   const trimmed = name.trim();
-  const clash = trimmed.length > 0 && api.tags.some((t) => normalizeName(t.name) === normalizeName(trimmed));
-  const canCreate = trimmed.length > 0 && !clash;
+  const clash =
+    trimmed.length > 0 &&
+    api.tags.some((t) => normalizeName(t.name) === normalizeName(trimmed));
+  // Лимит не режем молча: даем дописать и показываем ошибку под полем
+  const tooLong = trimmed.length > TAG_NAME_MAX;
+  const error = tooLong ? `Не больше ${TAG_NAME_MAX} символов` : clash ? "Такой тег уже есть" : null;
+  const canCreate = trimmed.length > 0 && !clash && !tooLong;
   const m = usePopoverMotion("down");
-  const pos: React.CSSProperties = side === "right" ? { top, left: "calc(100% + 4px)" } : { top, right: "calc(100% + 4px)" };
+  const pos: React.CSSProperties =
+    side === "right"
+      ? { top, left: "calc(100% + 4px)" }
+      : { top, right: "calc(100% + 4px)" };
   const submit = () => {
     if (canCreate) onCreate(trimmed, color);
   };
@@ -541,14 +746,21 @@ const NewTagMenu = forwardRef<
       role="dialog"
       aria-label="Новый тег"
       {...m}
-      className="absolute z-50 w-[200px] rounded-[4px] bg-white p-[4px]"
-      style={{ ...pos, boxShadow: shadow, transformOrigin: side === "left" ? "top right" : "top left" }}
+      className="absolute z-50 w-[240px] rounded-[4px] bg-white p-[4px]"
+      style={{
+        ...pos,
+        boxShadow: shadow,
+        transformOrigin: side === "left" ? "top right" : "top left",
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.nativeEvent.stopImmediatePropagation();
           e.stopPropagation();
           onClose();
-        } else if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement)) {
+        } else if (
+          e.key === "Enter" &&
+          !(e.target instanceof HTMLButtonElement)
+        ) {
           // Enter где угодно в панели (не на кнопке цвета) — создать
           e.preventDefault();
           e.stopPropagation();
@@ -557,11 +769,12 @@ const NewTagMenu = forwardRef<
       }}
     >
       <div className="p-[4px]">
-        <label className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border bg-white px-[8px] ${clash ? "border-[#CC3333]" : "border-[#EFEFEF] focus-within:border-[#0138C7]"} ${pressableClass}`}>
+        <label
+          className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border bg-white px-[8px] ${error ? "border-[#CC3333]" : "border-[#EFEFEF] focus-within:border-[#0138C7]"} ${pressableClass}`}
+        >
           <input
             autoFocus
             value={name}
-            maxLength={TAG_NAME_MAX}
             placeholder="Название"
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -571,48 +784,62 @@ const NewTagMenu = forwardRef<
               }
             }}
             aria-label="Название нового тега"
-            aria-invalid={clash}
+            aria-invalid={!!error}
             className="min-w-0 flex-1 bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none placeholder:text-[#C7C8CA]"
             style={{ color: tokens.black }}
           />
         </label>
-        {clash && (
-          <p className="px-[2px] pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]" style={{ color: tokens.red }}>
-            Такой тег уже есть
+        {error && (
+          <p
+            className="px-[2px] pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]"
+            style={{ color: tokens.red }}
+          >
+            {error}
           </p>
         )}
       </div>
-      <MenuDivider />
-      <ColorRows value={color} onPick={setColor} />
+      <ColorRow value={color} onPick={setColor} />
     </motion.div>
   );
 });
 
-/** Список цветов строками: кружок, название, галочка у выбранного. Общий для меню тега и панели создания */
-function ColorRows({ value, onPick }: { value: TagColor; onPick: (c: TagColor) => void }) {
+/** Цвета в один ряд: кружок 16 в цели 24, у выбранного — кольцо своего цвета. Общий для меню тега и панели создания */
+function ColorRow({
+  value,
+  onPick,
+}: {
+  value: TagColor;
+  onPick: (c: TagColor) => void;
+}) {
   return (
-    <div role="group" aria-label="Цвет тега">
+    <div
+      className="flex items-center justify-between px-[8px] py-[6px]"
+      role="radiogroup"
+      aria-label="Цвет тега"
+    >
       {TAG_COLORS.map((c) => {
         const on = c.id === value;
         return (
           <button
             key={c.id}
             type="button"
-            role="menuitemradio"
+            role="radio"
             aria-checked={on}
+            aria-label={c.label}
+            title={c.label}
             onClick={() => onPick(c.id)}
-            className={`flex h-[28px] w-full items-center gap-[8px] rounded-[3px] px-[8px] text-left hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
-            style={{ color: tokens.black }}
+            className={`tg-swatch flex h-[24px] w-[24px] items-center justify-center rounded-full ${pressableClass} ${focusRingClass}`}
           >
-            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">
-              <span className="h-[10px] w-[10px] rounded-full" style={{ backgroundColor: c.hex }} />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[13px] leading-[16px] tracking-[-0.13px]">{c.label}</span>
-            {on && (
-              <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center" style={{ color: tokens.grey }}>
-                <TgIc name="check" size={14} />
-              </span>
-            )}
+            {/* Выбранный — тонкое кольцо своего цвета через белый зазор; на ховере у остальных — серое (в globals.css) */}
+            <span
+              className="tg-dot block h-[16px] w-[16px] rounded-full"
+              style={{
+                backgroundColor: c.hex,
+                boxShadow: on
+                  ? `0 0 0 2px #FFFFFF, 0 0 0 3.5px ${c.hex}`
+                  : undefined,
+              }}
+            />
           </button>
         );
       })}
@@ -639,106 +866,141 @@ const TagMenu = forwardRef<
     /** Открепить тег от текущей встречи — только в меню с чипа встречи */
     onUnassign?: () => void;
   }
->(
-  function TagMenu({ tag, api, placement = "beside", top = 0, side = "right", onClose, onDeleted, onUnassign }, ref) {
-    const [name, setName] = useState(tag.name);
-    const trimmed = name.trim();
-    const clash = trimmed.length > 0 && api.tags.some((t) => t.id !== tag.id && normalizeName(t.name) === normalizeName(trimmed));
-    const canSave = trimmed.length > 0 && !clash && trimmed !== tag.name;
-
-    // Имя применяется по мере ввода — чип и строки списка меняются сразу; пустое или дубль не сохраняются
-    const change = (v: string) => {
-      setName(v);
-      const t = v.trim();
-      const dup = api.tags.some((x) => x.id !== tag.id && normalizeName(x.name) === normalizeName(t));
-      if (t.length > 0 && !dup && t !== tag.name) api.rename(tag.id, t);
-    };
-    const save = () => {
-      if (canSave) api.rename(tag.id, trimmed);
-    };
-    const close = () => {
-      save();
-      onClose();
-    };
-    const remove = () => {
-      const snapshot = api.remove(tag.id);
-      if (snapshot) onDeleted?.(tag, () => api.restore(snapshot));
-      onClose();
-    };
-    const m = usePopoverMotion(placement === "above" ? "up" : "down");
-    const beside = placement === "beside";
-    const pos: React.CSSProperties = beside
-      ? side === "right"
-        ? { top, left: "calc(100% + 4px)" }
-        : { top, right: "calc(100% + 4px)" }
-      : placement === "above"
-        ? { bottom: "calc(100% + 4px)", left: 0 }
-        : { top: "calc(100% + 4px)", left: 0 };
-    const origin = beside ? (side === "left" ? "top right" : "top left") : placement === "above" ? "bottom left" : "top left";
-
-    return (
-      <motion.div
-        ref={ref}
-        role="menu"
-        {...m}
-        className="absolute z-50 w-[200px] rounded-[4px] bg-white p-[4px]"
-        style={{ ...pos, boxShadow: shadow, transformOrigin: origin }}
-        onKeyDown={(e) => {
-          // Esc в меню — закрыть только меню. React в App Router слушает на document, как и Esc поповера
-          if (e.key === "Escape") {
-            e.nativeEvent.stopImmediatePropagation();
-            e.stopPropagation();
-            onClose();
-          } else if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement)) {
-            // Enter где угодно в меню (не на строке цвета) — сохранить имя и закрыть
-            e.preventDefault();
-            e.stopPropagation();
-            close();
-          }
-        }}
-      >
-        <div className="p-[4px]">
-          <label className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border bg-white px-[8px] ${clash ? "border-[#CC3333]" : "border-[#EFEFEF] focus-within:border-[#0138C7]"} ${pressableClass}`}>
-            <input
-              value={name}
-              maxLength={TAG_NAME_MAX}
-              onChange={(e) => change(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") close();
-              }}
-              onBlur={save}
-              aria-label="Название тега"
-              aria-invalid={clash}
-              className="min-w-0 flex-1 bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none"
-              style={{ color: tokens.black }}
-            />
-          </label>
-          {clash && (
-            <p className="px-[2px] pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]" style={{ color: tokens.red }}>
-              Такой тег уже есть
-            </p>
-          )}
-        </div>
-
-        <MenuDivider />
-        <ColorRows value={tag.color} onPick={(c) => api.setColor(tag.id, c)} />
-
-        <MenuDivider />
-        {onUnassign && (
-          <MenuRow
-            icon="x-mark"
-            label="Убрать со встречи"
-            onClick={() => {
-              onUnassign();
-              onClose();
-            }}
-          />
-        )}
-        <MenuRow icon="trash" label={onUnassign ? "Удалить тег" : "Удалить"} danger onClick={remove} />
-      </motion.div>
-    );
+>(function TagMenu(
+  {
+    tag,
+    api,
+    placement = "beside",
+    top = 0,
+    side = "right",
+    onClose,
+    onDeleted,
+    onUnassign,
   },
-);
+  ref,
+) {
+  const [name, setName] = useState(tag.name);
+  const trimmed = name.trim();
+  const clash =
+    trimmed.length > 0 &&
+    api.tags.some(
+      (t) =>
+        t.id !== tag.id && normalizeName(t.name) === normalizeName(trimmed),
+    );
+  const tooLong = trimmed.length > TAG_NAME_MAX;
+  const error = tooLong ? `Не больше ${TAG_NAME_MAX} символов` : clash ? "Такой тег уже есть" : null;
+  const canSave = trimmed.length > 0 && !clash && !tooLong && trimmed !== tag.name;
+
+  // Имя применяется по мере ввода — чип и строки списка меняются сразу; пустое, дубль или слишком длинное не сохраняются
+  const change = (v: string) => {
+    setName(v);
+    const t = v.trim();
+    const dup = api.tags.some(
+      (x) => x.id !== tag.id && normalizeName(x.name) === normalizeName(t),
+    );
+    if (t.length > 0 && t.length <= TAG_NAME_MAX && !dup && t !== tag.name) api.rename(tag.id, t);
+  };
+  const save = () => {
+    if (canSave) api.rename(tag.id, trimmed);
+  };
+  const close = () => {
+    save();
+    onClose();
+  };
+  const remove = () => {
+    const snapshot = api.remove(tag.id);
+    if (snapshot) onDeleted?.(tag, () => api.restore(snapshot));
+    onClose();
+  };
+  const m = usePopoverMotion(placement === "above" ? "up" : "down");
+  const beside = placement === "beside";
+  const pos: React.CSSProperties = beside
+    ? side === "right"
+      ? { top, left: "calc(100% + 4px)" }
+      : { top, right: "calc(100% + 4px)" }
+    : placement === "above"
+      ? { bottom: "calc(100% + 4px)", left: 0 }
+      : { top: "calc(100% + 4px)", left: 0 };
+  const origin = beside
+    ? side === "left"
+      ? "top right"
+      : "top left"
+    : placement === "above"
+      ? "bottom left"
+      : "top left";
+
+  return (
+    <motion.div
+      ref={ref}
+      role="menu"
+      {...m}
+      className="absolute z-50 w-[240px] rounded-[4px] bg-white p-[4px]"
+      style={{ ...pos, boxShadow: shadow, transformOrigin: origin }}
+      onKeyDown={(e) => {
+        // Esc в меню — закрыть только меню. React в App Router слушает на document, как и Esc поповера
+        if (e.key === "Escape") {
+          e.nativeEvent.stopImmediatePropagation();
+          e.stopPropagation();
+          onClose();
+        } else if (
+          e.key === "Enter" &&
+          !(e.target instanceof HTMLButtonElement)
+        ) {
+          // Enter где угодно в меню (не на строке цвета) — сохранить имя и закрыть
+          e.preventDefault();
+          e.stopPropagation();
+          close();
+        }
+      }}
+    >
+      <div className="p-[4px]">
+        <label
+          className={`flex h-[32px] items-center gap-[8px] rounded-[4px] border bg-white px-[8px] ${error ? "border-[#CC3333]" : "border-[#EFEFEF] focus-within:border-[#0138C7]"} ${pressableClass}`}
+        >
+          <input
+            value={name}
+            onChange={(e) => change(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") close();
+            }}
+            onBlur={save}
+            aria-label="Название тега"
+            aria-invalid={!!error}
+            className="min-w-0 flex-1 bg-transparent text-[13px] leading-[16px] tracking-[-0.13px] outline-none"
+            style={{ color: tokens.black }}
+          />
+        </label>
+        {error && (
+          <p
+            className="px-[2px] pt-[6px] text-[12px] leading-[14px] tracking-[-0.24px]"
+            style={{ color: tokens.red }}
+          >
+            {error}
+          </p>
+        )}
+      </div>
+      <ColorRow value={tag.color} onPick={(c) => api.setColor(tag.id, c)} />
+
+      <MenuDivider />
+      {onUnassign && (
+        <MenuRow
+          icon="x-mark"
+          label="Убрать со встречи"
+          onClick={() => {
+            onUnassign();
+            onClose();
+          }}
+        />
+      )}
+      <MenuRow
+        icon="trash"
+        label={onUnassign ? "Удалить тег" : "Удалить"}
+        danger
+        onClick={remove}
+      />
+    </motion.div>
+  );
+});
 
 /**
  * Меню тега под чипом (страница встречи): то же меню, что у «…» в пикере — имя, цвет, удаление,
@@ -767,8 +1029,22 @@ export function TagChipMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   useOutsideClose([menuRef, anchorRef], open, onClose);
   return (
-    <AnimatePresence>
-      {open && <TagMenu key={tag.id} ref={menuRef} tag={tag} api={api} placement={direction === "up" ? "above" : "below"} onClose={onClose} onUnassign={onUnassign} onDeleted={onDeleted} />}
-    </AnimatePresence>
+    <>
+      {open && <Backdrop onClose={onClose} />}
+      <AnimatePresence>
+        {open && (
+          <TagMenu
+            key={tag.id}
+            ref={menuRef}
+            tag={tag}
+            api={api}
+            placement={direction === "up" ? "above" : "below"}
+            onClose={onClose}
+            onUnassign={onUnassign}
+            onDeleted={onDeleted}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
