@@ -290,6 +290,7 @@ export function TagChipRow({
   moreActive,
   onDeleted,
   direction = "down",
+  readOnly = false,
 }: {
   tags: Tag[];
   meetingId: string;
@@ -302,11 +303,42 @@ export function TagChipRow({
   moreActive?: boolean;
   onDeleted?: (tag: Tag, restore: () => void) => void;
   direction?: "down" | "up";
+  /** Пошеренная встреча: чипы и «+N» только показываем, без меню, крестиков и пикера */
+  readOnly?: boolean;
 }) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   if (tags.length === 0) return null;
   const shown = tags.slice(0, max);
   const rest = tags.slice(max);
+  if (readOnly) {
+    return (
+      <span className="flex min-w-0 items-center gap-[4px]">
+        {shown.map((t) => (
+          <TagChip
+            key={t.id}
+            name={t.name}
+            color={t.color}
+            size={size}
+            maxWidth={maxWidth}
+          />
+        ))}
+        {rest.length > 0 && (
+          <Tip text={rest.map((t) => t.name).join(", ")}>
+            <span
+              className={`${chipBase} bg-white px-[6px]`}
+              style={{
+                height: size,
+                borderColor: tokens.border,
+                color: tokens.grey,
+              }}
+            >
+              +{rest.length}
+            </span>
+          </Tip>
+        )}
+      </span>
+    );
+  }
   return (
     <span className="flex min-w-0 items-center gap-[4px]">
       {shown.map((t) => (
