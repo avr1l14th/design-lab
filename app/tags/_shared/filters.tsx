@@ -404,12 +404,15 @@ function TagsPanel({
       role="menu"
     >
       {tags.length === 0 ? (
-        <p
-          className="px-[10px] py-[12px] text-[12px] leading-[16px] tracking-[-0.24px]"
-          style={{ color: tokens.grey }}
-        >
-          В этом пространстве тегов пока нет. Откройте встречу и добавьте первый
-        </p>
+        /* Пустое состояние по макету: строка меню без ховера, текст 13 цветом text/disabled */
+        <div className="w-full p-[4px]">
+          <p
+            className="px-[6px] py-[8px] text-[13px] leading-[16px] tracking-[-0.13px]"
+            style={{ color: tokens.placeholder }}
+          >
+            В этом пространстве пока нет тегов
+          </p>
+        </div>
       ) : (
         <div className="tg-scroll max-h-[264px] w-full overflow-y-auto p-[4px]">
           {tags.map((t) => (
