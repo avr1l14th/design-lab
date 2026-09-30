@@ -56,6 +56,8 @@ export type TourStep = {
   anchor: string;
   title: string;
   text: string;
+  /** Подзаголовок для Pro и Business, если отличается: без апселла */
+  textPaid?: string;
   /** Какую вкладку встречи открыть на этом шаге */
   tab: TourTab;
   /** Тултип под элементом (по умолчанию) или над ним */
@@ -108,6 +110,7 @@ export const TOUR_STEPS: TourStep[] = [
     anchor: "player",
     title: "Смотрите записи встреч в плеере",
     text: "В приветственной встрече плеер открыт бесплатно, для своих встреч улучшите тариф",
+    textPaid: "Перематывайте запись к нужному моменту по главам и таймкодам",
     tab: "tasks",
     placement: "top",
     gap: 12,
@@ -129,10 +132,10 @@ function measure(step: TourStep, tipHeight: number): Place | null {
   const r = el.getBoundingClientRect();
   const placement = step.placement ?? "bottom";
   const gap = step.gap ?? 4;
-  // Левый край тултипа — по левому краю элемента, но не дальше правого поля окна
-  const left = Math.max(EDGE, Math.min(r.left, window.innerWidth - EDGE - TIP_WIDTH));
-  // Носик — по центру элемента, внутри скруглений тултипа
+  // Тултип центрируется над элементом, носик — посередине тултипа. У края окна тултип упирается
+  // в поле, а носик сдвигается к центру элемента
   const center = r.left + r.width / 2;
+  const left = Math.max(EDGE, Math.min(center - TIP_WIDTH / 2, window.innerWidth - EDGE - TIP_WIDTH));
   const arrowLeft = Math.max(8, Math.min(center - left - ARROW_W / 2, TIP_WIDTH - 8 - ARROW_W));
   const top = placement === "bottom" ? r.bottom + gap + ARROW_H : r.top - gap - ARROW_H - tipHeight;
   return { left, top, arrowLeft, placement, h: tipHeight };
@@ -168,8 +171,8 @@ const tipSurface = {
 
 /**
  * Тур по встрече. Не блокирует страницу: тултип висит над своим разделом,
- * со страницей можно работать. «Дальше» — следующий шаг, «Понятно!» на последнем
- * или Esc — закончить. Вкладка встречи переключается под шаг.
+ * со страницей можно работать. «Дальше» — следующий шаг, «Понятно!» на последнем — тур пройден.
+ * Esc тур не закрывает. Вкладка встречи переключается под шаг.
  */
 export function OnboardingTour({
   step,
@@ -226,15 +229,6 @@ export function OnboardingTour({
     el?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
   }, [current, reduceMotion]);
 
-  useEffect(() => {
-    if (step === null || hidden) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [step, hidden, onClose]);
-
   if (typeof document === "undefined") return null;
   const last = shownStep === TOUR_STEPS.length - 1;
 
@@ -246,7 +240,10 @@ export function OnboardingTour({
           ref={tipRef}
           role="dialog"
           aria-label={current.title}
-          className="fixed z-[65] flex flex-col items-start gap-[12px] px-[12px]"
+          data-placement={place.placement}
+          data-nose-left={place.arrowLeft}
+          // Слой 45: над шапкой (40) и мини-плеером (30), но под поповерами и тостами (50), модалками и плеером
+          className="fixed z-[45] flex flex-col items-start gap-[12px] px-[12px]"
           style={{
             left: place.left,
             // Фигура включает носик: сверху он добавляет NOSE_H к верхнему полю, снизу — к нижнему

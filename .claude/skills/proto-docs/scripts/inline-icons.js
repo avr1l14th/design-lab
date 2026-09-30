@@ -35,6 +35,8 @@
     svg.querySelectorAll("[fill]").forEach((n) => { if (n.getAttribute("fill") !== "none") n.setAttribute("fill", color); });
     if (!svg.getAttribute("fill")) svg.setAttribute("fill", color);
     svg.querySelectorAll("[stroke]").forEach((n) => { if (n.getAttribute("stroke") !== "none") n.setAttribute("stroke", color); });
+    // Без transition: иначе фон уходит в transparent плавно и захват ловит его полупрозрачным
+    el.style.transition = "none";
     el.style.webkitMaskImage = "none";
     el.style.maskImage = "none";
     el.style.backgroundColor = "transparent";

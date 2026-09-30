@@ -922,7 +922,7 @@ function MeetingInfo({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={asset("badge-uploaded.svg")} alt="" className="h-[12px] w-[12px] shrink-0" />
           <span className="text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-            Uploaded
+            Загружено
           </span>
         </div>
         <div className="flex h-[23px] items-center justify-center gap-[8px] rounded-[3px] px-[8px]" style={{ backgroundColor: tokens.bgSubtle }}>
@@ -980,7 +980,7 @@ function MeetingInfo({
           className="text-[13px] font-normal leading-[16px] tracking-[-0.13px] underline decoration-dotted decoration-[#818aa3] underline-offset-[3px]"
           style={{ color: tokens.black }}
         >
-          Speakers
+          Участники
         </span>
         <div className="flex w-[400px] flex-wrap items-start gap-y-[2px] leading-[16px]">
           {speakers.map((speaker, index) => (
@@ -1014,7 +1014,6 @@ type Report = {
   group: "custom" | "preset";
 };
 
-// Дефолтный отчет встречи — применен изначально
 const articleReport: Report = {
   id: "article",
   label: "Статья",
@@ -1059,6 +1058,9 @@ const presetReports: Report[] = [
 ];
 
 const allReports: Report[] = [...customReports, ...presetReports];
+
+// Отчет по умолчанию у новых аккаунтов — «Обычная встреча»: он применен изначально
+const defaultReport: Report = allReports.find((r) => r.id === "regular") ?? articleReport;
 
 // CSS-маска для перекрашиваемых иконок (цвет задается через background)
 const maskStyle = (file: string) => ({
@@ -1520,16 +1522,18 @@ type ReportSection =
   | { kind: "topics"; title: string; groups: { title: string; items: SectionItem[] }[] };
 
 
-const reportSections: Record<string, ReportSection[]> = {
-  // Статья приветственной встречи — реальный AI Отчет по обучающему видео (welcome-content.ts)
-  article: [
+const welcomeSections: ReportSection[] = [
     { kind: "bullets", title: "Супер краткое содержание:", items: SUMMARY.map((i) => ({ text: `${i.text} `, time: i.time })) },
     {
       kind: "topics",
       title: "Саммари по темам:",
       groups: TOPICS.map((g) => ({ title: g.title, items: g.items.map((i) => ({ text: `${i.text} `, time: i.time })) })),
     },
-  ],
+];
+
+const reportSections: Record<string, ReportSection[]> = {
+  // Отчет по умолчанию «Обычная встреча» и «Статья» — реальный AI Отчет по обучающему видео (welcome-content.ts)
+  article: welcomeSections,
   "design-sync": [
     {
       kind: "paragraph",
@@ -1594,35 +1598,7 @@ const reportSections: Record<string, ReportSection[]> = {
       ],
     },
   ],
-  regular: [
-    {
-      kind: "paragraph",
-      title: "Краткое содержание:",
-      text: "Команда дизайна провела воркшоп по работе с референсами для визуального образа продукта. Сравнили два подхода — комбинаторный и антропоморфный, разобрали их сильные стороны на живых примерах и договорились, в каких задачах применять каждый. Отдельным блоком прошлись по структуре брифа: от целей проекта и компетенций продукта до позиционирования бренда и описания аудитории. В конце распределили подготовку материалов к следующей встрече и зафиксировали сроки.",
-    },
-    {
-      kind: "bullets",
-      title: "Ключевые моменты:",
-      items: [
-        { text: "Сравнили комбинаторный и антропоморфный подходы на живых примерах из собранных референсов. ", time: "0:58" },
-        { text: "Комбинаторика выигрывает по скорости, антропоморфизм — по глубине и запоминаемости образа. ", time: "2:31" },
-        { text: "Прошлись по этапам создания брифа от целей до описания аудитории и назначили ответственных за разделы. ", time: "5:24" },
-        { text: "Описание аудитории решили строить на социопсихологических характеристиках, а не на демографии. ", time: "6:49" },
-        { text: "Обсудили, как семиотическое поле помогает генерировать метафоры для нарратива, и посмотрели пример из прошлого проекта. ", time: "8:37" },
-        { text: "Зафиксировали, что текстовая рамка — обязательный вход для любого визуального концепта. ", time: "10:15" },
-      ],
-    },
-    {
-      kind: "bullets",
-      title: "Договоренности:",
-      items: [
-        { text: "Каждый участник приносит по 3–5 референсов на общую доску до пятницы. " },
-        { text: "Драфт текстовой рамки готовим к следующему воркшопу. " },
-        { text: "Бриф заполняем по разделам: у каждого раздела один владелец. " },
-        { text: "Следующая встреча — через неделю, в том же составе. " },
-      ],
-    },
-  ],
+  regular: welcomeSections,
   client: [
     {
       kind: "paragraph",
@@ -3640,8 +3616,8 @@ export default function MeetingOnboardingPage() {
   const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
 
   // Отчеты: примененные, текущий, генерация (по-отчетно), дропдаун
-  const [appliedIds, setAppliedIds] = useState<string[]>([articleReport.id]);
-  const [currentId, setCurrentId] = useState(articleReport.id);
+  const [appliedIds, setAppliedIds] = useState<string[]>([defaultReport.id]);
+  const [currentId, setCurrentId] = useState(defaultReport.id);
   const [generatingIds, setGeneratingIds] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const generateTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -3651,7 +3627,7 @@ export default function MeetingOnboardingPage() {
     const report = allReports.find((item) => item.id === id);
     return report ? [report] : [];
   });
-  const current = allReports.find((report) => report.id === currentId) ?? articleReport;
+  const current = allReports.find((report) => report.id === currentId) ?? defaultReport;
   // Заглушка — только если генерируется именно текущий отчет: переключение на
   // уже готовый отчет во время чужой генерации показывает готовый контент
   const generating = generatingIds.includes(currentId);
