@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { CHAPTERS, DURATION } from "./welcome-content";
 
 // Онбординг приветственной встречи «Добро пожаловать в mymeet.ai» (Figma 47774:14295 и 47774:14296):
 // — тур из 7 тултипов по разделам встречи, по порядку, с кнопкой «Дальше»;
@@ -119,7 +120,8 @@ const ARROW_H = 6;
 /** Отступ тултипа от края окна — как поля контента шапки */
 const EDGE = 24;
 
-type Place = { left: number; top: number; arrowLeft: number; placement: "bottom" | "top" };
+/** top — верх тела тултипа; h — высота тела (без носика) */
+type Place = { left: number; top: number; arrowLeft: number; placement: "bottom" | "top"; h: number };
 
 function measure(step: TourStep, tipHeight: number): Place | null {
   const el = document.querySelector<HTMLElement>(`[data-onb="${step.anchor}"]`);
@@ -133,12 +135,30 @@ function measure(step: TourStep, tipHeight: number): Place | null {
   const center = r.left + r.width / 2;
   const arrowLeft = Math.max(8, Math.min(center - left - ARROW_W / 2, TIP_WIDTH - 8 - ARROW_W));
   const top = placement === "bottom" ? r.bottom + gap + ARROW_H : r.top - gap - ARROW_H - tipHeight;
-  return { left, top, arrowLeft, placement };
+  return { left, top, arrowLeft, placement, h: tipHeight };
 }
 
-// Носик — тот же треугольник со скругленной вершиной, что в макете (Polygon 1), с тем же блюром
-const ARROW_PATH =
-  "path('M4.44022 0.345346C4.83899 -0.115115 5.55331 -0.115115 5.95208 0.345346L10.3923 5.47247H0L4.44022 0.345346Z')";
+/** Высота носика — треугольник со скругленной вершиной из макета (Polygon 1, 10.39×5.47) */
+const NOSE_H = 5.47247;
+
+/**
+ * Контур тултипа одной фигурой: тело с радиусом 4 и носик. Фон и блюр у них общие —
+ * отдельный носик со своим backdrop-filter размывал другой фон и выходил темнее тела.
+ */
+function tipShape(w: number, h: number, a: number, placement: "bottom" | "top") {
+  const r = 4;
+  const W = ARROW_W;
+  const f = (n: number) => Number(n.toFixed(3));
+  if (placement === "bottom") {
+    // Носик сверху: тело от y = NOSE_H до NOSE_H + h
+    const y0 = NOSE_H;
+    const y1 = NOSE_H + h;
+    return `path('M ${r} ${f(y0)} H ${f(a)} L ${f(a + 4.44022)} 0.345346 C ${f(a + 4.83899)} -0.115115 ${f(a + 5.55331)} -0.115115 ${f(a + 5.95208)} 0.345346 L ${f(a + W)} ${f(y0)} H ${w - r} Q ${w} ${f(y0)} ${w} ${f(y0 + r)} V ${f(y1 - r)} Q ${w} ${f(y1)} ${w - r} ${f(y1)} H ${r} Q 0 ${f(y1)} 0 ${f(y1 - r)} V ${f(y0 + r)} Q 0 ${f(y0)} ${r} ${f(y0)} Z')`;
+  }
+  // Носик снизу: тело от 0 до h, вершина на h + NOSE_H
+  const t = h + NOSE_H;
+  return `path('M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${f(h - r)} Q ${w} ${f(h)} ${w - r} ${f(h)} H ${f(a + W)} L ${f(a + 5.95208)} ${f(t - 0.345346)} C ${f(a + 5.55331)} ${f(t + 0.115115)} ${f(a + 4.83899)} ${f(t + 0.115115)} ${f(a + 4.44022)} ${f(t - 0.345346)} L ${f(a)} ${f(h)} H ${r} Q 0 ${f(h)} 0 ${f(h - r)} V ${r} Q 0 0 ${r} 0 Z')`;
+}
 
 const tipSurface = {
   backgroundColor: "rgba(33,40,51,0.52)",
@@ -179,14 +199,17 @@ export function OnboardingTour({
     if (!current) return;
     let raf = 0;
     const tick = () => {
-      const next = measure(current, tipRef.current?.offsetHeight ?? 100);
+      // Высота тела = высота фигуры минус носик
+      const outer = tipRef.current?.offsetHeight;
+      const next = measure(current, outer ? outer - NOSE_H : 100);
       setPlace((prev) =>
         prev &&
         next &&
         prev.left === next.left &&
         prev.top === next.top &&
         prev.arrowLeft === next.arrowLeft &&
-        prev.placement === next.placement
+        prev.placement === next.placement &&
+        prev.h === next.h
           ? prev
           : next,
       );
@@ -223,12 +246,16 @@ export function OnboardingTour({
           ref={tipRef}
           role="dialog"
           aria-label={current.title}
-          className="fixed z-[65] flex flex-col items-start gap-[12px] rounded-[4px] p-[12px]"
+          className="fixed z-[65] flex flex-col items-start gap-[12px] px-[12px]"
           style={{
             left: place.left,
-            top: place.top,
+            // Фигура включает носик: сверху он добавляет NOSE_H к верхнему полю, снизу — к нижнему
+            top: place.placement === "bottom" ? place.top - NOSE_H : place.top,
             width: TIP_WIDTH,
+            paddingTop: place.placement === "bottom" ? 12 + NOSE_H : 12,
+            paddingBottom: place.placement === "bottom" ? 12 : 12 + NOSE_H,
             ...tipSurface,
+            clipPath: tipShape(TIP_WIDTH, place.h, place.arrowLeft, place.placement),
             // Растет из носика
             transformOrigin: `${place.arrowLeft + ARROW_W / 2}px ${place.placement === "bottom" ? "0%" : "100%"}`,
             pointerEvents: visible ? "auto" : "none",
@@ -237,18 +264,6 @@ export function OnboardingTour({
           animate={visible ? { opacity: 1, scale: 1 } : reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
           transition={{ duration: visible ? 0.16 : 0.12, ease: easeOut, opacity: { duration: visible ? 0.14 : 0.1 } }}
         >
-          <span
-            aria-hidden="true"
-            className="absolute"
-            style={{
-              left: place.arrowLeft,
-              width: ARROW_W,
-              height: 5.47247,
-              ...(place.placement === "bottom" ? { top: -5.47247 } : { bottom: -5.47247, transform: "rotate(180deg)" }),
-              clipPath: ARROW_PATH,
-              ...tipSurface,
-            }}
-          />
           <div className="flex w-full flex-col items-start gap-[4px]">
             <span className="whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">
               {current.title}
@@ -279,18 +294,20 @@ export function OnboardingTour({
 // Плеер: общее время и главы
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const DURATION = 12 * 60 + 56;
+// Главы и длительность — те же, что в транскрипте приветственной встречи (welcome-content.ts)
+export { DURATION };
 
-const CHAPTERS = [
-  "1. Обсуждение ягодного лукошка и ожидание участников",
-  "2. Greetings and start of the meeting",
-  "3. Ведение таблицы касаний и коммуникация с рекрутерами",
-  "4. Сроки и ответственные по задачам",
-  "5. Вопросы по интеграции с календарем",
-  "6. Итоги и следующие шаги",
-];
+/** Границы глав в секундах: [начало, конец) */
+const CHAPTER_SPANS = CHAPTERS.map((c, i) => ({
+  title: c.title,
+  start: c.start,
+  end: i < CHAPTERS.length - 1 ? CHAPTERS[i + 1].start : DURATION,
+}));
 
-const chapterAt = (t: number) => Math.min(CHAPTERS.length - 1, Math.floor((t / DURATION) * CHAPTERS.length));
+const chapterAt = (t: number) => {
+  const i = CHAPTER_SPANS.findIndex((c) => t < c.end);
+  return i === -1 ? CHAPTER_SPANS.length - 1 : i;
+};
 
 export const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -336,7 +353,6 @@ function ChapterProgress({
 }) {
   const barRef = useRef<HTMLDivElement>(null);
   const progress = time / DURATION;
-  const per = 1 / CHAPTERS.length;
   return (
     <div
       ref={barRef}
@@ -347,10 +363,15 @@ function ChapterProgress({
         onSeek(((e.clientX - r.left) / r.width) * DURATION);
       }}
     >
-      {CHAPTERS.map((title, i) => {
-        const fill = Math.max(0, Math.min(1, (progress - i * per) / per));
+      {/* Сегмент на главу, ширина — по длине главы */}
+      {CHAPTER_SPANS.map((c) => {
+        const fill = Math.max(0, Math.min(1, (time - c.start) / (c.end - c.start)));
         return (
-          <div key={title} className="flex h-[8px] min-w-px flex-1 flex-col items-center justify-center overflow-clip">
+          <div
+            key={c.title}
+            className="flex h-[8px] min-w-px flex-col items-center justify-center overflow-clip"
+            style={{ flex: `${c.end - c.start} 1 0` }}
+          >
             <div className="relative h-[3px] w-full" style={{ backgroundColor: rest }}>
               <div className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, backgroundColor: played }} />
             </div>
@@ -395,7 +416,7 @@ export function MiniPlayer({ playback, onOpen }: { playback: Playback; onOpen: (
         />
         <span className="flex w-[77px] flex-col items-start justify-center gap-[2px]">
           <span className="whitespace-nowrap text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-            {CHAPTERS[chapterAt(time)]}
+            {CHAPTER_SPANS[chapterAt(time)].title}
           </span>
           <span
             className="flex items-center gap-[2px] whitespace-nowrap text-[12px] font-normal leading-[normal] tracking-[-0.24px]"
@@ -623,7 +644,7 @@ export function FullscreenPlayer({
                     <span>{formatTime(DURATION)}</span>
                   </span>
                   <span className="font-black">·</span>
-                  <span className="w-[400px] truncate">{CHAPTERS[chapterAt(time)]}</span>
+                  <span className="w-[400px] truncate">{CHAPTER_SPANS[chapterAt(time)].title}</span>
                 </div>
               </div>
               <div className="flex items-center gap-[8px]">
@@ -670,7 +691,7 @@ export function ChatContent() {
   return (
     <div ref={boxRef} className="flex w-full flex-col items-center justify-end gap-[32px]" style={{ height: height ?? 480 }}>
       <div className="flex w-full flex-col items-center gap-[12px]">
-        <div className="flex w-[640px] max-w-full flex-col items-start px-[12px]">
+        <div className="flex w-full flex-col items-start px-[12px]">
           {SUGGESTIONS.map((s, i) => (
             <div key={s} className="flex w-full flex-col">
               {i > 0 && <span aria-hidden="true" className="h-px w-full" style={{ backgroundColor: tokens.border }} />}

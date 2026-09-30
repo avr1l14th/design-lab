@@ -19,9 +19,16 @@ import {
   MiniPlayer,
   OnboardingTour,
   TOUR_STEPS,
-  onbAsset,
   usePlayback,
 } from "./onboarding";
+// Теги — из прототипа «Теги»: общий стор пространства, пикер, чипы с меню
+import { AddTagChip, ChipWithMenu, TagPicker } from "../tags/_shared/ui";
+import { useTags } from "../tags/_shared/use-tags";
+
+import { CHAPTERS, SPEAKER, SPEAKER_COLOR, SUMMARY, TASKS, TOPICS } from "./welcome-content";
+
+/** Id приветственной встречи в сторе тегов */
+const WELCOME_MEETING_ID = "welcome-meeting";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600"] });
 
@@ -36,14 +43,6 @@ const tokens = {
   blueSea: "#E4ECFA",
 } as const;
 
-const speakerColors = {
-  green: "#26BF00",
-  purple: "#8A38F5",
-  orange: "#F87527",
-  blue: "#0138C7",
-  deepPurple: "#7000E0",
-  red: "#D82020",
-} as const;
 
 const BASE = process.env.NODE_ENV === "production" ? "/design-lab" : "";
 const asset = (name: string) => `${BASE}/ai-export-sharing/${name}`;
@@ -874,8 +873,40 @@ function HeaderTooltip({ tip, visible }: { tip: HeaderTip | null; visible: boole
 // Meeting info: title, badges, speakers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function MeetingInfo() {
-  const speakers = [{ name: "Илья mymeet.ai", color: speakerColors.orange }];
+function MeetingInfo({
+  onTagDeleted,
+  onTagsPopoverChange,
+}: {
+  /** Тег удален из меню; restore — вернуть (тост «Отменить») */
+  onTagDeleted: (name: string, restore: () => void) => void;
+  /** Открыт пикер или меню тега — тур прячет тултип */
+  onTagsPopoverChange: (open: boolean) => void;
+}) {
+  const speakers = [{ name: SPEAKER, color: SPEAKER_COLOR }];
+  const api = useTags();
+  const tags = api.tagsFor(WELCOME_MEETING_ID);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  /** Где стоит пикер: координаты «+» относительно ряда в момент открытия — как на странице встречи в «Тегах» */
+  const [pickerPos, setPickerPos] = useState<{ left: number; top: number } | null>(null);
+  /** Какой чип открыл свое меню */
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    onTagsPopoverChange(pickerOpen || menuFor !== null);
+  }, [pickerOpen, menuFor, onTagsPopoverChange]);
+
+  const togglePicker = () => {
+    if (pickerOpen) {
+      setPickerOpen(false);
+      return;
+    }
+    const row = rowRef.current?.getBoundingClientRect();
+    const plus = addRef.current?.getBoundingClientRect();
+    if (row && plus) setPickerPos({ left: plus.left - row.left, top: plus.bottom - row.top + 6 });
+    setPickerOpen(true);
+  };
 
   return (
     <div className="flex flex-col items-start gap-[16px]">
@@ -886,7 +917,7 @@ function MeetingInfo() {
         Добро пожаловать в mymeet.ai
       </h1>
 
-      <div className="flex items-center gap-[4px]">
+      <div ref={rowRef} className="relative flex flex-wrap items-center gap-[4px]">
         <div className="flex items-center justify-center gap-[4px] rounded-[3px] px-[8px] py-[4px]" style={{ backgroundColor: tokens.bgSubtle }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={asset("badge-uploaded.svg")} alt="" className="h-[12px] w-[12px] shrink-0" />
@@ -908,18 +939,40 @@ function MeetingInfo() {
             {"15.11.2022  13:40"}
           </span>
         </div>
-        <button
-          type="button"
-          data-onb="tags"
-          className={`flex h-[23px] items-center justify-center gap-[6px] rounded-[3px] border border-solid bg-white px-[6px] hover:bg-[#F7F7F8] ${pressableClass} ${focusRingClass}`}
-          style={{ borderColor: tokens.border }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={onbAsset("tag-plus.svg")} alt="" className="h-[12px] w-[12px] shrink-0" />
-          <span className="whitespace-nowrap text-[12px] font-normal leading-[normal] tracking-[-0.24px]" style={{ color: tokens.black }}>
-            Добавить тег
+        {tags.map((t) => (
+          <span key={t.id} className="relative flex">
+            <ChipWithMenu
+              tag={t}
+              meetingId={WELCOME_MEETING_ID}
+              api={api}
+              size={23}
+              open={menuFor === t.id}
+              onToggle={() => setMenuFor((v) => (v === t.id ? null : t.id))}
+              onClose={() => setMenuFor(null)}
+              onDeleted={(tag, restore) => onTagDeleted(tag.name, restore)}
+            />
           </span>
-        </button>
+        ))}
+        {/* Якорь шага «Теги» в туре */}
+        <span data-onb="tags" className="flex">
+          <AddTagChip
+            buttonRef={addRef}
+            size={23}
+            active={pickerOpen}
+            onClick={togglePicker}
+            label={tags.length === 0 ? "Добавить тег" : undefined}
+          />
+        </span>
+        {/* Пикер стоит у «+» на момент открытия и не двигается, сколько бы тегов ни добавили */}
+        <TagPicker
+          meetingId={WELCOME_MEETING_ID}
+          api={api}
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onDeleted={(t, restore) => onTagDeleted(t.name, restore)}
+          anchorRef={addRef}
+          style={pickerPos ? { left: pickerPos.left, top: pickerPos.top } : undefined}
+        />
       </div>
 
       <div className="flex flex-col items-start gap-[4px]">
@@ -1463,35 +1516,18 @@ type SectionItem = { text: string; time?: string };
 
 type ReportSection =
   | { kind: "paragraph"; title: string; text: string }
-  | { kind: "bullets"; title: string; intro?: string; items: SectionItem[]; underlined?: boolean };
+  | { kind: "bullets"; title: string; intro?: string; items: SectionItem[]; underlined?: boolean }
+  | { kind: "topics"; title: string; groups: { title: string; items: SectionItem[] }[] };
 
-const articleSummary = "Обсудить подходы к работе с референсами для создания визуального образа цифрового продукта. Рассмотреть комбинаторный и антропоморфный подходы, их применение и глубину погружения в процесс. Определить этапы создания брифа, включая цели, компетенции продукта, позиционирование бренда и описание аудитории. Подготовить семиотическое поле для генерации ассоциаций и метафор, необходимых для написания нарратива. Завершить создание текстовой рамки, которая будет служить основой для будущего дизайн-продукта.";
 
 const reportSections: Record<string, ReportSection[]> = {
-  // Статья приветственной встречи — как в макете (47774:5109)
+  // Статья приветственной встречи — реальный AI Отчет по обучающему видео (welcome-content.ts)
   article: [
+    { kind: "bullets", title: "Супер краткое содержание:", items: SUMMARY.map((i) => ({ text: `${i.text} `, time: i.time })) },
     {
-      kind: "paragraph",
-      title: "Краткое содержание:",
-      text: "Выполненные задачи остаются на месте, без перелета вниз. Копирование задач по активной вкладке исполнителя. Постановщика задачи из прототипа убираем. Участники: Федор, Андрей, Саша.",
-    },
-    {
-      kind: "bullets",
-      title: "Ключевые моменты:",
-      items: [
-        { text: "Выполненные задачи остаются на месте, без перелета вниз. ", time: "1:08" },
-        { text: "Копирование задач по активной вкладке исполнителя. ", time: "4:25" },
-        { text: "Постановщика задачи из прототипа убираем. ", time: "7:42" },
-      ],
-    },
-    {
-      kind: "bullets",
-      title: "Договоренности:",
-      items: [
-        { text: "Ответственные за пункты назначены, сроки — до следующей встречи." },
-        { text: "Материалы по итогам разослать участникам сегодня." },
-        { text: "Следующая встреча в том же составе через неделю." },
-      ],
+      kind: "topics",
+      title: "Саммари по темам:",
+      groups: TOPICS.map((g) => ({ title: g.title, items: g.items.map((i) => ({ text: `${i.text} `, time: i.time })) })),
     },
   ],
   "design-sync": [
@@ -2430,7 +2466,7 @@ const reportSections: Record<string, ReportSection[]> = {
 function BulletList({ section }: { section: Extract<ReportSection, { kind: "bullets" }> }) {
   return (
     <div className="w-full text-[13px] font-normal tracking-[-0.13px]" style={{ color: tokens.black }}>
-      {section.intro && <p className="mb-0 text-[13px] font-medium leading-[16px]">{section.intro}</p>}
+      {section.intro && <p className="mb-[8px] text-[13px] font-medium leading-[16px]">{section.intro}</p>}
       <ul className="list-disc pl-[20px] leading-[16px]">
         {section.items.map((item, index) => (
           <li key={index} className={index < section.items.length - 1 ? "mb-[8px]" : ""}>
@@ -2461,6 +2497,13 @@ function ReportContent({ report }: { report: Report }) {
             <p className="w-full text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
               {section.text}
             </p>
+          ) : section.kind === "topics" ? (
+            // Темы: подзаголовок Medium 13 и пункты с таймкодами, между темами 16
+            <div className="flex w-full flex-col gap-[16px]">
+              {section.groups.map((group) => (
+                <BulletList key={group.title} section={{ kind: "bullets", title: group.title, intro: group.title, items: group.items }} />
+              ))}
+            </div>
           ) : (
             <BulletList section={section} />
           )}
@@ -2474,34 +2517,12 @@ function ReportContent({ report }: { report: Report }) {
 // Транскрипт (перенесен из ai-export-sharing): главы + реплики
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LINE =
-  "Hello Ruth! I hope everything is going wonderfully for you! How have you been lately? Hello Ruth! I hope ";
+type Replica = { speaker: string; color: string; time: string; text: string };
 
-type Replica = { speaker: string; color: string; time: string; lines: number };
-
-const chapter1Replicas: Replica[] = [
-  { speaker: "Speaker B", color: speakerColors.orange, time: "0:02", lines: 2 },
-  { speaker: "Speaker A", color: speakerColors.green, time: "0:08", lines: 1 },
-];
-
-const chapter2Replicas: Replica[] = [
-  { speaker: "Speaker A", color: speakerColors.green, time: "0:12", lines: 1 },
-  { speaker: "Speaker A", color: speakerColors.purple, time: "0:12", lines: 3 },
-  { speaker: "Speaker B", color: speakerColors.orange, time: "0:12", lines: 2 },
-  { speaker: "Speaker A", color: speakerColors.green, time: "00:12", lines: 1 },
-  { speaker: "Speaker A", color: speakerColors.green, time: "00:12", lines: 1 },
-  { speaker: "Speaker B", color: speakerColors.orange, time: "0:12", lines: 2 },
-  { speaker: "Speaker A", color: speakerColors.purple, time: "0:12", lines: 3 },
-  { speaker: "Speaker A", color: speakerColors.blue, time: "00:12", lines: 1 },
-  { speaker: "Speaker B", color: speakerColors.orange, time: "0:12", lines: 2 },
-];
-
-function replicaText(lines: number) {
-  if (lines === 2) {
-    return "Hello Ruth! I hope everything is going wonderfully for you! How have you been lately? Hello Ruth! I hope everything is going wonderfully for you! How have you been lately?";
-  }
-  return LINE.repeat(lines).trimEnd();
-}
+/** Реплики глав — реальный транскрипт приветственной встречи */
+const chapterReplicas: Replica[][] = CHAPTERS.map((c) =>
+  c.replicas.map((r) => ({ speaker: SPEAKER, color: SPEAKER_COLOR, time: r.time, text: r.text })),
+);
 
 function hexToRgba(hex: string, alpha: number) {
   const value = hex.replace("#", "");
@@ -2526,11 +2547,8 @@ function ReplicaBlock({ replica }: { replica: Replica }) {
             {replica.time}
           </span>
         </div>
-        <p
-          className={`w-[654px] text-[13px] font-normal leading-[16px] tracking-[-0.13px] ${replica.lines === 1 ? "truncate" : ""}`}
-          style={{ color: tokens.black }}
-        >
-          {replicaText(replica.lines)}
+        <p className="w-[654px] text-[13px] font-normal leading-[16px] tracking-[-0.13px]" style={{ color: tokens.black }}>
+          {replica.text}
         </p>
       </div>
     </div>
@@ -2593,16 +2611,8 @@ function ChapterAccordion({
 
 type Assignee = { id: string; label: string; full: string; color: string };
 
-// Исполнители и цвета — как в макете (47774:12455)
-const taskAssignees: Assignee[] = [
-  { id: "andryukha", label: "Андрюха", full: "Андрюха (Speaker F)", color: speakerColors.orange },
-  { id: "sasha", label: "Саша", full: "Саша (Speaker D)", color: speakerColors.deepPurple },
-  { id: "sanek", label: "Санек", full: "Санек (Speaker A)", color: speakerColors.green },
-  { id: "zakharov", label: "Федор", full: "Федор Захаров", color: "#A01070" },
-  { id: "screen", label: "Экран", full: "Экран мои встречи", color: "#0F55DD" },
-  { id: "zhilkin", label: "Федор", full: "Федор Жилкин", color: "#B01414" },
-  { id: "egor", label: "Egor", full: "Egor", color: "#444444" },
-];
+// Исполнитель — единственный спикер приветственной встречи
+const taskAssignees: Assignee[] = [{ id: "ilya", label: "Илья", full: SPEAKER, color: SPEAKER_COLOR }];
 
 const assigneeById = (id: string | null) => taskAssignees.find((item) => item.id === id) ?? null;
 
@@ -2632,114 +2642,8 @@ type Task = {
   done: boolean;
 };
 
-// Задачи, исполнители и таймкоды — как в макете (47774:12455)
-const initialTasks: Task[] = [
-  {
-    id: "signals",
-    text: "Передать список признаков и весов для определения пользователей, которым показывать B2B коммуникации (Срок: В течение 2 дней)",
-    assigneeId: null,
-    time: "4:32",
-    done: false,
-  },
-  {
-    id: "segment-script",
-    text: "Разработать и запустить скрипт, который раз в сутки пересчитывает принадлежность пользователей к сегменту и формирует флаг для показа коммуникаций",
-    assigneeId: "andryukha",
-    time: "6:58",
-    done: false,
-  },
-  {
-    id: "tracking",
-    text: "Настроить трекинг событий: показы баннеров, клики по баннерам, закрытия, отправки форм и ошибки в формах, обсудить логику перезаписи ошибок при успешной отправке",
-    assigneeId: "sasha",
-    time: "12:02",
-    done: false,
-  },
-  {
-    id: "sheet-pricing",
-    text: "Создать отдельную Google таблицу для записи данных форм, открываемых через прайсинг и апгрейд, чтобы отделить статистику от баннеров (Срок: Следующая неделя)",
-    assigneeId: "andryukha",
-    time: "17:09",
-    done: false,
-  },
-  {
-    id: "banners-speed",
-    text: "Разработать рекомендации по оптимизации загрузки баннеров для повышения скорости страницы, провести A/B тестирование вариантов отображения с разным дизайном",
-    assigneeId: "zakharov",
-    time: "14:30",
-    done: false,
-  },
-  {
-    id: "forms-report",
-    text: "Проанализировать отчеты по взаимодействию пользователей с формами, выявить причины отказов и подготовить план по улучшению UX для увеличения конверсии",
-    assigneeId: "screen",
-    time: "16:45",
-    done: false,
-  },
-  {
-    id: "sheet-access",
-    text: "Обеспечить запись данных пользователей, достигших события form.submit.access, в Google таблицу с логином, временем и заполненными полями формы",
-    assigneeId: "andryukha",
-    time: "16:55",
-    done: false,
-  },
-  {
-    id: "modals-frontend",
-    text: "Начать разработку фронтенда модалок, подготовить к интеграции с формулой скоринга и логикой показа коммуникаций",
-    assigneeId: "sanek",
-    time: "22:48",
-    done: false,
-  },
-  {
-    id: "architecture",
-    text: "Собрать команду для обсуждения архитектуры и распределения задач по созданию новых модулей",
-    assigneeId: "egor",
-    time: "22:55",
-    done: false,
-  },
-  {
-    id: "prototype-test",
-    text: "Провести тестирование прототипа с пользователями для выявления узких мест и улучшения UX",
-    assigneeId: "screen",
-    time: "23:08",
-    done: false,
-  },
-  {
-    id: "spec-md",
-    text: "Скинуть MD-шку с описанием спецификации в DevChat для команды разработки",
-    assigneeId: "andryukha",
-    time: "23:37",
-    done: false,
-  },
-  {
-    id: "docs",
-    text: "Обновить документацию на основе комментариев от команды",
-    assigneeId: "zhilkin",
-    time: "23:51",
-    done: false,
-  },
-  {
-    id: "tracking-details",
-    text: "Обсудить и уточнить технические детали трекинга кликов и событий на фронтенде, включая использование внешних метрик и базы данных",
-    assigneeId: "sasha",
-    time: "24:08",
-    done: false,
-  },
-  {
-    id: "spec-review",
-    text: "Санек изучит спецификацию и при необходимости задаст вопросы Андрюхе по технической части (Срок: Понедельник)",
-    assigneeId: "sanek",
-    time: "27:11",
-    done: false,
-  },
-  {
-    id: "cooldown",
-    text: "Реализовать логику кулдауна на 30 дней для пользователей, которые закрыли баннер крестиком или отправили форму",
-    assigneeId: "andryukha",
-    time: "8:19",
-    done: true,
-  },
-];
+// Задачи из AI Отчета приветственной встречи (welcome-content.ts): все на Илью, таймкодов нет
+const initialTasks: Task[] = TASKS.map((text, i) => ({ id: `welcome-${i + 1}`, text, assigneeId: "ilya", done: false }));
 
 // Конфетти при отметке: фиксированный паттерн разлета (углы/размеры/цвета палитры)
 const burstParticles = [
@@ -3650,29 +3554,23 @@ function TasksContent({
 }
 
 function TranscriptContent() {
-  const [chapter1Open, setChapter1Open] = useState(false);
-  const [chapter2Open, setChapter2Open] = useState(true);
+  // Раскрыта глава, где стоит плеер (2:24 — вторая), остальные свернуты — как в макете
+  const [open, setOpen] = useState<boolean[]>(() => CHAPTERS.map((_, i) => i === 1));
 
   return (
     <div className="flex w-full flex-col gap-[8px]">
-      <ChapterAccordion
-        title="1. Обсуждение ягодного лукошка и ожидание участников"
-        expanded={chapter1Open}
-        onToggle={() => setChapter1Open((value) => !value)}
-      >
-        {chapter1Replicas.map((replica, index) => (
-          <ReplicaBlock key={index} replica={replica} />
-        ))}
-      </ChapterAccordion>
-      <ChapterAccordion
-        title="2. Greetings and start of the meeting"
-        expanded={chapter2Open}
-        onToggle={() => setChapter2Open((value) => !value)}
-      >
-        {chapter2Replicas.map((replica, index) => (
-          <ReplicaBlock key={index} replica={replica} />
-        ))}
-      </ChapterAccordion>
+      {CHAPTERS.map((chapter, i) => (
+        <ChapterAccordion
+          key={chapter.title}
+          title={chapter.title}
+          expanded={open[i]}
+          onToggle={() => setOpen((prev) => prev.map((v, j) => (j === i ? !v : v)))}
+        >
+          {chapterReplicas[i].map((replica, index) => (
+            <ReplicaBlock key={index} replica={replica} />
+          ))}
+        </ChapterAccordion>
+      ))}
     </div>
   );
 }
@@ -3739,6 +3637,7 @@ export default function MeetingOnboardingPage() {
   const playback = usePlayback();
   const [playerOpen, setPlayerOpen] = useState(false);
   const [headerPanelOpen, setHeaderPanelOpen] = useState(false);
+  const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
 
   // Отчеты: примененные, текущий, генерация (по-отчетно), дропдаун
   const [appliedIds, setAppliedIds] = useState<string[]>([articleReport.id]);
@@ -3833,6 +3732,7 @@ export default function MeetingOnboardingPage() {
 
   const tasksCopyTextRef = useRef({ text: "", label: "Скопировать все задачи" });
   const [undoVisible, setUndoVisible] = useState(false);
+  const [undoMessage, setUndoMessage] = useState("Задача удалена");
   const undoActionRef = useRef<(() => void) | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -3849,8 +3749,9 @@ export default function MeetingOnboardingPage() {
 
   // Undo-тост живет дольше обычного (5с) и вытесняет его; новый показ
   // затирает предыдущее отложенное восстановление
-  const showUndoToast = (undo: () => void) => {
+  const showUndoToast = (undo: () => void, message = "Задача удалена") => {
     setToastVisible(false);
+    setUndoMessage(message);
     undoActionRef.current = undo;
     setUndoVisible(true);
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -3917,7 +3818,10 @@ export default function MeetingOnboardingPage() {
           >
             <div className="flex w-[670px] shrink-0 flex-col gap-[16px] pb-[80px] pt-[32px]">
               <div className="flex w-full flex-col gap-[24px]">
-                <MeetingInfo />
+                <MeetingInfo
+                  onTagDeleted={(_name, restore) => showUndoToast(restore, "Тег удален")}
+                  onTagsPopoverChange={setTagsPopoverOpen}
+                />
                 <div ref={tabsAreaRef} className="w-full">
                   <ReportTabs
                     current={current}
@@ -3975,14 +3879,14 @@ export default function MeetingOnboardingPage() {
           <MiniPlayer playback={playback} onOpen={openPlayer} />
           <div className="pointer-events-none absolute inset-x-0 bottom-[54px] z-50">
             <CopiedToast visible={toastVisible} message={toastMessage} />
-            <UndoToast visible={undoVisible} message="Задача удалена" onUndo={handleUndo} />
+            <UndoToast visible={undoVisible} message={undoMessage} onUndo={handleUndo} />
           </div>
         </section>
         <OnboardingTour
           step={tourStep}
           // Пока открыт поповер (дропдаун отчетов, AI, шеринг, экспорт) или плеер — тултип спрятан,
           // после закрытия возвращается на тот же шаг
-          hidden={playerOpen || dropdownOpen || headerPanelOpen}
+          hidden={playerOpen || dropdownOpen || headerPanelOpen || tagsPopoverOpen}
           onNext={() => tourStep !== null && goToStep(Math.min(tourStep + 1, TOUR_STEPS.length - 1))}
           onClose={() => setTourStep(null)}
         />
