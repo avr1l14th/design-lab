@@ -591,12 +591,18 @@ function MeetingHeader({
   linkCopied,
   onCopyLink,
   onAiCopy,
+  onPanelChange,
 }: {
   linkCopied: boolean;
   onCopyLink: () => void;
   onAiCopy: () => void;
+  /** Открыт ли поповер шапки (AI, шеринг, экспорт) — тур прячет тултип, чтобы не загораживать его */
+  onPanelChange?: (open: boolean) => void;
 }) {
   const [openPanel, setOpenPanel] = useState<HeaderPanel>(null);
+  useEffect(() => {
+    onPanelChange?.(openPanel !== null);
+  }, [openPanel, onPanelChange]);
   // Дефолтное действие в макете онбординга — Claude
   const [aiAction, setAiAction] = useState<AiMenuItem>(aiMenuTop[1]);
   const [aiCopied, setAiCopied] = useState(false);
@@ -3732,6 +3738,7 @@ export default function MeetingOnboardingPage() {
   // Плеер: общее время для мини-плеера и плеера на весь экран
   const playback = usePlayback();
   const [playerOpen, setPlayerOpen] = useState(false);
+  const [headerPanelOpen, setHeaderPanelOpen] = useState(false);
 
   // Отчеты: примененные, текущий, генерация (по-отчетно), дропдаун
   const [appliedIds, setAppliedIds] = useState<string[]>([articleReport.id]);
@@ -3898,7 +3905,12 @@ export default function MeetingOnboardingPage() {
       <div className="flex h-full w-full bg-white">
         <Sidebar />
         <section className="relative flex h-full min-w-0 flex-1 flex-col bg-white">
-          <MeetingHeader linkCopied={linkCopied} onCopyLink={handleCopyLink} onAiCopy={handleAiCopy} />
+          <MeetingHeader
+            linkCopied={linkCopied}
+            onCopyLink={handleCopyLink}
+            onAiCopy={handleAiCopy}
+            onPanelChange={setHeaderPanelOpen}
+          />
           <div
             className="flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto"
             style={{ scrollbarGutter: "stable both-edges" }}
@@ -3968,7 +3980,9 @@ export default function MeetingOnboardingPage() {
         </section>
         <OnboardingTour
           step={tourStep}
-          hidden={playerOpen}
+          // Пока открыт поповер (дропдаун отчетов, AI, шеринг, экспорт) или плеер — тултип спрятан,
+          // после закрытия возвращается на тот же шаг
+          hidden={playerOpen || dropdownOpen || headerPanelOpen}
           onNext={() => tourStep !== null && goToStep(Math.min(tourStep + 1, TOUR_STEPS.length - 1))}
           onClose={() => setTourStep(null)}
         />

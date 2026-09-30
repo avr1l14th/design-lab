@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -23,6 +23,26 @@ const pressableClass =
   "transition-colors duration-[120ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none";
 const focusRingClass = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E4ECFA]";
 const easeOut = [0.23, 1, 0.32, 1] as const;
+
+/**
+ * Держит элемент в DOM, пока доигрывает анимация скрытия, потом убирает.
+ * Вместо AnimatePresence: во framer-motion 12.38 exit у него не завершается — скрытые
+ * тултипы и плеер оставались в DOM с opacity 0 и перехватывали клики по странице.
+ */
+function usePresence(visible: boolean, exitMs: number) {
+  const [prev, setPrev] = useState(visible);
+  const [exiting, setExiting] = useState(false);
+  if (visible !== prev) {
+    setPrev(visible);
+    setExiting(!visible);
+  }
+  useEffect(() => {
+    if (!exiting) return;
+    const t = setTimeout(() => setExiting(false), exitMs);
+    return () => clearTimeout(t);
+  }, [exiting, exitMs]);
+  return visible || exiting;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Тур: шаги
@@ -49,44 +69,44 @@ export type TourStep = {
 export const TOUR_STEPS: TourStep[] = [
   {
     anchor: "tab-report",
-    title: "AI-отчет",
+    title: "Смотрите итоги встречи в AI Отчете",
     text: "Стройте новые отчеты и переключайтесь между ними по клику на вкладку",
     tab: "report",
   },
   {
     anchor: "tab-transcript",
-    title: "Транскрипт",
-    text: "Главы помогают быстро найти нужную часть встречи, а реплики можно отредактировать",
+    title: "Читайте расшифровку встречи целиком",
+    text: "Главы помогают быстро найти нужную часть, а реплики можно отредактировать",
     tab: "transcript",
   },
   {
     anchor: "tab-chat",
-    title: "Чат по встрече",
-    text: "Спрашивайте о встрече что угодно — например, что решили или кто за что отвечает",
+    title: "Задавайте любые вопросы по встрече",
+    text: "Например, что решили или кто за что отвечает — чат ответит по записи встречи",
     tab: "chat",
   },
   {
     anchor: "tab-tasks",
-    title: "Задачи",
-    text: "Задачи с исполнителями и сроками — отмечайте готовые и создавайте новые",
+    title: "Следите за задачами со встречи",
+    text: "Задачи с исполнителями и сроками можно редактировать и создавать новые",
     tab: "tasks",
   },
   {
     anchor: "tags",
-    title: "Теги",
-    text: "Теги общие для всего пространства — встречи по проекту легко найдет вся команда",
+    title: "Помечайте встречи тегами",
+    text: "Теги общие для всего пространства — по ним потом легко можно найти нужные встречи",
     tab: "tasks",
   },
   {
     anchor: "share",
-    title: "Поделиться и экспорт",
-    text: "Отправьте ссылку коллегам, скачайте PDF или откройте встречу в ChatGPT и Claude",
+    title: "Делитесь встречей с коллегами",
+    text: "Отправьте ссылку, скачайте PDF или откройте встречу в ChatGPT и Claude",
     tab: "tasks",
   },
   {
     anchor: "player",
-    title: "Плеер",
-    text: "Смотрите записи встреч, в приветственной встрече плеер открыт бесплатно",
+    title: "Смотрите записи встреч в плеере",
+    text: "В приветственной встрече плеер открыт бесплатно, для своих встреч улучшите тариф",
     tab: "tasks",
     placement: "top",
     gap: 12,
@@ -146,7 +166,12 @@ export function OnboardingTour({
   const reduceMotion = useReducedMotion();
   const tipRef = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<Place | null>(null);
-  const current = step === null ? null : TOUR_STEPS[step];
+  const visible = step !== null && !hidden;
+  const present = usePresence(visible, 140);
+  // Последний показанный шаг: на нем тултип доигрывает скрытие после закрытия тура
+  const [shownStep, setShownStep] = useState(step);
+  if (step !== null && step !== shownStep) setShownStep(step);
+  const current = present && shownStep !== null ? TOUR_STEPS[shownStep] : null;
 
   // Позиция пересчитывается каждый кадр, пока тур идет: ширина табов анимируется
   // (шеврон «Статьи»), контент скроллится, окно ресайзится
@@ -188,13 +213,13 @@ export function OnboardingTour({
   }, [step, hidden, onClose]);
 
   if (typeof document === "undefined") return null;
-  const last = step === TOUR_STEPS.length - 1;
+  const last = shownStep === TOUR_STEPS.length - 1;
 
   return createPortal(
-    <AnimatePresence>
-      {current && place && !hidden && (
+    current &&
+      place && (
         <motion.div
-          key={step}
+          key={shownStep}
           ref={tipRef}
           role="dialog"
           aria-label={current.title}
@@ -206,11 +231,11 @@ export function OnboardingTour({
             ...tipSurface,
             // Растет из носика
             transformOrigin: `${place.arrowLeft + ARROW_W / 2}px ${place.placement === "bottom" ? "0%" : "100%"}`,
+            pointerEvents: visible ? "auto" : "none",
           }}
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.16, ease: easeOut, opacity: { duration: 0.14 } }}
+          animate={visible ? { opacity: 1, scale: 1 } : reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+          transition={{ duration: visible ? 0.16 : 0.12, ease: easeOut, opacity: { duration: visible ? 0.14 : 0.1 } }}
         >
           <span
             aria-hidden="true"
@@ -225,7 +250,7 @@ export function OnboardingTour({
             }}
           />
           <div className="flex w-full flex-col items-start gap-[4px]">
-            <span className="whitespace-nowrap text-[12px] font-medium leading-[normal] tracking-[-0.24px] text-white">
+            <span className="whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">
               {current.title}
             </span>
             <span className="w-full text-[12px] font-normal leading-[normal] tracking-[-0.24px] text-white/[0.64]">
@@ -234,7 +259,7 @@ export function OnboardingTour({
           </div>
           <div className="flex w-full items-center justify-between">
             <span className="whitespace-nowrap text-[12px] font-normal leading-[normal] tracking-[-0.24px] text-white/[0.64]">
-              {(step ?? 0) + 1}/{TOUR_STEPS.length}
+              {(shownStep ?? 0) + 1}/{TOUR_STEPS.length}
             </span>
             <button
               type="button"
@@ -245,8 +270,7 @@ export function OnboardingTour({
             </button>
           </div>
         </motion.div>
-      )}
-    </AnimatePresence>,
+      ),
     document.body,
   );
 }
@@ -453,6 +477,8 @@ export function FullscreenPlayer({
   const reduceMotion = useReducedMotion();
   const { time, playing, setPlaying, seek, seekTo } = playback;
   const [bannerClosed, setBannerClosed] = useState(false);
+  const present = usePresence(open, 200);
+  const bannerPresent = usePresence(!bannerClosed, 150);
 
   useEffect(() => {
     if (!open) return;
@@ -470,17 +496,16 @@ export function FullscreenPlayer({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
+    present && (
         <motion.div
           role="dialog"
           aria-modal="true"
           aria-label="Добро пожаловать в mymeet.ai"
           className="fixed inset-0 z-[80] overflow-hidden bg-black"
+          style={{ pointerEvents: open ? "auto" : "none" }}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2, ease: easeOut }}
+          animate={{ opacity: open ? 1 : 0 }}
+          transition={{ duration: open ? 0.2 : 0.15, ease: easeOut }}
         >
           {/* Кадр записи: в макете — стоп-кадр видео по центру, 1200×713 */}
           <button
@@ -527,15 +552,17 @@ export function FullscreenPlayer({
 
           {/* Плашка: плеер бесплатен только в приветственной встрече (47634:7208, ховер — 47789:14300).
               Клик — к тарифам. На ховере в углу появляется крестик: закрытая плашка не вернется до перезагрузки */}
-          <AnimatePresence>
-            {!bannerClosed && (
+          {bannerPresent && (
               <motion.div
                 className="group absolute bottom-[68px] left-1/2 w-[640px] max-w-[calc(100%-32px)]"
-                style={{ x: "-50%" }}
+                style={{ x: "-50%", pointerEvents: bannerClosed ? "none" : "auto" }}
                 initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4, transition: { duration: 0.15, ease: easeOut } }}
-                transition={{ duration: 0.24, ease: easeOut, delay: reduceMotion ? 0 : 0.3 }}
+                animate={bannerClosed ? (reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }) : { opacity: 1, y: 0 }}
+                transition={
+                  bannerClosed
+                    ? { duration: 0.15, ease: easeOut }
+                    : { duration: 0.24, ease: easeOut, delay: reduceMotion ? 0 : 0.3 }
+                }
               >
                 <button
                   type="button"
@@ -571,7 +598,6 @@ export function FullscreenPlayer({
                 </button>
               </motion.div>
             )}
-          </AnimatePresence>
 
           {/* Управление */}
           <div className="absolute bottom-0 left-0 right-0 flex flex-col items-start gap-[12px] p-[12px]">
@@ -611,8 +637,7 @@ export function FullscreenPlayer({
             </div>
           </div>
         </motion.div>
-      )}
-    </AnimatePresence>,
+      ),
     document.body,
   );
 }
