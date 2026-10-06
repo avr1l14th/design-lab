@@ -28,14 +28,11 @@ const fig = (name: string) => rfAsset(`figma/${name}`);
 /* ─────────────────────────── ГЕРОЙ ─────────────────────────── */
 
 function Hero({ onCopied }: { onCopied: () => void }) {
-  const [copied, setCopied] = useState(false);
+  // Кнопка не меняет текст — подтверждение только тостом. Буфер не ждем: в песочнице запрос может висеть
   const copy = () => {
-    // Состояние показываем сразу, не дожидаясь буфера: в песочнице запрос к clipboard может висеть
-    setCopied(true);
     onCopied();
-    setTimeout(() => setCopied(false), 2000);
     navigator.clipboard?.writeText(`https://${INVITE_LINK}`).catch(() => {
-      // clipboard недоступен — в прототипе достаточно показать состояние
+      // clipboard недоступен — в прототипе достаточно тоста
     });
   };
 
@@ -52,7 +49,7 @@ function Hero({ onCopied }: { onCopied: () => void }) {
           className={`flex h-[36px] w-[155px] items-center rounded-[4px] py-[8px] pl-[12px] pr-[6px] hover:bg-[#0032B1] ${pressableClass} ${focusRingClass}`}
           style={{ backgroundColor: tokens.blue }}
         >
-          <span className="truncate whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">{copied ? "Ссылка скопирована" : "Скопировать ссылку"}</span>
+          <span className="truncate whitespace-nowrap text-[13px] font-medium leading-[normal] tracking-[-0.13px] text-white">Скопировать ссылку</span>
         </button>
         {/* Карта стоит абсолютно на 340px от края контента и режется правым краем карточки — как на макете */}
         <div className="absolute left-[340px] top-0">
