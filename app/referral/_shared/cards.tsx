@@ -15,8 +15,8 @@ const fig = (name: string) => rfAsset(`figma/${name}`);
 // Текущее значение догоняет целевое пружиной (lerp), поэтому и вход, и возврат мягкие.
 // Глубокая тень лежит отдельным слоем и меняет только opacity (box-shadow анимировать дорого).
 // На тачах и при prefers-reduced-motion наклона нет.
-// Появление: «раздача» снизу с 3D-поворотом и блюром (.rf-card-in в globals.css), тексты догоняют
-// со сдвигом, затем один проход блика. Вход живет на внешней обертке и не мешает ховеру.
+// Появление: «раздача» снизу с 3D-поворотом и блюром (.rf-card-in в globals.css) — карта влетает
+// сразу с логотипом и текстом, затем один проход блика. Вход живет на внешней обертке и не мешает ховеру.
 
 const MAX_TILT = 12;
 const HOVER_SCALE = 1.04;
@@ -109,15 +109,15 @@ export function GiftCard({ size }: { size: "hero" | "modal" }) {
             aria-hidden="true"
           >
             <Shine />
-            <div className="rf-card-text-in relative flex w-full justify-end" style={{ animationDelay: "260ms" }}>
+            <div className="relative flex w-full justify-end">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={fig("logo-50.svg")} alt="" width={50.625} height={12} className="block h-[12px] w-[50.625px]" />
             </div>
             <div className="relative flex w-full flex-col">
-              <span className="rf-card-text-in text-[28px] font-medium leading-[normal]" style={{ animationDelay: "320ms" }}>
+              <span className="text-[28px] font-medium leading-[normal]">
                 {INVITEE_DISCOUNT}%
               </span>
-              <span className="rf-card-text-in whitespace-nowrap text-[8px] font-normal leading-[normal] tracking-[-0.08px]" style={{ color: "rgba(255,255,255,0.64)", animationDelay: "380ms" }}>
+              <span className="whitespace-nowrap text-[8px] font-normal leading-[normal] tracking-[-0.08px]" style={{ color: "rgba(255,255,255,0.64)" }}>
                 скидка на подписку
               </span>
             </div>
@@ -135,15 +135,15 @@ export function GiftCard({ size }: { size: "hero" | "modal" }) {
           aria-hidden="true"
         >
           <Shine delay={600} />
-          <div className="rf-card-text-in relative flex h-[18.861px] w-full justify-end" style={{ animationDelay: "340ms" }}>
+          <div className="relative flex h-[18.861px] w-full justify-end">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fig("logo-80.svg")} alt="" width={80} height={18.963} className="block h-[18.963px] w-[80px]" />
           </div>
           <div className="relative flex w-full flex-col">
-            <span className="rf-card-text-in text-[48px] font-medium leading-[normal]" style={{ animationDelay: "400ms" }}>
+            <span className="text-[48px] font-medium leading-[normal]">
               {INVITEE_DISCOUNT}%
             </span>
-            <span className="rf-card-text-in whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: "rgba(255,255,255,0.64)", animationDelay: "460ms" }}>
+            <span className="whitespace-nowrap text-[13px] font-normal leading-[normal] tracking-[-0.13px]" style={{ color: "rgba(255,255,255,0.64)" }}>
               скидка на подписку
             </span>
           </div>
