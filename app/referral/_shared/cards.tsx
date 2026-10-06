@@ -102,7 +102,7 @@ export function GiftCard({ size }: { size: "hero" | "modal" }) {
   if (size === "hero") {
     return (
       <div className="rf-card-in">
-        <Tilt radius={5.98} shadow="0 11.644px 23.287px -11.644px rgba(33,40,51,0.5)" hoverShadow="0 14px 26px -12px rgba(33,40,51,0.5)">
+        <Tilt radius={5.98} shadow="0 11.644px 23.287px -11.644px rgba(33,40,51,0.5)" hoverShadow="0 12px 28px -12px rgba(33,40,51,0.3)">
           <div
             className="relative flex h-[120px] w-[244px] shrink-0 select-none flex-col items-start justify-between overflow-clip rounded-[5.98px] p-[14.555px] text-white"
             style={{ backgroundImage: `url(${fig("card-hero.png")})`, backgroundSize: "100% 100%" }}
@@ -126,7 +126,7 @@ export function GiftCard({ size }: { size: "hero" | "modal" }) {
   }
   return (
     <div className="rf-card-in" style={{ animationDelay: "80ms" }}>
-      <Tilt radius={9.687} shadow="0 18.861px 37.722px -18.861px rgba(33,40,51,0.5)" hoverShadow="0 22px 40px -18px rgba(33,40,51,0.5)">
+      <Tilt radius={9.687} shadow="0 18.861px 37.722px -18.861px rgba(33,40,51,0.5)" hoverShadow="0 18px 44px -18px rgba(33,40,51,0.3)">
         <div
           className="relative flex h-[196px] w-[356px] shrink-0 select-none flex-col items-start justify-between overflow-clip rounded-[9.687px] p-[24px] text-white"
           style={{ backgroundImage: `url(${fig("card-modal.png")})`, backgroundSize: "100% 100%" }}
