@@ -6,7 +6,7 @@ import { rfAsset } from "./tokens";
 
 const fig = (name: string) => rfAsset(`figma/${name}`);
 
-// Подарочная карта из макета в двух размерах: в герое (244×120) и в модалке приглашенного (356×196).
+// Подарочная карта из макета в двух размерах: в герое (200×120) и в модалке приглашенного (356×196).
 // Фон — экспорт из Figma без текста, логотип и тексты живые.
 //
 // По ховеру карта «тридешится»: наклоняется вслед за курсором (до ±12°) и чуть увеличивается.
@@ -104,13 +104,15 @@ export function GiftCard({ size }: { size: "hero" | "modal" }) {
       <div className="rf-card-in">
         <Tilt radius={5.98} shadow="0 11.644px 23.287px -11.644px rgba(33,40,51,0.5)" hoverShadow="0 12px 28px -12px rgba(33,40,51,0.3)">
           <div
-            className="relative flex h-[120px] w-[244px] shrink-0 select-none flex-col items-start justify-between overflow-clip rounded-[5.98px] p-[14.555px] text-white"
+            className="relative flex h-[120px] w-[200px] shrink-0 select-none flex-col items-start justify-between overflow-clip rounded-[5.98px] p-[14.555px] text-white"
             style={{ backgroundImage: `url(${fig("card-hero.png")})`, backgroundSize: "100% 100%" }}
             aria-hidden="true"
           >
             <Shine />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={fig("logo-50.svg")} alt="" width={50.625} height={12} className="rf-card-text-in relative block h-[12px] w-[50.625px]" style={{ animationDelay: "260ms" }} />
+            <div className="rf-card-text-in relative flex w-full justify-end" style={{ animationDelay: "260ms" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={fig("logo-50.svg")} alt="" width={50.625} height={12} className="block h-[12px] w-[50.625px]" />
+            </div>
             <div className="relative flex w-full flex-col">
               <span className="rf-card-text-in text-[28px] font-medium leading-[normal]" style={{ animationDelay: "320ms" }}>
                 {INVITEE_DISCOUNT}%

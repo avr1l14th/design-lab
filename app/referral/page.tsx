@@ -1,9 +1,9 @@
 "use client";
 
 import { Inter } from "next/font/google";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GiftCard } from "./_shared/cards";
-import { INVITEE_DISCOUNT, MILESTONES, REFERRALS, fmtDate, initials, isPaid, subsLabel, type Milestone, type Referral } from "./_shared/data";
+import { INVITEE_DISCOUNT, MILESTONES, REFERRALS, fmtDate, initials, isPaid, paysLabel, type Milestone, type Referral } from "./_shared/data";
 import { DevPanel, Switch } from "./_shared/DevPanel";
 import { Sidebar } from "./_shared/Sidebar";
 import { INVITE_LINK, focusRingClass, pressableClass, rfAsset, tokens } from "./_shared/tokens";
@@ -44,7 +44,7 @@ function Hero({ onCopied }: { onCopied: () => void }) {
       <div className="relative flex w-full flex-col items-start gap-[16px]">
         <div className="flex w-full flex-col gap-[8px]" style={{ color: tokens.black }}>
           <h1 className="flex h-[28px] w-[288px] flex-col justify-end whitespace-nowrap text-[24px] font-medium leading-[normal] tracking-[-0.48px]">Реферальная программа</h1>
-          <p className={`w-[295px] ${T13}`}>Делитесь ссылкой со знакомыми: они получат скидку {INVITEE_DISCOUNT}%, а вы — награды за их подписки</p>
+          <p className={`w-[295px] ${T13}`}>Делитесь ссылкой со знакомыми: они получат скидку {INVITEE_DISCOUNT}%, а вы — награды за их оплаты</p>
         </div>
         <button
           type="button"
@@ -107,7 +107,7 @@ function RewardsCard({ paid }: { paid: number }) {
           Награды
         </span>
         <span className={T12} style={{ color: tokens.grey }}>
-          {paid}/{MILESTONES[MILESTONES.length - 1].count} подписок
+          {paysLabel(paid)}
         </span>
       </div>
       <div className="flex w-full flex-col items-start">
@@ -128,7 +128,7 @@ function RewardsCard({ paid }: { paid: number }) {
                     {m.title}
                   </span>
                   <span className={`w-full ${T12}`} style={{ color: tokens.grey }}>
-                    {subsLabel(m.count)}
+                    {paysLabel(m.count)}
                   </span>
                 </div>
                 <Checkbox done={done} />
@@ -148,13 +148,25 @@ function StatusChip({ r }: { r: Referral }) {
   return (
     <span className="flex items-center justify-center rounded-[3px] px-[8px] py-[4px]" style={{ backgroundColor: tokens.bgSubtle }}>
       <span className={`whitespace-nowrap ${T12}`} style={{ color: paid ? tokens.green : tokens.black }}>
-        {paid ? "Купил" : "Зарегистрировался"}
+        {paid ? "Оплатил" : "Зарегистрировался"}
       </span>
     </span>
   );
 }
 
+type StatusSort = null | "paidFirst" | "registeredFirst";
+
 function ReferralsTable({ rows }: { rows: Referral[] }) {
+  // По умолчанию строки идут по дате регистрации. Клик по «Статус» — сначала оплатившие,
+  // повторный клик — наоборот, стрелка переворачивается. Внутри группы порядок по дате сохраняется.
+  const [statusSort, setStatusSort] = useState<StatusSort>(null);
+  const sorted = useMemo(() => {
+    if (!statusSort) return rows;
+    const rank = (r: Referral) => (isPaid(r) ? 0 : 1) * (statusSort === "paidFirst" ? 1 : -1);
+    return [...rows].sort((a, b) => rank(a) - rank(b));
+  }, [rows, statusSort]);
+  const toggle = () => setStatusSort((v) => (v === "paidFirst" ? "registeredFirst" : "paidFirst"));
+
   return (
     <div className="flex w-full flex-col items-start overflow-clip rounded-[4px] border border-solid" style={{ borderColor: tokens.border }}>
       <div className="flex h-[52px] w-full items-center gap-[24px] border-b border-solid px-[16px] py-[12px]" style={{ backgroundColor: tokens.bgSubtle, borderColor: tokens.border }}>
@@ -164,9 +176,37 @@ function ReferralsTable({ rows }: { rows: Referral[] }) {
         <span className={`w-[110px] shrink-0 ${T12M}`} style={{ color: tokens.black }}>
           Дата регистрации
         </span>
-        <span className={`min-w-px flex-1 ${T12M}`} style={{ color: tokens.black }}>
-          Статус
-        </span>
+        <div className="flex min-w-px flex-1 items-center">
+          {rows.length > 0 ? (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={statusSort === "paidFirst" ? "Сортировка: сначала оплатившие" : statusSort === "registeredFirst" ? "Сортировка: сначала зарегистрировавшиеся" : "Сортировать по статусу"}
+              className={`group flex cursor-pointer items-center gap-[2px] rounded-[3px] ${T12M} ${pressableClass} ${focusRingClass}`}
+              style={{ color: tokens.black }}
+            >
+              Статус
+              <span
+                aria-hidden="true"
+                className={`block h-[12px] w-[12px] transition-transform duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${statusSort === "registeredFirst" ? "rotate-180" : ""}`}
+                style={{
+                  backgroundColor: tokens.grey,
+                  WebkitMaskImage: `url(${fig("ic-sort-12.svg")})`,
+                  maskImage: `url(${fig("ic-sort-12.svg")})`,
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                }}
+              />
+            </button>
+          ) : (
+            // В пустом состоянии на макете иконки сортировки нет
+            <span className={T12M} style={{ color: tokens.black }}>
+              Статус
+            </span>
+          )}
+        </div>
       </div>
       {rows.length === 0 ? (
         <div className="flex h-[240px] w-full items-center justify-center px-[16px] py-[4px]">
@@ -179,7 +219,7 @@ function ReferralsTable({ rows }: { rows: Referral[] }) {
           </div>
         </div>
       ) : (
-        rows.map((r) => (
+        sorted.map((r) => (
           <div key={r.id} className="flex h-[52px] w-full items-center gap-[24px] border-b border-solid bg-white px-[16px] py-[4px] last:border-b-0" style={{ borderColor: tokens.border }}>
             <div className="flex w-[220px] shrink-0 items-center gap-[8px]">
               <span

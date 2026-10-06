@@ -51,7 +51,7 @@ function InviteeModal({ onClose }: { onClose: () => void }) {
             <GiftCard size="modal" />
           </div>
           <div className="flex w-full flex-col items-start justify-center gap-[8px]">
-            <p className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]">Вам подарили скидку {INVITEE_DISCOUNT}%!</p>
+            <p className="w-full text-[14px] font-medium leading-[1.35] tracking-[-0.28px]">Вам доступна скидка {INVITEE_DISCOUNT}%!</p>
             <p className="w-full text-[13px] font-normal leading-[normal] tracking-[-0.13px]">
               Вы зарегистрировались по приглашению. Скидка {INVITEE_DISCOUNT}% действует на любой тариф, кроме Business, и применится автоматически при оплате
             </p>

@@ -29,13 +29,13 @@ export type Milestone = {
   icon: "pro" | "tennis" | "party";
 };
 
-/** Награды — тексты 1-в-1 с макета (в макете «12 месяцв» — опечатка, исправлена) */
+/** Награды — тексты 1-в-1 с макета (обновление 2026-10-06: «оплаты» вместо «подписок») */
 export const MILESTONES: Milestone[] = [
   { count: 3, title: "3 месяца Pro", icon: "pro" },
-  { count: 10, title: "12 месяцев Pro", icon: "pro" },
-  { count: 35, title: "Pro подписка навсегда", icon: "pro" },
-  { count: 60, title: "200 часовых падел тренировок с CEO mymeet.ai", icon: "tennis" },
-  { count: 100, title: "Приглашение на новогодний корпоратив c mymeet.ai", icon: "party" },
+  { count: 10, title: "1 год Pro", icon: "pro" },
+  { count: 35, title: "Pro навсегда", icon: "pro" },
+  { count: 60, title: "200 тренировок по паделу с CEO mymeet.ai", icon: "tennis" },
+  { count: 100, title: "Приглашение на новогодний корпоратив mymeet.ai", icon: "party" },
 ];
 
 export const plural = (n: number, one: string, few: string, many: string) => {
@@ -46,8 +46,8 @@ export const plural = (n: number, one: string, few: string, many: string) => {
   return many;
 };
 
-/** «3 подписки», «10 подписок» */
-export const subsLabel = (n: number) => `${n} ${plural(n, "подписка", "подписки", "подписок")}`;
+/** «3 оплаты», «10 оплат», «26 оплат» */
+export const paysLabel = (n: number) => `${n} ${plural(n, "оплата", "оплаты", "оплат")}`;
 
 /** Скидка приглашенному */
 export const INVITEE_DISCOUNT = 30;
@@ -90,7 +90,7 @@ const extra: [string, string, Plan][] = [
   ["boris@mymeet.ai", "2026-10-06", "paid"],
 ];
 
-/** Основной сценарий: первые четыре строки — 1-в-1 с макета, дальше добито до 26 подписок (как в счетчике «26/100») */
+/** Основной сценарий: первые четыре строки — 1-в-1 с макета, дальше добито до 26 оплат (как в счетчике на макете) */
 export const REFERRALS: Referral[] = [
   { id: "r1", email: "fedos@mymeet.ai", date: "2026-08-05", plan: "registered", avatar: "#0138C7" },
   { id: "r2", email: "andrey@mymeet.ai", date: "2026-08-22", plan: "registered", avatar: "#0D9655" },

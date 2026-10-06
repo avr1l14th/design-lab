@@ -140,7 +140,7 @@ export function ListBanner({ onOpen }: { onOpen: () => void }) {
             Приглашайте знакомых и получайте награды
           </p>
           <p className="truncate text-[12px] leading-[normal] tracking-[-0.24px]" style={{ color: tokens.grey }}>
-            Они получат скидку 30%, а вы — награды за их подписки
+            Они получат скидку 30%, а вы — награды за их оплаты
           </p>
         </div>
       </div>
