@@ -380,3 +380,61 @@ body {
   background-color: #C7C8CA;
   background-clip: content-box;
 }
+
+/* Подарочная карта рефералки: «раздача» при появлении — снизу, повернутая в 3D, с блюром —
+   и один проход блика после приземления. Ховер-наклон живет на внутреннем слое и не затрагивается. */
+@keyframes rf-card-in {
+  0% {
+    opacity: 0;
+    transform: perspective(700px) translateY(32px) rotateX(26deg) rotateY(-16deg) scale(0.88);
+    filter: blur(6px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(700px) translateY(0) rotateX(0) rotateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.rf-card-in {
+  transform-origin: 50% 100%;
+  animation: rf-card-in 760ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes rf-card-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rf-card-text-in {
+  animation: rf-card-text-in 480ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes rf-card-shine {
+  from {
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(130%) skewX(-18deg);
+  }
+}
+.rf-card-shine {
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.28) 50%, rgba(255, 255, 255, 0) 70%);
+  animation: rf-card-shine 900ms cubic-bezier(0.23, 1, 0.32, 1) 520ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rf-card-in,
+  .rf-card-text-in {
+    animation: rf-card-text-in 200ms ease both;
+    transform: none;
+  }
+  .rf-card-shine {
+    animation: none;
+    opacity: 0;
+  }
+}
