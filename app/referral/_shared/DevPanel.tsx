@@ -11,6 +11,7 @@ const SCREENS: { href: string; label: string }[] = [
   { href: "/referral/meetings", label: "Точки входа" },
   { href: "/referral", label: "Реферальная программа" },
   { href: "/referral/invitee", label: "Модалка приглашенного" },
+  { href: "/referral/reward", label: "Модалки наград" },
   { href: "/referral/pricing", label: "Прайсинг приглашенного" },
 ];
 

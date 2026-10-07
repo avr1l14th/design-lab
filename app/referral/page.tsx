@@ -154,13 +154,14 @@ function StatusChip({ r }: { r: Referral }) {
 type StatusSort = null | "paidFirst" | "registeredFirst";
 
 function ReferralsTable({ rows }: { rows: Referral[] }) {
-  // По умолчанию строки идут по дате регистрации. Клик по «Статус» — сначала оплатившие,
+  // По умолчанию строки идут по дате регистрации, новые сверху. Клик по «Статус» — сначала оплатившие,
   // повторный клик — наоборот, стрелка переворачивается. Внутри группы порядок по дате сохраняется.
   const [statusSort, setStatusSort] = useState<StatusSort>(null);
   const sorted = useMemo(() => {
-    if (!statusSort) return rows;
+    const byDate = [...rows].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    if (!statusSort) return byDate;
     const rank = (r: Referral) => (isPaid(r) ? 0 : 1) * (statusSort === "paidFirst" ? 1 : -1);
-    return [...rows].sort((a, b) => rank(a) - rank(b));
+    return byDate.sort((a, b) => rank(a) - rank(b));
   }, [rows, statusSort]);
   const toggle = () => setStatusSort((v) => (v === "paidFirst" ? "registeredFirst" : "paidFirst"));
 

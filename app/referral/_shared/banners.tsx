@@ -93,7 +93,7 @@ export function ListBanner({ onOpen }: { onOpen: () => void }) {
   if (dismissed) return null;
 
   return (
-    <div className="group/row relative flex w-full shrink-0 items-center px-[16px] py-[12px]">
+    <div className="group/row relative flex w-full shrink-0 items-center px-[16px] py-[8px]">
       {/* ✕ — на углу рамки баннера, виден на ховере строки */}
       <button
         type="button"
@@ -102,7 +102,7 @@ export function ListBanner({ onOpen }: { onOpen: () => void }) {
           e.stopPropagation();
           setDismissed(true);
         }}
-        className="absolute right-[8px] top-[4px] z-10 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/row:opacity-100"
+        className="absolute right-[8px] top-0 z-10 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/row:opacity-100"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={leadAsset("ic-list-close.svg")} width={16} height={16} alt="" />

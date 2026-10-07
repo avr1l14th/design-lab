@@ -109,7 +109,8 @@ export function MeetingsPage({ topBanner, listBanner, overlay, children }: { top
   }, []);
   useOutsideClose([filterBtnRef, filterPopRef], filtersOpen, closeFilters);
 
-  const wsMeetings = useMemo(() => MEETINGS.filter((m) => m.workspaceId === api.workspace.id), [api.workspace.id]);
+  // Встречи «m3» (1:1 с Алексеем) нет на макете Федора — список воспроизводим 1-в-1
+  const wsMeetings = useMemo(() => MEETINGS.filter((m) => m.workspaceId === api.workspace.id && m.id !== "m3"), [api.workspace.id]);
   const tagsOf = useCallback((id: string) => api.tagsFor(id), [api]);
   const effectiveFilters = useMemo(() => {
     const alive = filters.tagIds.filter((id) => api.tags.some((t) => t.id === id));
